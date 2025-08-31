@@ -350,6 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Client Info/Edit Modals Logic ---
     // --- Client Info/Edit Modals Logic ---
 // --- Client Info/Edit Modals Logic ---
+// --- Client Info/Edit Modals Logic ---
 if (clientsSection) {
     clientsSection.addEventListener('click', async (e) => {
         const viewBtn = e.target.closest('.view-client-btn');
@@ -389,17 +390,21 @@ if (clientsSection) {
 
             // Запрашиваем и отображаем ссылки на фото
             try {
-                // ВОЗВРАЩАЕМ КАК БЫЛО: Ищем фото в папке с ID клиента из базы данных
                 const { data: files, error } = await supabase.storage.from('passports').list(client.id.toString());
                 if (error) throw error;
 
                 if (!files || files.length === 0) {
                     photoLinksDiv.innerHTML = '<p>Фото не найдены.</p>';
                 } else {
+                    // ===== ИЗМЕНЕНИЕ ЗДЕСЬ =====
+                    // Вместо текстовой ссылки создаем тег <img>, обернутый в ссылку
                     const links = files.map(file => {
-                        // ВОЗВРАЩАЕМ КАК БЫЛО: Создаем ссылку, используя ID клиента
                         const { data } = supabase.storage.from('passports').getPublicUrl(`${client.id}/${file.name}`);
-                        return `<a href="${data.publicUrl}" target="_blank" rel="noopener noreferrer" style="display: block; margin-bottom: 5px;">${file.name}</a>`;
+                        return `
+                            <a href="${data.publicUrl}" target="_blank" rel="noopener noreferrer" title="Нажмите, чтобы открыть в полном размере">
+                                <img src="${data.publicUrl}" alt="${file.name}" style="max-width: 100%; height: auto; display: block; margin-bottom: 10px; border-radius: 8px; border: 1px solid #eee;">
+                            </a>
+                        `;
                     });
                     photoLinksDiv.innerHTML = links.join('');
                 }
