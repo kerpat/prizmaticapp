@@ -1,9 +1,0 @@
-[build]
-  # Папка, где лежит твой сайт
-  publish = "site"
-  # Папка, где лежат твои серверные функции
-  functions = "netlify/functions"
-
-[functions]
-  # Указываем, что наши функции написаны на Node.js
-  node_bundler = "esbuild"
