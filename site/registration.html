@@ -377,7 +377,7 @@
         }
       } catch (err) {
         console.error("Ошибка распознавания Gemini:", err);
-        alert("Не удалось распознать документ. Регистрация продолжается без авто-проверки.");
+        alert('Ошибка Gemini: ' + err.message);
         await finalizeRegistration(currentData);
       } finally {
         toggleButtonLoading(submitBtn, false, "Зарегистрироваться", "Распознаем фото...");
