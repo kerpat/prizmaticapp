@@ -2,13 +2,10 @@
 //
 // В этом файле реализована простая аутентификация и базовые операции
 // CRUD для тарифов, а также каркас для отображения клиентов, аренд и
-// платежей. Для работы с реальной базой требуется Supabase; чтобы
-// активировать интеграцию, сохраните `supabaseUrl` и `supabaseAnonKey`
-// в localStorage. Если Supabase не настроен, интерфейс по прежнему
-// отобразится, но данные будут храниться только в памяти, и
-// авторизация будет пропускаться.
+// платежей. Для работы с реальной базой требуется Supabase.
 
 document.addEventListener('DOMContentLoaded', () => {
+    // --- DOM Elements ---
     const loginSection = document.getElementById('login-section');
     const dashboardSection = document.getElementById('dashboard-section');
     const loginForm = document.getElementById('login-form');
@@ -20,230 +17,184 @@ document.addEventListener('DOMContentLoaded', () => {
     const clientsSection = document.getElementById('clients-section');
     const rentalsSection = document.getElementById('rentals-section');
     const paymentsSection = document.getElementById('payments-section');
+
+    // Tariff elements
     const tariffTableBody = document.querySelector('#tariffs-table tbody');
     const tariffForm = document.getElementById('tariff-form');
     const tariffFormTitle = document.getElementById('tariff-form-title');
     const tariffIdInput = document.getElementById('tariff-id');
     const tariffTitleInput = document.getElementById('tariff-title');
-    // Убираем отдельные поля цены, длительности и депозита. Вместо них есть описание тарифа
     const tariffDescriptionInput = document.getElementById('tariff-description');
     const tariffActiveCheckbox = document.getElementById('tariff-active');
     const tariffCancelBtn = document.getElementById('tariff-cancel-btn');
-
-    // Элементы для продлений (сроков аренды/продления)
     const extensionsList = document.getElementById('extensions-list');
     const addExtensionBtn = document.getElementById('add-extension-btn');
 
-    /**
-     * Создает строку для ввода срока и стоимости и добавляет её в список.
-     * @param {number|string} daysVal
-     * @param {number|string} priceVal
-     */
+    // Client elements
+    const clientsTableBody = document.querySelector('#clients-table tbody');
+    const clientEditOverlay = document.getElementById('client-edit-overlay');
+    const clientEditForm = document.getElementById('client-edit-form');
+    const clientEditCancelBtn = document.getElementById('client-edit-cancel');
+    const clientEditSaveBtn = document.getElementById('client-edit-save');
+    const clientInfoOverlay = document.getElementById('client-info-overlay');
+    const clientInfoContent = document.getElementById('client-info-content');
+    const clientInfoCloseBtn = document.getElementById('client-info-close');
+    const exportBtn = document.getElementById('export-clients-btn');
+
+    // --- State Variables ---
+    let clientsData = []; // Кэш данных клиентов для просмотра/редактирования
+    let currentEditingId = null;
+    let currentEditingExtra = null;
+
+    // --- Supabase Initialization ---
+    const SUPABASE_URL = 'https://avamqfmuhiwtlumjkzmv.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // --- Tariff Extensions Logic ---
+
     function addExtensionRow(daysVal = '', priceVal = '') {
         if (!extensionsList) return;
         const row = document.createElement('div');
         row.className = 'extension-row';
-        const daysInput = document.createElement('input');
-        daysInput.type = 'number';
-        daysInput.placeholder = 'Дней';
-        daysInput.value = daysVal;
-        daysInput.className = 'ext-days';
-        const priceInput = document.createElement('input');
-        priceInput.type = 'number';
-        priceInput.placeholder = 'Стоимость (₽)';
-        priceInput.value = priceVal;
-        priceInput.className = 'ext-price';
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.className = 'remove-extension-btn';
-        removeBtn.textContent = '×';
-        removeBtn.addEventListener('click', () => {
-            row.remove();
-        });
-        row.appendChild(daysInput);
-        row.appendChild(priceInput);
-        row.appendChild(removeBtn);
+        row.innerHTML = `
+            <input type="number" placeholder="Дней" value="${daysVal}" class="ext-days">
+            <input type="number" placeholder="Стоимость (₽)" value="${priceVal}" class="ext-price">
+            <button type="button" class="remove-extension-btn" title="Удалить">×</button>
+        `;
+        row.querySelector('.remove-extension-btn').addEventListener('click', () => row.remove());
         extensionsList.appendChild(row);
     }
 
-    /**
-     * Отрисовывает список сроков по массиву объектов { days, cost }.
-     * @param {Array} extArr
-     */
     function renderExtensions(extArr) {
         if (!extensionsList) return;
         extensionsList.innerHTML = '';
         if (Array.isArray(extArr)) {
             extArr.forEach(ext => {
-                const d = ext && (ext.days || ext.duration || ext.day || ext.length);
-                const c = ext && (ext.cost || ext.price || ext.amount);
+                const d = ext?.days || ext?.duration;
+                const c = ext?.cost || ext?.price;
                 addExtensionRow(d || '', c || '');
             });
         }
     }
 
-    /**
-     * Считывает сроки из формы и возвращает массив объектов { days, cost }.
-     */
     function getExtensionsFromForm() {
         if (!extensionsList) return [];
-        const exts = [];
-        extensionsList.querySelectorAll('.extension-row').forEach(row => {
+        return Array.from(extensionsList.querySelectorAll('.extension-row')).map(row => {
             const days = parseInt(row.querySelector('.ext-days').value, 10);
             const cost = parseInt(row.querySelector('.ext-price').value, 10);
-            if (!isNaN(days) && !isNaN(cost) && days > 0 && cost >= 0) {
-                exts.push({ days, cost });
-            }
-        });
-        return exts;
+            return { days, cost };
+        }).filter(ext => !isNaN(ext.days) && !isNaN(ext.cost) && ext.days > 0 && ext.cost >= 0);
     }
 
     if (addExtensionBtn) {
         addExtensionBtn.addEventListener('click', () => addExtensionRow());
     }
 
-    // Инициализируем Supabase клиент с заданными параметрами
-    const SUPABASE_URL = 'https://avamqfmuhiwtlumjkzmv.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // --- Authentication and Navigation ---
 
-    // Проверка текущей сессии. Если есть действующая сессия, скрываем
-    // форму входа и показываем дашборд
     async function checkSession() {
-        if (!supabase) return false;
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (session && !error) {
-            showDashboard();
-            return true;
-        }
-        return false;
-    }
-
-    // Если работаем оффлайн и уже проходили вход (флаг в localStorage), сразу показываем панель
-    if (!supabase) {
-        const authed = localStorage.getItem('isAdminAuth');
-        if (authed === 'true') {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
             showDashboard();
         }
     }
 
-    // Отображаем админский интерфейс
     function showDashboard() {
         loginSection.classList.add('hidden');
         dashboardSection.classList.remove('hidden');
         selectSection('tariffs');
-        loadTariffs();
     }
 
-    // Обработчик входа
     loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = loginEmail.value;
-    const password = loginPassword.value;
-
-    // Используем встроенную функцию Supabase для входа
-    const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
+        e.preventDefault();
+        const email = loginEmail.value;
+        const password = loginPassword.value;
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+            alert('Ошибка входа: ' + error.message);
+        } else if (data.user) {
+            showDashboard();
+        }
     });
 
-    if (error) {
-        alert('Ошибка входа: ' + error.message);
-        return;
-    }
-
-    // Если вход успешный, показываем панель
-    if (data.user) {
-        showDashboard();
-    }
-});
-
-    // Навигация по админским разделам
     adminNav.addEventListener('click', (e) => {
         const btn = e.target.closest('button[data-section]');
         if (!btn) return;
-        const target = btn.getAttribute('data-section');
+        const target = btn.dataset.section;
         adminNav.querySelectorAll('button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         selectSection(target);
     });
 
     function selectSection(name) {
-        [tariffsSection, clientsSection, rentalsSection, paymentsSection].forEach(sec => {
-            sec.classList.add('hidden');
-        });
-        switch (name) {
-            case 'tariffs':
-                tariffsSection.classList.remove('hidden');
-                loadTariffs();
-                break;
-            case 'clients':
-                clientsSection.classList.remove('hidden');
-                loadClients();
-                break;
-            case 'rentals':
-                rentalsSection.classList.remove('hidden');
-                loadRentals();
-                break;
-            case 'payments':
-                paymentsSection.classList.remove('hidden');
-                loadPayments();
-                break;
+        [tariffsSection, clientsSection, rentalsSection, paymentsSection].forEach(sec => sec.classList.add('hidden'));
+        const sectionMap = {
+            'tariffs': { element: tariffsSection, loader: loadTariffs },
+            'clients': { element: clientsSection, loader: loadClients },
+            'rentals': { element: rentalsSection, loader: loadRentals },
+            'payments': { element: paymentsSection, loader: loadPayments },
+        };
+        if (sectionMap[name]) {
+            sectionMap[name].element.classList.remove('hidden');
+            sectionMap[name].loader();
         }
     }
 
-    // Store clients data loaded from API/localStorage for editing purposes
-    let clientsData = [];
+    // --- Tariffs CRUD ---
 
-    // Загрузка тарифов
+    function formatExtensionsForDisplay(exts) {
+        if (!Array.isArray(exts) || exts.length === 0) return 'Не заданы';
+        return exts.map(e => `${e.days} дн. - ${e.cost} ₽`).join('<br>');
+    }
+
     async function loadTariffs() {
-        // Показываем индикатор загрузки
-        tariffTableBody.innerHTML = '<tr><td colspan="6">Загрузка...</td></tr>';
+        tariffTableBody.innerHTML = '<tr><td colspan="5">Загрузка...</td></tr>';
         try {
-            const { data, error } = await supabase
-                .from('tariffs')
-                .select('*')
-                .order('id', { ascending: true });
+            const { data, error } = await supabase.from('tariffs').select('*').order('id', { ascending: true });
             if (error) throw error;
             tariffTableBody.innerHTML = '';
             if (!data || data.length === 0) {
-                tariffTableBody.innerHTML = '<tr><td colspan="6">Тарифы еще не созданы.</td></tr>';
+                tariffTableBody.innerHTML = '<tr><td colspan="5">Тарифы еще не созданы.</td></tr>';
                 return;
             }
             data.forEach(t => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `\n                    <td>${t.title}</td>\n                    <td>${t.price_rub} ₽</td>\n                    <td>${t.duration_days} дн.</td>\n                    <td>${t.deposit_rub || 0} ₽</td>\n                    <td>${t.is_active ? 'Да' : 'Нет'}</td>\n                    <td>\n                        <button type="button" class="edit-tariff-btn" data-id="${t.id}">Ред.</button>\n                        <button type="button" class="delete-tariff-btn" data-id="${t.id}">Удалить</button>\n                    </td>`;
+                // ОБНОВЛЕННЫЙ HTML: Отображаем актуальные поля
+                tr.innerHTML = `
+                    <td>${t.title}</td>
+                    <td>${t.description || ''}</td>
+                    <td>${formatExtensionsForDisplay(t.extensions)}</td>
+                    <td>${t.is_active ? 'Да' : 'Нет'}</td>
+                    <td>
+                        <button type="button" class="edit-tariff-btn" data-id="${t.id}">Ред.</button>
+                        <button type="button" class="delete-tariff-btn" data-id="${t.id}">Удалить</button>
+                    </td>`;
                 tariffTableBody.appendChild(tr);
             });
         } catch (err) {
             console.error('Ошибка загрузки тарифов:', err);
-            tariffTableBody.innerHTML = `<tr><td colspan="6">Ошибка: ${err.message}</td></tr>`;
+            tariffTableBody.innerHTML = `<tr><td colspan="5">Ошибка: ${err.message}</td></tr>`;
         }
     }
 
-    // Сохранение/обновление тарифа
     tariffForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = tariffIdInput.value;
         const extArr = getExtensionsFromForm();
         const newTariffData = {
             title: tariffTitleInput.value,
-            description: tariffDescriptionInput ? tariffDescriptionInput.value : '',
+            description: tariffDescriptionInput.value,
             is_active: tariffActiveCheckbox.checked,
-            price_rub: extArr.length > 0 ? extArr[0].cost : 0,
-            duration_days: extArr.length > 0 ? extArr[0].days : 0,
+            price_rub: extArr.length > 0 ? extArr[0].cost : 0, // for legacy compatibility
+            duration_days: extArr.length > 0 ? extArr[0].days : 0, // for legacy compatibility
             slug: tariffTitleInput.value.trim().toLowerCase().replace(/\s+/g, '-'),
             extensions: extArr
         };
         try {
-            let error;
-            if (id) {
-                const { error: updateError } = await supabase.from('tariffs').update(newTariffData).eq('id', id);
-                error = updateError;
-            } else {
-                const { error: insertError } = await supabase.from('tariffs').insert([newTariffData]);
-                error = insertError;
-            }
+            const { error } = id
+                ? await supabase.from('tariffs').update(newTariffData).eq('id', id)
+                : await supabase.from('tariffs').insert([newTariffData]);
             if (error) throw error;
             await loadTariffs();
             resetTariffForm();
@@ -252,527 +203,288 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Обработка клика на кнопку редактирования тарифа
-    tariffTableBody.addEventListener('click', (e) => {
-        const btn = e.target.closest('.edit-tariff-btn');
-        if (!btn) return;
-        const id = btn.getAttribute('data-id');
-        editTariff(id);
-    });
     tariffTableBody.addEventListener('click', async (e) => {
-        // Ищем, была ли нажата именно кнопка удаления
-        const btn = e.target.closest('.delete-tariff-btn');
-        if (!btn) return;
-        const id = btn.getAttribute('data-id');
-        // Спрашиваем подтверждение у пользователя
-        if (confirm(`Вы уверены, что хотите удалить тариф с ID ${id}? Это действие необратимо.`)) {
-            try {
-                // Удаляем тариф через Supabase
-                const { error } = await supabase
-                    .from('tariffs')
-                    .delete()
-                    .eq('id', id);
-                if (error) {
-                    alert('Ошибка удаления: ' + (error.message || 'Не удалось удалить тариф'));
-                } else {
-                    alert('Тариф успешно удален.');
-                    loadTariffs();
-                }
-            } catch (err) {
-                alert('Ошибка удаления: ' + (err.message || err));
-            }
-        }
-    });
-
-    tariffCancelBtn.addEventListener('click', resetTariffForm);
-
-    async function editTariff(id) {
-        if (!supabase) {
-            try {
-                let data;
-                // Пробуем загрузить из API
-                try {
-                    const resp = await fetch(`/api/tariffs/${id}`);
-                    if (resp.ok) {
-                        data = await resp.json();
-                    }
-                } catch (e) {
-                    data = null;
-                }
-                // Если не нашли, пробуем из localStorage
-                if (!data) {
-                    const arr = JSON.parse(localStorage.getItem('tariffs') || '[]');
-                    data = arr.find(t => t.id === id);
-                }
-                if (!data) throw new Error('Тариф не найден');
-                tariffIdInput.value = data.id;
-                tariffTitleInput.value = data.title;
-                // Заполняем описание. Используем поле description, если оно есть; иначе slug
-                if (tariffDescriptionInput) {
-                    tariffDescriptionInput.value = data.description || data.slug || '';
-                }
-                tariffActiveCheckbox.checked = data.is_active;
-                // Попробуем прочитать сроки из поля extensions
-                let extArr = [];
-                if (data.extensions) {
-                    try {
-                        extArr = typeof data.extensions === 'string' ? JSON.parse(data.extensions) : data.extensions;
-                    } catch (e) {
-                        extArr = [];
-                    }
-                }
-                renderExtensions(extArr);
-                tariffFormTitle.textContent = 'Редактировать тариф';
-                tariffCancelBtn.classList.remove('hidden');
-            } catch (err) {
-                alert('Ошибка загрузки тарифа: ' + (err.message || err));
-            }
+        const editBtn = e.target.closest('.edit-tariff-btn');
+        if (editBtn) {
+            editTariff(editBtn.dataset.id);
             return;
         }
+
+        const deleteBtn = e.target.closest('.delete-tariff-btn');
+        if (deleteBtn) {
+            const id = deleteBtn.dataset.id;
+            if (confirm(`Вы уверены, что хотите удалить тариф с ID ${id}? Это действие необратимо.`)) {
+                try {
+                    const { error } = await supabase.from('tariffs').delete().eq('id', id);
+                    if (error) throw error;
+                    alert('Тариф успешно удален.');
+                    loadTariffs();
+                } catch (err) {
+                    alert('Ошибка удаления: ' + err.message);
+                }
+            }
+        }
+    });
+
+    async function editTariff(id) {
         try {
-            const { data, error } = await supabase
-                .from('tariffs')
-                .select('*')
-                .eq('id', id)
-                .single();
+            const { data, error } = await supabase.from('tariffs').select('*').eq('id', id).single();
             if (error) throw error;
             tariffIdInput.value = data.id;
             tariffTitleInput.value = data.title;
-                if (tariffDescriptionInput) {
-                    tariffDescriptionInput.value = data.description || data.slug || '';
-                }
+            tariffDescriptionInput.value = data.description || '';
             tariffActiveCheckbox.checked = data.is_active;
-            // Попробуем прочитать сроки из поля extensions
-            let extArr = [];
-            if (data.extensions) {
-                try {
-                    extArr = typeof data.extensions === 'string' ? JSON.parse(data.extensions) : data.extensions;
-                } catch (e) {
-                    extArr = [];
-                }
-            }
-            renderExtensions(extArr);
+            renderExtensions(data.extensions);
             tariffFormTitle.textContent = 'Редактировать тариф';
             tariffCancelBtn.classList.remove('hidden');
         } catch (err) {
-            alert('Ошибка загрузки тарифа: ' + (err.message || err));
+            alert('Ошибка загрузки тарифа для редактирования: ' + err.message);
         }
     }
 
     function resetTariffForm() {
+        tariffForm.reset();
         tariffIdInput.value = '';
-        tariffTitleInput.value = '';
-        if (tariffDescriptionInput) {
-            tariffDescriptionInput.value = '';
-        }
-        tariffActiveCheckbox.checked = true;
+        if (extensionsList) extensionsList.innerHTML = '';
         tariffFormTitle.textContent = 'Создать новый тариф';
         tariffCancelBtn.classList.add('hidden');
-        // Очищаем список сроков
-        if (extensionsList) {
-            extensionsList.innerHTML = '';
-        }
     }
 
-    // Загрузка клиентов
+    tariffCancelBtn.addEventListener('click', resetTariffForm);
+
+    // --- Clients Logic ---
+
     async function loadClients() {
-        const tbody = document.querySelector('#clients-table tbody');
-        tbody.innerHTML = '';
-        // Если нет Supabase, загружаем локально
-        if (!supabase) {
-            let data;
-            try {
-                const resp = await fetch('/api/clients');
-                if (resp.ok) {
-                    data = await resp.json();
-                    localStorage.setItem('clients', JSON.stringify(data));
-                } else {
-                    throw new Error('API unavailable');
-                }
-            } catch (err) {
-                // Фоллбэк: читаем из localStorage
-                try {
-                    data = JSON.parse(localStorage.getItem('clients') || '[]');
-                } catch (e) {
-                    data = [];
-                }
-            }
-            clientsData = data || [];
-            clientsData.forEach(c => {
-                const tr = document.createElement('tr');
-                const date = c.created_at ? new Date(c.created_at).toLocaleDateString() : '';
-                // Parse passport summary from extra.recognized_data
-                let passportSummary = '';
-                if (c.extra) {
-                    try {
-                        const extraObj = JSON.parse(c.extra);
-                        const rec = extraObj && extraObj.recognized_data;
-                        if (rec) {
-                            if (rec['Фамилия']) {
-                                passportSummary = `${rec['Фамилия']} ${rec['Имя'] || ''}`.trim();
-                            } else if (rec['ФИО']) {
-                                passportSummary = rec['ФИО'];
-                            }
-                            // Append passport number if available
-                            if (rec['Номер паспорта']) {
-                                passportSummary += passportSummary ? ` (${rec['Номер паспорта']})` : rec['Номер паспорта'];
-                            }
-                        }
-                    } catch (e) {}
-                }
-                tr.innerHTML = `<td>${c.name}</td>` +
-                               `<td>${c.phone || ''}</td>` +
-                               `<td>${c.city || ''}</td>` +
-                               `<td>${date}</td>` +
-                               `<td>${passportSummary}</td>` +
-                               `<td>` +
-                               `<button type="button" class="view-client-btn" data-id="${c.id}">Инфо</button> ` +
-                               `<button type="button" class="edit-client-btn" data-id="${c.id}">Ред.</button>` +
-                               `</td>`;
-                tbody.appendChild(tr);
-            });
-            return;
-        }
+        clientsTableBody.innerHTML = '<tr><td colspan="6">Загрузка клиентов...</td></tr>';
         try {
+            // ОБНОВЛЕНО: Загружаем все поля, включая `extra` для паспортных данных
             const { data, error } = await supabase
                 .from('clients')
-                .select('id,name,phone,city,created_at')
+                .select('*')
                 .order('created_at', { ascending: false });
+
             if (error) throw error;
-            data.forEach(c => {
+            clientsData = data || []; // Кэшируем данные для модальных окон
+            clientsTableBody.innerHTML = '';
+
+            if (clientsData.length === 0) {
+                clientsTableBody.innerHTML = '<tr><td colspan="6">Клиенты не найдены.</td></tr>';
+                return;
+            }
+
+            clientsData.forEach(client => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${c.name}</td><td>${c.phone}</td><td>${c.city || ''}</td><td>${new Date(c.created_at).toLocaleDateString()}</td>`;
-                tbody.appendChild(tr);
+                const date = new Date(client.created_at).toLocaleDateString();
+                const recognizedData = client.extra?.recognized_data || {};
+                const passportSummary = `${recognizedData['Фамилия'] || ''} ${recognizedData['Имя'] || ''}`.trim();
+
+                tr.innerHTML = `
+                    <td>${client.name}</td>
+                    <td>${client.phone || ''}</td>
+                    <td>${client.city || ''}</td>
+                    <td>${date}</td>
+                    <td>${passportSummary || 'Нет данных'}</td>
+                    <td>
+                        <button type="button" class="view-client-btn" data-id="${client.id}">Инфо</button>
+                        <button type="button" class="edit-client-btn" data-id="${client.id}">Ред.</button>
+                    </td>`;
+                clientsTableBody.appendChild(tr);
             });
         } catch (err) {
-            console.error(err);
+            console.error('Ошибка загрузки клиентов:', err);
+            clientsTableBody.innerHTML = `<tr><td colspan="6">Ошибка: ${err.message}</td></tr>`;
         }
     }
+    
+    // --- Rentals and Payments Loaders ---
 
-    // Загрузка аренд
     async function loadRentals() {
         const tbody = document.querySelector('#rentals-table tbody');
-        tbody.innerHTML = '';
-        if (!supabase) {
-            let data;
-            try {
-                const resp = await fetch('/api/rentals');
-                if (resp.ok) {
-                    data = await resp.json();
-                    localStorage.setItem('rentals', JSON.stringify(data));
-                } else {
-                    throw new Error('API unavailable');
-                }
-            } catch (err) {
-                try {
-                    data = JSON.parse(localStorage.getItem('rentals') || '[]');
-                } catch (e) {
-                    data = [];
-                }
-            }
-            (data || []).forEach(r => {
-                const tr = document.createElement('tr');
-                const clientName = r.client_name || r.client_id;
-                const tariffTitle = r.tariff_title || r.tariff_id || '';
-                const start = r.starts_at ? new Date(r.starts_at).toLocaleString() : '';
-                const end = r.ends_at ? new Date(r.ends_at).toLocaleString() : '';
-                tr.innerHTML = `<td>${clientName}</td>` +
-                               `<td>${tariffTitle}</td>` +
-                               `<td>${start}</td>` +
-                               `<td>${end}</td>` +
-                               `<td>${r.status}</td>` +
-                               `<td><button type="button" class="close-rental-btn" data-id="${r.id}">Закрыть</button></td>`;
-                tbody.appendChild(tr);
-            });
-            return;
-        }
+        tbody.innerHTML = '<tr><td colspan="6">Загрузка...</td></tr>';
         try {
             const { data, error } = await supabase
                 .from('rentals')
-                .select('id,client_id,tariff_id,starts_at,ends_at,status,total_rub, clients (name), tariffs (title)')
+                .select('id, starts_at, ends_at, status, clients (name), tariffs (title)')
                 .order('starts_at', { ascending: false });
             if (error) throw error;
+            tbody.innerHTML = '';
             data.forEach(r => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${r.clients ? r.clients.name : r.client_id}</td>` +
-                               `<td>${r.tariffs ? r.tariffs.title : r.tariff_id}</td>` +
-                               `<td>${r.starts_at ? new Date(r.starts_at).toLocaleString() : ''}</td>` +
-                               `<td>${r.ends_at ? new Date(r.ends_at).toLocaleString() : ''}</td>` +
-                               `<td>${r.status}</td>` +
-                               `<td><button type="button" class="close-rental-btn" data-id="${r.id}">Закрыть</button></td>`;
+                tr.innerHTML = `
+                    <td>${r.clients?.name || 'Н/Д'}</td>
+                    <td>${r.tariffs?.title || 'Н/Д'}</td>
+                    <td>${new Date(r.starts_at).toLocaleString()}</td>
+                    <td>${new Date(r.ends_at).toLocaleString()}</td>
+                    <td>${r.status}</td>
+                    <td><button type="button" class="close-rental-btn" data-id="${r.id}">Закрыть</button></td>`;
                 tbody.appendChild(tr);
             });
         } catch (err) {
-            console.error(err);
+            tbody.innerHTML = `<tr><td colspan="6">Ошибка загрузки аренд: ${err.message}</td></tr>`;
         }
     }
-
-    // Загрузка платежей
+    
     async function loadPayments() {
         const tbody = document.querySelector('#payments-table tbody');
-        tbody.innerHTML = '';
-        if (!supabase) {
-            let data;
-            try {
-                const resp = await fetch('/api/payments');
-                if (resp.ok) {
-                    data = await resp.json();
-                    localStorage.setItem('payments', JSON.stringify(data));
-                } else {
-                    throw new Error('API unavailable');
-                }
-            } catch (err) {
-                try {
-                    data = JSON.parse(localStorage.getItem('payments') || '[]');
-                } catch (e) {
-                    data = [];
-                }
-            }
-            (data || []).forEach(p => {
-                const tr = document.createElement('tr');
-                const clientName = p.client_id;
-                const created = p.created_at ? new Date(p.created_at).toLocaleString() : '';
-                tr.innerHTML = `<td>${clientName}</td>` +
-                               `<td>${p.amount_rub}</td>` +
-                               `<td>${p.method || ''}</td>` +
-                               `<td>${p.status || ''}</td>` +
-                               `<td>${created}</td>`;
-                tbody.appendChild(tr);
-            });
-            return;
-        }
+        tbody.innerHTML = '<tr><td colspan="5">Загрузка...</td></tr>';
         try {
             const { data, error } = await supabase
                 .from('payments')
-                .select('id,client_id,amount_rub,method,status,created_at, clients (name)')
+                .select('id, amount_rub, method, status, created_at, clients (name)')
                 .order('created_at', { ascending: false });
             if (error) throw error;
+            tbody.innerHTML = '';
             data.forEach(p => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${p.clients ? p.clients.name : p.client_id}</td>` +
-                               `<td>${p.amount_rub}</td>` +
-                               `<td>${p.method}</td>` +
-                               `<td>${p.status}</td>` +
-                               `<td>${p.created_at ? new Date(p.created_at).toLocaleString() : ''}</td>`;
+                tr.innerHTML = `
+                    <td>${p.clients?.name || 'Н/Д'}</td>
+                    <td>${p.amount_rub}</td>
+                    <td>${p.method}</td>
+                    <td>${p.status}</td>
+                    <td>${new Date(p.created_at).toLocaleString()}</td>`;
                 tbody.appendChild(tr);
             });
         } catch (err) {
-            console.error(err);
+            tbody.innerHTML = `<tr><td colspan="5">Ошибка загрузки платежей: ${err.message}</td></tr>`;
         }
     }
 
-    // Экспорт клиентов в CSV
-    const exportBtn = document.getElementById('export-clients-btn');
+    // --- Client Info/Edit Modals Logic ---
+    
+    if (clientsSection) {
+        clientsSection.addEventListener('click', async (e) => {
+            const viewBtn = e.target.closest('.view-client-btn');
+            const editBtn = e.target.closest('.edit-client-btn');
+            if (!viewBtn && !editBtn) return;
+
+            const clientId = parseInt(viewBtn ? viewBtn.dataset.id : editBtn.dataset.id, 10);
+            const client = clientsData.find(c => c.id === clientId);
+            if (!client) return;
+
+            const recognizedData = client.extra?.recognized_data || {};
+
+            // --- ЛОГИКА ДЛЯ ПРОСМОТРА ИНФОРМАЦИИ И ФОТО ---
+            if (viewBtn) {
+                infoContent.innerHTML = '<h4>Распознанные данные:</h4>';
+                
+                // 1. Показываем текстовые данные
+                if (Object.keys(recognizedData).length > 0) {
+                    for (const key in recognizedData) {
+                        infoContent.innerHTML += `<div><strong>${key}:</strong> ${recognizedData[key]}</div>`;
+                    }
+                } else {
+                    infoContent.innerHTML += '<p>Распознанные данные отсутствуют.</p>';
+                }
+
+                // 2. Ищем и показываем фото
+                infoContent.innerHTML += '<h4 style="margin-top: 20px;">Загруженные фото:</h4>';
+                infoContent.innerHTML += '<div id="photo-links">Загрузка...</div>';
+                clientInfoOverlay.classList.remove('hidden'); // Показываем оверлей сразу
+
+                const photoLinksDiv = document.getElementById('photo-links');
+                try {
+                    const { data: files, error } = await supabase.storage.from('passports').list(client.id.toString());
+                    if (error) throw error;
+
+                    if (!files || files.length === 0) {
+                        photoLinksDiv.innerHTML = '<p>Фото не найдены.</p>';
+                    } else {
+                        const links = files.map(file => {
+                            const { data } = supabase.storage.from('passports').getPublicUrl(`${client.id}/${file.name}`);
+                            return `<a href="${data.publicUrl}" target="_blank" style="display: block; margin-bottom: 5px;">${file.name}</a>`;
+                        });
+                        photoLinksDiv.innerHTML = links.join('');
+                    }
+                } catch (err) {
+                    photoLinksDiv.innerHTML = `<p style="color: red;">Ошибка загрузки фото: ${err.message}</p>`;
+                }
+            }
+
+            // --- ЛОГИКА ДЛЯ РЕДАКТИРОВАНИЯ ---
+            if (editBtn) {
+                clientEditForm.innerHTML = '';
+                for (const key in recognizedData) {
+                    const longFieldKeys = ['Кем выдан', 'Адрес регистрации', 'Адрес регистрации в РФ'];
+                    let inputEl;
+                    if (longFieldKeys.includes(key)) {
+                        inputEl = `<textarea name="${key}" rows="2">${recognizedData[key] || ''}</textarea>`;
+                    } else {
+                        inputEl = `<input type="text" name="${key}" value="${recognizedData[key] || ''}">`;
+                    }
+                    clientEditForm.innerHTML += `<div class="form-group"><label>${key}</label>${inputEl}</div>`;
+                }
+                currentEditingId = client.id;
+                currentEditingExtra = client.extra;
+                clientEditOverlay.classList.remove('hidden');
+            }
+        });
+    }
+
+    if (clientInfoCloseBtn) {
+        clientInfoCloseBtn.addEventListener('click', () => clientInfoOverlay.classList.add('hidden'));
+    }
+
+    if (clientEditCancelBtn) {
+        clientEditCancelBtn.addEventListener('click', () => clientEditOverlay.classList.add('hidden'));
+    }
+    
+    // ИСПРАВЛЕНА ЛОГИКА СОХРАНЕНИЯ ДАННЫХ КЛИЕНТА
+    if (clientEditSaveBtn) {
+        clientEditSaveBtn.addEventListener('click', async () => {
+            if (!currentEditingId) return;
+
+            const updatedRec = {};
+            clientEditForm.querySelectorAll('input, textarea').forEach(inp => {
+                updatedRec[inp.name] = inp.value.trim();
+            });
+
+            // Создаем новый объект `extra` на основе старого, но с обновленными данными
+            const extraObj = JSON.parse(JSON.stringify(currentEditingExtra || {}));
+            extraObj.recognized_data = updatedRec;
+
+            try {
+                const { error } = await supabase
+                    .from('clients')
+                    .update({ extra: extraObj })
+                    .eq('id', currentEditingId);
+                if (error) throw error;
+                
+                alert('Данные клиента успешно обновлены.');
+                clientEditOverlay.classList.add('hidden');
+                await loadClients(); // Перезагружаем список клиентов для отображения изменений
+            } catch (err) {
+                alert('Ошибка сохранения данных: ' + err.message);
+            }
+        });
+    }
+
+    // --- Export Logic ---
     if (exportBtn) {
         exportBtn.addEventListener('click', async () => {
-            if (!supabase) {
-                // Экспортируем клиентов через локальный API
-                try {
-                    const resp = await fetch('/api/clients');
-                    if (!resp.ok) throw new Error('Failed to load clients');
-                    const data = await resp.json();
-                    const csvRows = [];
-                    csvRows.push(['id','name','phone','city','created_at'].join(','));
-                    data.forEach(c => {
-                        csvRows.push([c.id, c.name, c.phone || '', c.city || '', c.created_at || ''].join(','));
-                    });
-                    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = 'clients.csv';
-                    link.click();
-                    URL.revokeObjectURL(url);
-                } catch (err) {
-                    alert('Ошибка экспорта: ' + (err.message || err));
-                }
-                return;
-            }
             try {
-                const { data, error } = await supabase
-                    .from('clients')
-                    .select('*');
+                const { data, error } = await supabase.from('clients').select('*');
                 if (error) throw error;
-                const csvRows = [];
-                csvRows.push(['id','name','phone','city','tg_user_id','created_at'].join(','));
+
+                const headers = ['id', 'name', 'phone', 'city', 'tg_user_id', 'created_at'];
+                const csvRows = [headers.join(',')];
                 data.forEach(c => {
-                    csvRows.push([c.id, c.name, c.phone, c.city || '', c.tg_user_id || '', c.created_at].join(','));
+                    const row = headers.map(header => JSON.stringify(c[header] || ''));
+                    csvRows.push(row.join(','));
                 });
+
                 const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = 'clients.csv';
+                link.download = `clients_${new Date().toISOString().split('T')[0]}.csv`;
                 link.click();
                 URL.revokeObjectURL(url);
             } catch (err) {
-                alert('Ошибка экспорта: ' + (err.message || err));
+                alert('Ошибка экспорта: ' + err.message);
             }
         });
     }
 
-    // === Клиенты: редактирование паспортных данных ===
-    const clientsSectionElement = document.getElementById('clients-section');
-    const clientEditOverlay = document.getElementById('client-edit-overlay');
-    const clientEditForm = document.getElementById('client-edit-form');
-    const clientEditCancelBtn = document.getElementById('client-edit-cancel');
-    const clientEditSaveBtn = document.getElementById('client-edit-save');
-    let currentEditingId = null;
-    let currentEditingExtra = null;
-
-    if (clientsSectionElement) {
-        clientsSectionElement.addEventListener('click', (e) => {
-            // Handle view button
-            const viewBtn = e.target.closest('.view-client-btn');
-            if (viewBtn) {
-                const id = parseInt(viewBtn.getAttribute('data-id'), 10);
-                const client = (clientsData || []).find(c => parseInt(c.id, 10) === id);
-                if (!client) return;
-                // Parse recognized data
-                let recognized = {};
-                if (client.extra) {
-                    try {
-                        const extraObj = JSON.parse(client.extra);
-                        recognized = extraObj.recognized_data || {};
-                    } catch (err) {
-                        recognized = {};
-                    }
-                }
-                // Fill info overlay
-                const infoOverlay = document.getElementById('client-info-overlay');
-                const infoContent = document.getElementById('client-info-content');
-                if (infoOverlay && infoContent) {
-                    infoContent.innerHTML = '';
-                    Object.keys(recognized).forEach(key => {
-                        const row = document.createElement('div');
-                        row.className = 'info-row';
-                        const label = document.createElement('strong');
-                        label.textContent = key + ': ';
-                        const val = document.createElement('span');
-                        val.textContent = recognized[key] || '';
-                        row.appendChild(label);
-                        row.appendChild(val);
-                        infoContent.appendChild(row);
-                    });
-                    infoOverlay.classList.remove('hidden');
-                }
-                return;
-            }
-            // Handle edit button
-            const btn = e.target.closest('.edit-client-btn');
-            if (!btn) return;
-            const id = parseInt(btn.getAttribute('data-id'), 10);
-            const client = (clientsData || []).find(c => parseInt(c.id, 10) === id);
-            if (!client) return;
-            // Parse recognized data
-            let recognized = {};
-            if (client.extra) {
-                try {
-                    const extraObj = JSON.parse(client.extra);
-                    recognized = extraObj.recognized_data || {};
-                } catch (e) {
-                    recognized = {};
-                }
-            }
-            // Build dynamic form fields
-            clientEditForm.innerHTML = '';
-            Object.keys(recognized).forEach(key => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'form-group';
-                const label = document.createElement('label');
-                label.textContent = key;
-                let inputEl;
-                const longFieldKeys = ['Кем выдан', 'Адрес регистрации', 'Адрес регистрации в РФ'];
-                if (longFieldKeys.includes(key)) {
-                    inputEl = document.createElement('textarea');
-                    inputEl.rows = 2;
-                } else {
-                    inputEl = document.createElement('input');
-                    inputEl.type = 'text';
-                }
-                inputEl.name = key;
-                inputEl.value = recognized[key] || '';
-                // mirror the styles from the registration overlay for consistency
-                inputEl.style.width = '100%';
-                inputEl.style.padding = '14px';
-                inputEl.style.border = '1px solid var(--border-color)';
-                inputEl.style.borderRadius = '14px';
-                inputEl.style.fontSize = '1rem';
-                wrapper.appendChild(label);
-                wrapper.appendChild(inputEl);
-                clientEditForm.appendChild(wrapper);
-            });
-            currentEditingId = id;
-            currentEditingExtra = client.extra || null;
-            clientEditOverlay.classList.remove('hidden');
-        });
-    }
-
-    // Cancel button hides the overlay without saving
-    if (clientEditCancelBtn) {
-        clientEditCancelBtn.addEventListener('click', () => {
-            clientEditOverlay.classList.add('hidden');
-        });
-    }
-
-    // Save button updates recognized data and sends to API/localStorage
-    if (clientEditSaveBtn) {
-        clientEditSaveBtn.addEventListener('click', async () => {
-            if (!currentEditingId) return;
-            // Build updated recognized data object
-            const updatedRec = {};
-            const inputs = clientEditForm.querySelectorAll('input[name]');
-            inputs.forEach(inp => {
-                updatedRec[inp.name] = inp.value.trim();
-            });
-            // Merge with existing extra
-            let extraObj = {};
-            if (currentEditingExtra) {
-                try { extraObj = JSON.parse(currentEditingExtra); } catch (e) {}
-            }
-            extraObj.recognized_data = updatedRec;
-            const extraStr = JSON.stringify(extraObj);
-            // Attempt to update via API if available
-            let updated = false;
-            try {
-                const resp = await fetch(`/api/clients/${currentEditingId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ extra: extraStr })
-                });
-                if (resp.ok) {
-                    updated = true;
-                }
-            } catch (e) {
-                console.warn('API update failed, updating localStorage', e);
-            }
-            if (!updated) {
-                // Update local copy and localStorage as fallback
-                const idx = (clientsData || []).findIndex(c => parseInt(c.id, 10) === currentEditingId);
-                if (idx >= 0) {
-                    clientsData[idx].extra = extraStr;
-                    try {
-                        localStorage.setItem('clients', JSON.stringify(clientsData));
-                    } catch (e) {}
-                }
-            }
-            clientEditOverlay.classList.add('hidden');
-            // Reload clients to reflect changes
-            loadClients();
-        });
-    }
-
-    // === Клиенты: просмотр паспортных данных ===
-    const clientInfoOverlay = document.getElementById('client-info-overlay');
-    const clientInfoCloseBtn = document.getElementById('client-info-close');
-    if (clientInfoCloseBtn) {
-        clientInfoCloseBtn.addEventListener('click', () => {
-            if (clientInfoOverlay) clientInfoOverlay.classList.add('hidden');
-        });
-    }
-
-    // Инициализируем — проверяем сессию, если возможно
-    if (supabase) {
-        checkSession();
-    }
+    // --- Initial Load ---
+    checkSession();
 });
