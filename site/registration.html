@@ -204,7 +204,7 @@
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I";
 
   // ЗАМЕНИТЕ на ваш браузерный ключ Google AI Studio / Google Cloud AI с ограничением по домену!
-  const GEMINI_API_KEY = "PASTE_YOUR_GOOGLE_CLOUD_API_KEY_HERE";
+  const GEMINI_API_KEY = "AIzaSyAUay_xvRT_gcMYs3-7i8Pcli680Or5Zwk";
 
   // ===== ИНИЦИАЛИЗАЦИЯ =====
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -349,7 +349,7 @@
     if (passportFile) {
       toggleButtonLoading(submitBtn, true, "Зарегистрироваться", "Распознаем фото...");
       try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
         const prompt =
           "Ты — система верификации документов для сервиса аренды. " +
