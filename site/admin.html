@@ -14,7 +14,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Библиотека Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
-  <link rel="stylesheet" href="../../../assets/enhanced.css">
 </head>
 <body>
 <div id="admin-app">
@@ -40,20 +39,23 @@
             <h2>Тарифы</h2>
             <table id="tariffs-table">
                 <thead>
-                <tr><th>Название</th><th>Цена</th><th>Длительность</th><th>Депозит</th><th>Активен</th><th>Действия</th></tr>
+                    <!-- ИЗМЕНЕНО: Заголовки таблицы тарифов приведены в соответствие с новыми данными -->
+                    <tr>
+                        <th>Название</th>
+                        <th>Описание</th>
+                        <th>Условия (срок/цена)</th>
+                        <th>Активен</th>
+                        <th>Действия</th>
+                    </tr>
                 </thead>
                 <tbody></tbody>
             </table>
             <h3 id="tariff-form-title">Создать новый тариф</h3>
             <form id="tariff-form">
                 <input type="hidden" id="tariff-id">
-                <!-- Поле названия тарифа -->
                 <input type="text" id="tariff-title" placeholder="Название тарифа" required>
-                <!-- Поле описания тарифа (добавлено вместо цены/длительности/депозита) -->
                 <textarea id="tariff-description" placeholder="Описание тарифа" rows="3"></textarea>
-                <!-- Чекбокс активности тарифа -->
                 <label class="checkbox-label"><input type="checkbox" id="tariff-active" checked> Активен</label>
-                <!-- Контейнер для сроков продления/аренды с индивидуальной стоимостью -->
                 <div id="tariff-extensions-container" class="tariff-extensions-container">
                     <label>Сроки аренды/продления (дней и стоимость):</label>
                     <div id="extensions-list" class="extensions-list"></div>
@@ -83,25 +85,36 @@
             </table>
             <button id="export-clients-btn">Экспорт CSV</button>
 
-            <!-- Overlay for editing recognized passport data -->
-            <div id="client-edit-overlay" class="hidden">
-                <div class="modal-content">
-                    <h3>Паспортные данные</h3>
-                    <form id="client-edit-form" class="client-edit-form"></form>
-                    <div class="modal-actions">
-                        <button type="button" id="client-edit-cancel" class="btn btn-secondary">Отмена</button>
-                        <button type="button" id="client-edit-save" class="btn btn-primary">Сохранить</button>
+            <!-- Окно для редактирования паспортных данных -->
+            <div id="client-edit-overlay" class="overlay hidden">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3>Редактировать данные клиента</h3>
+                        <button id="client-edit-cancel" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="client-edit-form"></form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" id="client-edit-save" class="btn-primary">Сохранить</button>
                     </div>
                 </div>
             </div>
 
-            <!-- Overlay for viewing recognized passport data -->
-            <div id="client-info-overlay" class="hidden">
-                <div class="modal-content">
-                    <h3>Паспортные данные</h3>
-                    <div id="client-info-content" class="client-info-content"></div>
-                    <div class="modal-actions">
-                        <button type="button" id="client-info-close" class="btn btn-primary">Закрыть</button>
+            <!-- ИСПРАВЛЕНО: Окно для просмотра информации о клиенте -->
+            <div id="client-info-overlay" class="overlay hidden">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3>Информация о клиенте</h3>
+                        <button id="client-info-close" class="close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body" id="client-info-content">
+                        <!-- Эти два блока были добавлены -->
+                        <h4>Распознанные данные:</h4>
+                        <div id="recognized-data-container"></div>
+                        
+                        <h4 style="margin-top: 20px;">Загруженные фото:</h4>
+                        <div id="photo-links"></div>
                     </div>
                 </div>
             </div>
@@ -129,6 +142,5 @@
 
 <!-- Скрипт логики админки -->
 <script src="admin.js" defer></script>
-  <script defer src="../../../assets/enhance.js"></script>
 </body>
 </html>
