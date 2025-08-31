@@ -349,6 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Client Info/Edit Modals Logic ---
     // --- Client Info/Edit Modals Logic ---
+// --- Client Info/Edit Modals Logic ---
 if (clientsSection) {
     clientsSection.addEventListener('click', async (e) => {
         const viewBtn = e.target.closest('.view-client-btn');
@@ -386,24 +387,18 @@ if (clientsSection) {
             photoLinksDiv.innerHTML = 'Загрузка...';
             clientInfoOverlay.classList.remove('hidden');
 
-            // Проверяем, есть ли вообще tg_user_id у клиента
-            if (!client.tg_user_id) {
-                photoLinksDiv.innerHTML = '<p>У клиента нет ID Телеграма для поиска фото.</p>';
-                return;
-            }
-
             // Запрашиваем и отображаем ссылки на фото
             try {
-                // ИЗМЕНЕНИЕ №1: Ищем фото в папке с ID из Телеграма (tg_user_id)
-                const { data: files, error } = await supabase.storage.from('passports').list(client.tg_user_id.toString());
+                // ВОЗВРАЩАЕМ КАК БЫЛО: Ищем фото в папке с ID клиента из базы данных
+                const { data: files, error } = await supabase.storage.from('passports').list(client.id.toString());
                 if (error) throw error;
 
                 if (!files || files.length === 0) {
                     photoLinksDiv.innerHTML = '<p>Фото не найдены.</p>';
                 } else {
                     const links = files.map(file => {
-                        // ИЗМЕНЕНИЕ №2: Создаем ссылку, используя tg_user_id
-                        const { data } = supabase.storage.from('passports').getPublicUrl(`${client.tg_user_id}/${file.name}`);
+                        // ВОЗВРАЩАЕМ КАК БЫЛО: Создаем ссылку, используя ID клиента
+                        const { data } = supabase.storage.from('passports').getPublicUrl(`${client.id}/${file.name}`);
                         return `<a href="${data.publicUrl}" target="_blank" rel="noopener noreferrer" style="display: block; margin-bottom: 5px;">${file.name}</a>`;
                     });
                     photoLinksDiv.innerHTML = links.join('');
