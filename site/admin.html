@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ‑панель — Bike App</title>
+    <!-- Подключаем основной файл стилей приложения -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Стили админки для таблиц и форм -->
+    <link rel="stylesheet" href="admin.css">
+    <!-- Шрифт Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Библиотека Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
+  <link rel="stylesheet" href="../../../assets/enhanced.css">
+</head>
+<body>
+<div id="admin-app">
+    <!-- Секция входа в админку -->
+    <div id="login-section">
+        <h2>Вход в админ‑панель</h2>
+        <form id="login-form">
+            <input type="email" id="login-email" placeholder="Email" required>
+            <input type="password" id="login-password" placeholder="Пароль" required>
+            <button type="submit">Войти</button>
+        </form>
+    </div>
+    <!-- Основной рабочий интерфейс -->
+    <div id="dashboard-section" class="hidden">
+        <nav id="admin-nav">
+            <button type="button" data-section="tariffs" class="active">Тарифы</button>
+            <button type="button" data-section="clients">Клиенты</button>
+            <button type="button" data-section="rentals">Аренды</button>
+            <button type="button" data-section="payments">Платежи</button>
+        </nav>
+        <!-- Секции -->
+        <section id="tariffs-section" class="admin-section active">
+            <h2>Тарифы</h2>
+            <table id="tariffs-table">
+                <thead>
+                <tr><th>Название</th><th>Цена</th><th>Длительность</th><th>Депозит</th><th>Активен</th><th>Действия</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <h3 id="tariff-form-title">Создать новый тариф</h3>
+            <form id="tariff-form">
+                <input type="hidden" id="tariff-id">
+                <!-- Поле названия тарифа -->
+                <input type="text" id="tariff-title" placeholder="Название тарифа" required>
+                <!-- Поле описания тарифа (добавлено вместо цены/длительности/депозита) -->
+                <textarea id="tariff-description" placeholder="Описание тарифа" rows="3"></textarea>
+                <!-- Чекбокс активности тарифа -->
+                <label class="checkbox-label"><input type="checkbox" id="tariff-active" checked> Активен</label>
+                <!-- Контейнер для сроков продления/аренды с индивидуальной стоимостью -->
+                <div id="tariff-extensions-container" class="tariff-extensions-container">
+                    <label>Сроки аренды/продления (дней и стоимость):</label>
+                    <div id="extensions-list" class="extensions-list"></div>
+                    <button type="button" id="add-extension-btn" class="admin-small-btn">Добавить срок</button>
+                </div>
+                <div class="form-actions">
+                    <button type="submit">Сохранить</button>
+                    <button type="button" id="tariff-cancel-btn" class="hidden">Отмена</button>
+                </div>
+            </form>
+        </section>
+        <section id="clients-section" class="admin-section hidden">
+            <h2>Клиенты</h2>
+            <input type="search" id="client-search" placeholder="Поиск по имени или телефону">
+            <table id="clients-table">
+                <thead>
+                <tr>
+                    <th>Имя</th>
+                    <th>Телефон</th>
+                    <th>Город</th>
+                    <th>Дата регистрации</th>
+                    <th>Паспорт</th>
+                    <th>Действия</th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <button id="export-clients-btn">Экспорт CSV</button>
+
+            <!-- Overlay for editing recognized passport data -->
+            <div id="client-edit-overlay" class="hidden">
+                <div class="modal-content">
+                    <h3>Паспортные данные</h3>
+                    <form id="client-edit-form" class="client-edit-form"></form>
+                    <div class="modal-actions">
+                        <button type="button" id="client-edit-cancel" class="btn btn-secondary">Отмена</button>
+                        <button type="button" id="client-edit-save" class="btn btn-primary">Сохранить</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overlay for viewing recognized passport data -->
+            <div id="client-info-overlay" class="hidden">
+                <div class="modal-content">
+                    <h3>Паспортные данные</h3>
+                    <div id="client-info-content" class="client-info-content"></div>
+                    <div class="modal-actions">
+                        <button type="button" id="client-info-close" class="btn btn-primary">Закрыть</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section id="rentals-section" class="admin-section hidden">
+            <h2>Аренды</h2>
+            <table id="rentals-table">
+                <thead>
+                <tr><th>Клиент</th><th>Тариф</th><th>Начало</th><th>Конец</th><th>Статус</th><th>Действия</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </section>
+        <section id="payments-section" class="admin-section hidden">
+            <h2>Платежи</h2>
+            <table id="payments-table">
+                <thead>
+                <tr><th>Клиент</th><th>Сумма</th><th>Метод</th><th>Статус</th><th>Дата</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </section>
+    </div>
+</div>
+
+<!-- Скрипт логики админки -->
+<script src="admin.js" defer></script>
+  <script defer src="../../../assets/enhance.js"></script>
+</body>
+</html>

@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Регистрация - Bike App</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Подключаем библиотеку Supabase, чтобы window.supabase был доступен в нашем скрипте регистрации -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        :root {
+            --primary-green: #29e29a;
+            --dark-green: #083830;
+            --icon-green: #26b999;
+            --light-green-bg: #e0f8f1;
+            --card-bg: #f0fdf9;
+            --white: #ffffff;
+            --border-color: #eaf0f0;
+            --text-secondary: #a0b5b1;
+            --danger-color: #e53e3e;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { height: 100%; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--primary-green);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100%;
+            padding: 20px 0;
+        }
+        .app-screen {
+            width: 100%;
+            max-width: 420px;
+            background-color: var(--white);
+            border-radius: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            min-height: 850px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .app-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 30px;
+            gap: 20px;
+        }
+        .app-header { text-align: center; margin-bottom: 10px; }
+        .app-header h1, .app-header h2 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--dark-green);
+            line-height: 1.2;
+        }
+        .app-main { display: flex; flex-direction: column; flex-grow: 1; }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 25px;
+        }
+        .form-group { position: relative; }
+        .form-group label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--dark-green);
+            margin-bottom: 8px;
+        }
+        input[type="text"], input[type="tel"] {
+            width: 100%;
+            padding: 16px;
+            background-color: var(--card-bg);
+            border: 2px solid var(--card-bg);
+            border-radius: 16px;
+            font-size: 1rem;
+            color: var(--dark-green);
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+        }
+        input::placeholder { color: var(--text-secondary); }
+        input:focus {
+            outline: none;
+            border-color: var(--icon-green);
+            background-color: var(--white);
+        }
+        input.error { border-color: var(--danger-color) !important; }
+
+        .btn {
+            border-radius: 18px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            padding: 18px 10px;
+            font-size: 1.1rem;
+            width: 100%;
+        }
+        .btn-primary { background-color: var(--dark-green); color: var(--white); }
+        .btn:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        .validation-message {
+            color: var(--danger-color);
+            font-size: 0.9rem;
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+            font-weight: 500;
+        }
+
+        .sso-container { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+        .separator {
+            display: flex; align-items: center; text-align: center;
+            color: var(--text-secondary); margin: 15px 0;
+            font-size: 0.9rem; font-weight: 500;
+        }
+        .separator::before, .separator::after {
+            content: ''; flex: 1; border-bottom: 1px solid var(--border-color);
+        }
+        .separator:not(:empty)::before { margin-right: .75em; }
+        .separator:not(:empty)::after { margin-left: .75em; }
+
+        .sso-btn {
+            display: flex; align-items: center; justify-content: center;
+            padding: 14px; border-radius: 16px; text-decoration: none;
+            font-weight: 600; font-size: 1rem; transition: opacity 0.2s ease;
+            border: 1px solid var(--border-color);
+        }
+        .sso-btn:hover { opacity: 0.9; }
+        .sso-icon { display: flex; align-items: center; justify-content: center; margin-right: 12px; }
+        .sso-text { line-height: 1; }
+
+        .sso-btn--sber { background-color: #ffffff; color: #080808; }
+        .sso-btn--sber .sso-icon svg { width: 28px; height: 28px; }
+
+        .sso-btn--tinkoff { background-color: #ffdd2d; color: #333333; border: none; }
+        .sso-btn--tinkoff .sso-icon svg { height: 26px; }
+
+        /* === НОВЫЙ СТИЛЬ ДЛЯ TELEGRAM ID === */
+        .sso-btn--telegram {
+            background-color: #0088cc;
+            color: white;
+            border: none;
+        }
+        .sso-btn--telegram .sso-icon svg {
+            stroke: white;
+            width: 24px;
+            height: 24px;
+        }
+
+        .investor-link-container { text-align: center; margin-top: auto; padding-top: 20px; }
+        #investor-link {
+            font-size: 0.9rem; color: var(--text-secondary); font-weight: 500;
+            cursor: pointer; background: none; text-decoration: none;
+            border: 1px solid var(--text-secondary);
+            border-radius: 8px;
+            padding: 4px 12px;
+        }
+
+        .back-link {
+            font-size: 0.9rem; color: var(--text-secondary);
+            font-weight: 600; text-decoration: none;
+            cursor: pointer; background: none; border: none;
+            align-self: center;
+            margin-top: 20px; /* Скорректирован отступ */
+        }
+        .hidden { display: none !important; }
+
+        /* -----------------------
+         * Стиль для полей загрузки файлов
+         * Эти правила стилизуют inputs type="file" в блоке Prizmatic,
+         * чтобы они визуально соответствовали остальным полям ввода. Мы также
+         * настраиваем встроенную кнопку выбора файла, придавая ей фирменные
+         * цвета и скругленные края. Поддерживаются современные браузеры
+         * (WebKit, Chromium). В устаревших браузерах будет отображаться
+         * стандартный вид, что не нарушит работу.
+         */
+        #prizmatic-extra-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        #prizmatic-extra-fields input[type="file"] {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--card-bg);
+            border: 2px solid var(--card-bg);
+            border-radius: 16px;
+            font-size: 1rem;
+            color: var(--dark-green);
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+            cursor: pointer;
+        }
+        /* Стили для встроенной кнопки выбора файла в WebKit/Chromium */
+        #prizmatic-extra-fields input[type="file"]::file-selector-button,
+        #prizmatic-extra-fields input[type="file"]::-webkit-file-upload-button {
+            background-color: var(--icon-green);
+            color: var(--white);
+            border: none;
+            border-radius: 12px;
+            padding: 10px 16px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            margin-right: 14px;
+            transition: background-color 0.2s ease;
+        }
+        #prizmatic-extra-fields input[type="file"]::file-selector-button:hover,
+        #prizmatic-extra-fields input[type="file"]::-webkit-file-upload-button:hover {
+            background-color: var(--dark-green);
+        }
+        #prizmatic-extra-fields input[type="file"]:focus {
+            outline: none;
+            border-color: var(--icon-green);
+            background-color: var(--white);
+        }
+
+        /* Стилизация для чекбокса "Я мигрант" */
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--dark-green);
+            user-select: none;
+        }
+        .checkbox-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--icon-green);
+            cursor: pointer;
+        }
+
+        /* Выравниваем дочерние поля в блоке дополнительных полей и в секции мигранта */
+        #prizmatic-extra-fields #migrant-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Overlay for verifying recognized passport data */
+        #verify-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        #verify-overlay .modal-content {
+            background-color: var(--white);
+            border-radius: 24px;
+            padding: 30px;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+        #verify-overlay h3 {
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--dark-green);
+        }
+        #verify-form .form-group {
+            margin-bottom: 15px;
+        }
+        #verify-form label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--dark-green);
+        }
+        #verify-form input[type="text"] {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            font-size: 1rem;
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn.btn-secondary {
+            background-color: var(--border-color);
+            color: var(--dark-green);
+        }
+        .btn.btn-primary {
+            background-color: var(--dark-green);
+            color: var(--white);
+        }
+    </style>
+  <link rel="stylesheet" href="../../../assets/enhanced.css">
+</head>
+<body>
+<div class="app-screen">
+    <div class="app-content">
+        <header class="app-header">
+            <h1 id="main-title">Регистрация</h1>
+            <h2 id="investor-title" class="hidden">Для инвесторов</h2>
+        </header>
+
+        <main class="app-main">
+            <!-- =============== ОСНОВНАЯ ФОРМА РЕГИСТРАЦИИ =============== -->
+            <div id="registration-view">
+                <form id="registration-form" novalidate>
+                    <div class="form-group">
+                        <label for="name">Ваше имя</label>
+                        <input type="text" id="name" placeholder="Иван Иванов" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Номер телефона</label>
+                        <input type="tel" id="phone" placeholder="+7 (___) ___-__-__" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="city">Город работы</label>
+                        <input type="text" id="city" placeholder="Например, Москва" required>
+                    </div>
+                    <!-- Дополнительные поля для регистрации Prizmatic. Эти поля позволяют загрузить
+                         или сфотографировать паспорт и страницу с пропиской, а также указать, что
+                         пользователь является мигрантом. -->
+                    <div id="prizmatic-extra-fields">
+                        <div class="form-group">
+                            <label for="passport_photo">Основное фото паспорта</label>
+                            <input type="file" id="passport_photo" accept="image/*" capture="environment">
+                        </div>
+                        <div class="form-group">
+                            <label for="registration_photo">Фото прописки (страница регистрации)</label>
+                            <input type="file" id="registration_photo" accept="image/*" capture="environment">
+                        </div>
+                        <div class="form-group">
+                            <label class="checkbox-label"><input type="checkbox" id="is_migrant"> Я мигрант</label>
+                        </div>
+                        <div id="migrant-fields" class="hidden">
+                            <div class="form-group">
+                                <label for="migrant_country">Страна гражданства</label>
+                                <input type="text" id="migrant_country" placeholder="Например, Узбекистан">
+                            </div>
+                            <div class="form-group">
+                                <label for="migrant_doc">Номер миграционной карты/ВНЖ</label>
+                                <input type="text" id="migrant_doc" placeholder="Введите номер документа">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="reg-validation-error" class="validation-message"></div>
+                    <button type="submit" id="reg-submit-btn" class="btn btn-primary">Зарегистрироваться</button>
+                </form>
+
+                <!-- Кнопка переключения на форму инвестора -->
+                <div class="investor-link-container">
+                    <button id="investor-link">Инвесторам</button>
+                </div>
+            </div>
+
+            <!-- =============== ФОРМА ДЛЯ ИНВЕСТОРОВ (СКРЫТА) =============== -->
+            <div id="investor-view" class="hidden">
+                <form id="investor-form">
+                    <div class="form-group">
+                        <label for="investor-name">ФИО</label>
+                        <input type="text" id="investor-name" placeholder="Полное имя" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="investor-inn">ИНН</label>
+                        <input type="tel" id="investor-inn" placeholder="12 цифр" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="investor-passport">Паспортные данные</label>
+                        <input type="tel" id="investor-passport" placeholder="Серия и номер" required>
+                    </div>
+                    <div id="investor-validation-error" class="validation-message"></div>
+                    <button type="submit" id="investor-submit-btn" class="btn btn-primary">Отправить данные</button>
+                </form>
+
+                <button id="back-to-reg-link" class="back-link">Назад к регистрации</button>
+            </div>
+        </main>
+    </div> <!-- Закрывает <div class="app-screen"> -->
+</div> <!-- Закрывает <div class="app-screen"> -->
+
+<!-- Оверлей для подтверждения распознанных данных -->
+<div id="verify-overlay" class="hidden">
+    <div class="modal-content">
+        <h3>Проверьте данные паспорта</h3>
+        <form id="verify-form"></form>
+        <div class="modal-actions">
+            <button type="button" id="verify-cancel" class="btn btn-secondary">Назад</button>
+            <button type="button" id="verify-confirm" class="btn btn-primary">Подтвердить</button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    // --- ПОЛНОСТЬЮ ГОТОВЫЙ КОД ДЛЯ REGISTRATION.HTML ---
+
+    // --- Подключение к Supabase ---
+    const SUPABASE_URL = 'https://avamqfmuhiwtlumjkzmv.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Получаем все нужные элементы со страницы ---
+        const registrationForm = document.getElementById('registration-form');
+        const submitBtn = document.getElementById('reg-submit-btn');
+        const nameInput = document.getElementById('name');
+        const phoneInput = document.getElementById('phone');
+        const cityInput = document.getElementById('city');
+        const passportInput = document.getElementById('passport_photo');
+        const registrationPhotoInput = document.getElementById('registration_photo');
+        
+        const verifyOverlay = document.getElementById('verify-overlay');
+        const verifyForm = document.getElementById('verify-form');
+        const verifyCancelBtn = document.getElementById('verify-cancel');
+        const verifyConfirmBtn = document.getElementById('verify-confirm');
+        
+        // Переменная для хранения данных, пока пользователь их проверяет
+        let pendingRegistrationData = null;
+
+        // --- Функция для проверки, что все поля заполнены ---
+        const validateForm = (form, errorDivId) => {
+            let isValid = true;
+            const errorDiv = document.getElementById(errorDivId);
+            if (errorDiv) {
+                errorDiv.style.display = 'none';
+                errorDiv.textContent = '';
+            }
+            form.querySelectorAll('input[required]').forEach(input => {
+                input.classList.remove('error');
+                if (!input.value.trim()) {
+                    isValid = false;
+                    input.classList.add('error');
+                }
+            });
+            if (!isValid && errorDiv) {
+                errorDiv.textContent = 'Пожалуйста, заполните все обязательные поля.';
+                errorDiv.style.display = 'block';
+            }
+            return isValid;
+        };
+
+        // --- Финальная функция: сохраняет все данные в базу и загружает фото ---
+        const finalizeRegistration = async (regData) => {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Сохраняем...';
+
+            try {
+                // 1. Создаем пользователя в таблице 'clients'
+                const { data: clientData, error: clientError } = await supabase
+                    .from('clients')
+                    .insert([{ 
+                        name: regData.name, 
+                        phone: regData.phone, 
+                        city: regData.city,
+                        extra: { recognized_data: regData.recognizedData } // Сохраняем распознанные данные
+                    }])
+                    .select()
+                    .single();
+                
+                if (clientError) throw clientError;
+
+                const newUserId = clientData.id;
+
+                // 2. Загружаем фото в Storage
+                if (regData.passportFile) {
+                    const filePath = `${newUserId}/${Date.now()}_passport.jpg`;
+                    await supabase.storage.from('passports').upload(filePath, regData.passportFile);
+                }
+                if (regData.registrationFile) {
+                    const filePath = `${newUserId}/${Date.now()}_registration.jpg`;
+                    await supabase.storage.from('passports').upload(filePath, regData.registrationFile);
+                }
+
+                // 3. Сохраняем данные сессии и переходим на главную
+                localStorage.setItem('isRegistered', 'true');
+                localStorage.setItem('userName', clientData.name);
+                localStorage.setItem('userId', newUserId);
+                window.location.replace('index.html');
+
+            } catch (err) {
+                console.error('Финальная ошибка регистрации:', err);
+                alert('Произошла критическая ошибка при сохранении данных.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Зарегистрироваться';
+            }
+        };
+
+        // --- Главный обработчик отправки формы ---
+        registrationForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (!validateForm(registrationForm, 'reg-validation-error')) return;
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Распознаем фото...';
+
+            const formData = new FormData();
+            if (passportInput.files[0]) formData.append('photos', passportInput.files[0]);
+            if (registrationPhotoInput.files[0]) formData.append('photos', registrationPhotoInput.files[0]);
+            
+            const currentData = {
+                name: nameInput.value.trim(),
+                phone: phoneInput.value.trim(),
+                city: cityInput.value.trim(),
+                passportFile: passportInput.files[0] || null,
+                registrationFile: registrationPhotoInput.files[0] || null,
+                recognizedData: null
+            };
+
+            if (formData.has('photos')) {
+                try {
+                    // Адрес для Netlify Functions
+                    const resp = await fetch('/.netlify/functions/process-passport', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!resp.ok) throw new Error(`Ошибка сервера: ${resp.statusText}`);
+                    
+                    const result = await resp.json();
+                    if (result.error) throw new Error(result.error);
+
+                    currentData.recognizedData = result.data;
+                    pendingRegistrationData = currentData;
+                    
+                    verifyForm.innerHTML = '';
+                    for (const key in result.data) {
+                        const value = result.data[key];
+                        const longFieldKeys = ['Кем выдан', 'Адрес регистрации', 'Место рождения'];
+                        let inputElement = `<input type="text" id="verify_${key}" name="${key}" value="${value}">`;
+                        if (longFieldKeys.includes(key)) {
+                             inputElement = `<textarea id="verify_${key}" name="${key}" rows="3">${value}</textarea>`;
+                        }
+                        
+                        verifyForm.innerHTML += `
+                            <div class="form-group">
+                                <label for="verify_${key}">${key}</label>
+                                ${inputElement}
+                            </div>
+                        `;
+                    }
+                    verifyOverlay.classList.remove('hidden');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Зарегистрироваться';
+
+                } catch (err) {
+                    console.error('Ошибка при вызове Gemini:', err);
+                    alert('Не удалось распознать документ. Мы зарегистрируем вас без автоматической проверки.');
+                    finalizeRegistration(currentData);
+                }
+            } else {
+                // Если фото не прикреплены, регистрируемся сразу
+                finalizeRegistration(currentData);
+            }
+        });
+
+        // --- Обработчики кнопок в окне проверки ---
+        verifyConfirmBtn.addEventListener('click', () => {
+            const updatedData = { ...pendingRegistrationData };
+            const updatedRecognizedData = {};
+            new FormData(verifyForm).forEach((value, key) => {
+                updatedRecognizedData[key] = value;
+            });
+            updatedData.recognizedData = updatedRecognizedData;
+            
+            verifyOverlay.classList.add('hidden');
+            finalizeRegistration(updatedData);
+        });
+
+        verifyCancelBtn.addEventListener('click', () => {
+            verifyOverlay.classList.add('hidden');
+        });
+
+        // --- Логика для инвесторов и маски ввода (без изменений) ---
+        const investorView = document.getElementById('investor-view');
+        const registrationView = document.getElementById('registration-view');
+        const mainTitle = document.getElementById('main-title');
+        const investorTitle = document.getElementById('investor-title');
+        const investorLink = document.getElementById('investor-link');
+        const backToRegLink = document.getElementById('back-to-reg-link');
+        const investorForm = document.getElementById('investor-form');
+
+        investorLink.addEventListener('click', () => {
+            registrationView.classList.add('hidden');
+            mainTitle.classList.add('hidden');
+            investorView.classList.remove('hidden');
+            investorTitle.classList.remove('hidden');
+        });
+
+        backToRegLink.addEventListener('click', () => {
+            investorView.classList.add('hidden');
+            investorTitle.classList.add('hidden');
+            registrationView.classList.remove('hidden');
+            mainTitle.classList.remove('hidden');
+        });
+        
+        phoneInput.addEventListener("input", (e) => {
+            let x = e.target.value.replace(/\D/g, '').match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
+            e.target.value = !x[2] ? x[1] : '+' + x[1] + ' (' + x[2] + ') ' + x[3] + (x[4] ? '-' + x[4] : '') + (x[5] ? '-' + x[5] : '');
+        });
+
+        const innInput = document.getElementById('investor-inn');
+        if (innInput) {
+            innInput.addEventListener('input', (e) => {
+                let value = e.target.value.replace(/\D/g, '').substring(0, 12);
+                e.target.value = value.replace(/(\d{3})(?=\d)/g, '$1 ');
+            });
+        }
+
+        const passportInvInput = document.getElementById('investor-passport');
+        if(passportInvInput) {
+            passportInvInput.addEventListener('input', (e) => {
+                let value = e.target.value.replace(/\D/g, '').substring(0, 10);
+                let formattedValue = value;
+                if (value.length > 2) formattedValue = value.substring(0, 2) + ' ' + value.substring(2);
+                if (value.length > 4) formattedValue = value.substring(0, 2) + ' ' + value.substring(2, 4) + ' ' + value.substring(4);
+                e.target.value = formattedValue;
+            });
+        }
+        
+        if(investorForm) {
+            investorForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                if (!validateForm(investorForm, 'investor-validation-error')) return;
+
+                const investorSubmitBtn = document.getElementById('investor-submit-btn');
+                const investorNameInput = document.getElementById('investor-name');
+                investorSubmitBtn.disabled = true;
+                investorSubmitBtn.textContent = 'Создание аккаунта...';
+
+                setTimeout(() => {
+                    localStorage.setItem('isRegistered', 'true');
+                    localStorage.setItem('isInvestor', 'true');
+                    const fullName = investorNameInput.value.trim().split(' ');
+                    const displayName = fullName.length > 0 ? fullName[0] : 'Инвестор';
+                    localStorage.setItem('userName', displayName);
+                    window.location.replace('investor_home.html');
+                }, 1000);
+            });
+        }
+    });
+</script>
+
+  <script defer src="../../../assets/enhance.js"></script>
+</body>
+</html>

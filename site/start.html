@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Загрузка...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Подключаем манифест -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Добавляем мета-теги для лучшего отображения на iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Bike App">
+
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #083830;
+        }
+        .loader {
+            border: 8px solid #f0fdf9;
+            border-radius: 50%;
+            border-top: 8px solid #29e29a;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+  <link rel="stylesheet" href="../../../assets/enhanced.css">
+</head>
+<body>
+<div class="loader"></div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Этот скрипт остаётся без изменений, он нужен для APK
+        // и будет работать и для PWA.
+        if (localStorage.getItem('isRegistered') === 'true') {
+            if (localStorage.getItem('isInvestor') === 'true') {
+                window.location.replace('investor_home.html');
+            } else {
+                window.location.replace('index.html');
+            }
+        } else {
+            window.location.replace('registration.html');
+        }
+    });
+</script>
+
+<!-- Регистрируем Service Worker. Это нужно для PWA. -->
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            // ВАЖНО: Путь к sw.js должен быть от корня сайта.
+            // Когда будешь выкладывать на хостинг, убедись, что sw.js лежит в корне.
+            navigator.serviceWorker.register('/sw.js').then(registration => {
+                console.log('ServiceWorker registration successful');
+            }, err => {
+                console.log('ServiceWorker registration failed: ', err);
+            });
+        });
+    }
+</script>
+  <script defer src="../../../assets/enhance.js"></script>
+</body>
+</html>
