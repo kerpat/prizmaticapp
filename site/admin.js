@@ -348,83 +348,91 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Client Info/Edit Modals Logic ---
-    if (clientsSection) {
-        clientsSection.addEventListener('click', async (e) => {
-            const viewBtn = e.target.closest('.view-client-btn');
-            const editBtn = e.target.closest('.edit-client-btn');
-            if (!viewBtn && !editBtn) return;
+    // --- Client Info/Edit Modals Logic ---
+if (clientsSection) {
+    clientsSection.addEventListener('click', async (e) => {
+        const viewBtn = e.target.closest('.view-client-btn');
+        const editBtn = e.target.closest('.edit-client-btn');
+        if (!viewBtn && !editBtn) return;
 
-            const clientId = parseInt(viewBtn ? viewBtn.dataset.id : editBtn.dataset.id, 10);
-            const client = clientsData.find(c => c.id === clientId);
-            if (!client) return;
+        const clientId = parseInt(viewBtn ? viewBtn.dataset.id : editBtn.dataset.id, 10);
+        const client = clientsData.find(c => c.id === clientId);
+        if (!client) return;
 
-            const recognizedData = client.extra?.recognized_data || {};
+        const recognizedData = client.extra?.recognized_data || {};
 
-            // --- ЛОГИКА ДЛЯ ПРОСМОТРА ИНФОРМАЦИИ И ФОТО ---
-            if (viewBtn) {
-                const recognizedContainer = document.getElementById('recognized-data-container');
-                const photoLinksDiv = document.getElementById('photo-links');
+        // --- ЛОГИКА ДЛЯ ПРОСМОТРА ИНФОРМАЦИИ И ФОТО ---
+        if (viewBtn) {
+            const recognizedContainer = document.getElementById('recognized-data-container');
+            const photoLinksDiv = document.getElementById('photo-links');
 
-                // Убедимся, что все нужные элементы существуют, прежде чем работать с ними
-                if (!clientInfoOverlay || !recognizedContainer || !photoLinksDiv) {
-                    console.error('Ошибка: один или несколько элементов модального окна не найдены в HTML.');
-                    alert('Ошибка интерфейса: не найдены элементы для отображения информации. Проверьте HTML-структуру.');
-                    return;
-                }
-
-                // 1. Очищаем и заполняем текстовые данные
-                recognizedContainer.innerHTML = '';
-                if (Object.keys(recognizedData).length > 0) {
-                    for (const key in recognizedData) {
-                        recognizedContainer.innerHTML += `<div><strong>${key}:</strong> ${recognizedData[key] || 'Н/Д'}</div>`;
-                    }
-                } else {
-                    recognizedContainer.innerHTML = '<p>Распознанные данные отсутствуют.</p>';
-                }
-
-                // 2. Показываем оверлей и начинаем загрузку фото
-                photoLinksDiv.innerHTML = 'Загрузка...';
-                clientInfoOverlay.classList.remove('hidden');
-
-                // 3. Запрашиваем и отображаем ссылки на фото
-                try {
-                    const { data: files, error } = await supabase.storage.from('passports').list(client.id.toString());
-                    if (error) throw error;
-
-                    if (!files || files.length === 0) {
-                        photoLinksDiv.innerHTML = '<p>Фото не найдены.</p>';
-                    } else {
-                        const links = files.map(file => {
-                            const { data } = supabase.storage.from('passports').getPublicUrl(`${client.id}/${file.name}`);
-                            return `<a href="${data.publicUrl}" target="_blank" rel="noopener noreferrer" style="display: block; margin-bottom: 5px;">${file.name}</a>`;
-                        });
-                        photoLinksDiv.innerHTML = links.join('');
-                    }
-                } catch (err) {
-                    console.error('Ошибка загрузки фото:', err);
-                    photoLinksDiv.innerHTML = `<p style="color: red;">Ошибка загрузки фото: ${err.message}</p>`;
-                }
+            if (!clientInfoOverlay || !recognizedContainer || !photoLinksDiv) {
+                console.error('Ошибка: один или несколько элементов модального окна не найдены в HTML.');
+                alert('Ошибка интерфейса: не найдены элементы для отображения информации. Проверьте HTML-структуру.');
+                return;
             }
 
-            // --- ЛОГИКА ДЛЯ РЕДАКТИРОВАНИЯ ---
-            if (editBtn) {
-                clientEditForm.innerHTML = '';
+            // Заполняем текстовые данные
+            recognizedContainer.innerHTML = '';
+            if (Object.keys(recognizedData).length > 0) {
                 for (const key in recognizedData) {
-                    const longFieldKeys = ['Кем выдан', 'Адрес регистрации', 'Адрес регистрации в РФ'];
-                    let inputEl;
-                    if (longFieldKeys.includes(key)) {
-                        inputEl = `<textarea name="${key}" rows="2">${recognizedData[key] || ''}</textarea>`;
-                    } else {
-                        inputEl = `<input type="text" name="${key}" value="${recognizedData[key] || ''}">`;
-                    }
-                    clientEditForm.innerHTML += `<div class="form-group"><label>${key}</label>${inputEl}</div>`;
+                    recognizedContainer.innerHTML += `<div><strong>${key}:</strong> ${recognizedData[key] || 'Н/Д'}</div>`;
                 }
-                currentEditingId = client.id;
-                currentEditingExtra = client.extra;
-                clientEditOverlay.classList.remove('hidden');
+            } else {
+                recognizedContainer.innerHTML = '<p>Распознанные данные отсутствуют.</p>';
             }
-        });
-    }
+
+            // Показываем оверлей и начинаем загрузку фото
+            photoLinksDiv.innerHTML = 'Загрузка...';
+            clientInfoOverlay.classList.remove('hidden');
+
+            // Проверяем, есть ли вообще tg_user_id у клиента
+            if (!client.tg_user_id) {
+                photoLinksDiv.innerHTML = '<p>У клиента нет ID Телеграма для поиска фото.</p>';
+                return;
+            }
+
+            // Запрашиваем и отображаем ссылки на фото
+            try {
+                // ИЗМЕНЕНИЕ №1: Ищем фото в папке с ID из Телеграма (tg_user_id)
+                const { data: files, error } = await supabase.storage.from('passports').list(client.tg_user_id.toString());
+                if (error) throw error;
+
+                if (!files || files.length === 0) {
+                    photoLinksDiv.innerHTML = '<p>Фото не найдены.</p>';
+                } else {
+                    const links = files.map(file => {
+                        // ИЗМЕНЕНИЕ №2: Создаем ссылку, используя tg_user_id
+                        const { data } = supabase.storage.from('passports').getPublicUrl(`${client.tg_user_id}/${file.name}`);
+                        return `<a href="${data.publicUrl}" target="_blank" rel="noopener noreferrer" style="display: block; margin-bottom: 5px;">${file.name}</a>`;
+                    });
+                    photoLinksDiv.innerHTML = links.join('');
+                }
+            } catch (err) {
+                console.error('Ошибка загрузки фото:', err);
+                photoLinksDiv.innerHTML = `<p style="color: red;">Ошибка загрузки фото: ${err.message}</p>`;
+            }
+        }
+
+        // --- ЛОГИКА ДЛЯ РЕДАКТИРОВАНИЯ ---
+        if (editBtn) {
+            clientEditForm.innerHTML = '';
+            for (const key in recognizedData) {
+                const longFieldKeys = ['Кем выдан', 'Адрес регистрации', 'Адрес регистрации в РФ'];
+                let inputEl;
+                if (longFieldKeys.includes(key)) {
+                    inputEl = `<textarea name="${key}" rows="2">${recognizedData[key] || ''}</textarea>`;
+                } else {
+                    inputEl = `<input type="text" name="${key}" value="${recognizedData[key] || ''}">`;
+                }
+                clientEditForm.innerHTML += `<div class="form-group"><label>${key}</label>${inputEl}</div>`;
+            }
+            currentEditingId = client.id;
+            currentEditingExtra = client.extra;
+            clientEditOverlay.classList.remove('hidden');
+        }
+    });
+}
 
     if (clientInfoCloseBtn) {
         clientInfoCloseBtn.addEventListener('click', () => clientInfoOverlay.classList.add('hidden'));
