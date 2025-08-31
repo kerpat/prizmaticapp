@@ -160,7 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             data.forEach(t => {
                 const tr = document.createElement('tr');
-                // ОБНОВЛЕННЫЙ HTML: Отображаем актуальные поля
                 tr.innerHTML = `
                     <td>${t.title}</td>
                     <td>${t.description || ''}</td>
@@ -257,7 +256,6 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadClients() {
         clientsTableBody.innerHTML = '<tr><td colspan="6">Загрузка клиентов...</td></tr>';
         try {
-            // ОБНОВЛЕНО: Загружаем все поля, включая `extra` для паспортных данных
             const { data, error } = await supabase
                 .from('clients')
                 .select('*')
@@ -350,7 +348,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Client Info/Edit Modals Logic ---
-    
     if (clientsSection) {
         clientsSection.addEventListener('click', async (e) => {
             const viewBtn = e.target.closest('.view-client-btn');
@@ -365,23 +362,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // --- ЛОГИКА ДЛЯ ПРОСМОТРА ИНФОРМАЦИИ И ФОТО ---
             if (viewBtn) {
-                infoContent.innerHTML = '<h4>Распознанные данные:</h4>';
-                
-                // 1. Показываем текстовые данные
-                if (Object.keys(recognizedData).length > 0) {
-                    for (const key in recognizedData) {
-                        infoContent.innerHTML += `<div><strong>${key}:</strong> ${recognizedData[key]}</div>`;
-                    }
-                } else {
-                    infoContent.innerHTML += '<p>Распознанные данные отсутствуют.</p>';
+                const recognizedContainer = document.getElementById('recognized-data-container');
+                const photoLinksDiv = document.getElementById('photo-links');
+
+                // Убедимся, что все нужные элементы существуют, прежде чем работать с ними
+                if (!clientInfoOverlay || !recognizedContainer || !photoLinksDiv) {
+                    console.error('Ошибка: один или несколько элементов модального окна не найдены в HTML.');
+                    alert('Ошибка интерфейса: не найдены элементы для отображения информации. Проверьте HTML-структуру.');
+                    return;
                 }
 
-                // 2. Ищем и показываем фото
-                infoContent.innerHTML += '<h4 style="margin-top: 20px;">Загруженные фото:</h4>';
-                infoContent.innerHTML += '<div id="photo-links">Загрузка...</div>';
-                clientInfoOverlay.classList.remove('hidden'); // Показываем оверлей сразу
+                // 1. Очищаем и заполняем текстовые данные
+                recognizedContainer.innerHTML = '';
+                if (Object.keys(recognizedData).length > 0) {
+                    for (const key in recognizedData) {
+                        recognizedContainer.innerHTML += `<div><strong>${key}:</strong> ${recognizedData[key] || 'Н/Д'}</div>`;
+                    }
+                } else {
+                    recognizedContainer.innerHTML = '<p>Распознанные данные отсутствуют.</p>';
+                }
 
-                const photoLinksDiv = document.getElementById('photo-links');
+                // 2. Показываем оверлей и начинаем загрузку фото
+                photoLinksDiv.innerHTML = 'Загрузка...';
+                clientInfoOverlay.classList.remove('hidden');
+
+                // 3. Запрашиваем и отображаем ссылки на фото
                 try {
                     const { data: files, error } = await supabase.storage.from('passports').list(client.id.toString());
                     if (error) throw error;
@@ -391,11 +396,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         const links = files.map(file => {
                             const { data } = supabase.storage.from('passports').getPublicUrl(`${client.id}/${file.name}`);
-                            return `<a href="${data.publicUrl}" target="_blank" style="display: block; margin-bottom: 5px;">${file.name}</a>`;
+                            return `<a href="${data.publicUrl}" target="_blank" rel="noopener noreferrer" style="display: block; margin-bottom: 5px;">${file.name}</a>`;
                         });
                         photoLinksDiv.innerHTML = links.join('');
                     }
                 } catch (err) {
+                    console.error('Ошибка загрузки фото:', err);
                     photoLinksDiv.innerHTML = `<p style="color: red;">Ошибка загрузки фото: ${err.message}</p>`;
                 }
             }
@@ -428,7 +434,6 @@ document.addEventListener('DOMContentLoaded', () => {
         clientEditCancelBtn.addEventListener('click', () => clientEditOverlay.classList.add('hidden'));
     }
     
-    // ИСПРАВЛЕНА ЛОГИКА СОХРАНЕНИЯ ДАННЫХ КЛИЕНТА
     if (clientEditSaveBtn) {
         clientEditSaveBtn.addEventListener('click', async () => {
             if (!currentEditingId) return;
@@ -437,7 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
             clientEditForm.querySelectorAll('input, textarea').forEach(inp => {
                 updatedRec[inp.name] = inp.value.trim();
             });
-
+            
             // Создаем новый объект `extra` на основе старого, но с обновленными данными
             const extraObj = JSON.parse(JSON.stringify(currentEditingExtra || {}));
             extraObj.recognized_data = updatedRec;
