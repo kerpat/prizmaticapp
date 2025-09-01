@@ -297,7 +297,6 @@
     }
 
     try {
-        // Запрашиваем данные пользователя, включая новый статус
         const { data: client, error } = await supabase
             .from('clients')
             .select('verification_status, name')
@@ -307,43 +306,141 @@
         if (error || !client) {
             throw new Error(error ? error.message : "Клиент не найден.");
         }
-
-        // Сохраняем актуальное имя
-        if (client.name) {
-             document.querySelector('.app-header h1').textContent = `Привет, ${client.name.split(' ')[0]}!`;
-        }
-
-        // --- ГЛАВНАЯ ЛОГИКА ПРОВЕРКИ СТАТУСА ---
+        
+        const userName = client.name ? client.name.split(' ')[0] : 'Пользователь';
+        document.querySelector('.app-header h1').textContent = `Привет, ${userName}!`;
+        
         const status = client.verification_status;
         const mainContent = document.querySelector('.app-main');
-        
+
         if (status === 'approved') {
-            // Если все хорошо, просто продолжаем работу
-            // Можно добавить сюда код для загрузки баланса и т.д.
+            // Пользователь верифицирован, показываем обычный интерфейс.
+            // Сюда можно вернуть код для загрузки баланса и т.д.
+            
+            // ВОЗВРАЩАЕМ СТАРЫЙ HTML ДЛЯ ГЛАВНОГО ЭКРАНА
+            mainContent.innerHTML = `
+                <div class="bike-image-wrapper">
+                    <img src="bike-delivery.png" alt="Electric bike" class="bike-image" id="main-bike-image">
+                    <div id="bike-label" class="bike-label">00001</div>
+                </div>
+                <div class="progress-section">
+                    <div class="progress-bar-container"><div class="progress-bar" id="progress-bar-fill"></div></div>
+                    <div class="progress-labels"><span id="progress-start-label">0 дней</span><span id="progress-end-label">...</span></div>
+                </div>
+                <h2>Найти и арендовать электровелосипед рядом.</h2>
+                <div class="info-cards">
+                    <div class="card"><div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div><div class="text-content"><span>Свободных</span><strong id="available-bikes-count">100</strong></div></div>
+                    <div class="card" id="balance-card"><div class="icon-wrapper dollar"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div><div class="text-content"><span>Баланс</span><strong id="balance-amount">0 ₽</strong></div></div>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="scan-qr-btn">Сканировать QR-код</button>
+                    <div class="secondary-actions"><button class="btn btn-secondary" id="scan-icon-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path></svg></button><button class="btn btn-secondary text-btn" id="id-input-btn">Ввести ID</button><button class="btn btn-secondary text-btn" id="booking-btn">Бронь</button></div>
+                </div>
+                <div id="extend-container" class="hidden extend-container"><button id="extend-rental-btn" class="btn btn-primary">Продлить аренду</button></div>
+            `;
+            // Переинициализируем все обработчики событий для кнопок, так как мы перезаписали HTML
+            initializeMainScreenEventListeners();
+
         } else {
-            // Если статус не 'approved', блокируем интерфейс
-            let messageTitle = 'Ваш аккаунт на проверке';
-            let messageText = 'Мы проверяем ваши документы. Обычно это занимает не больше 24 часов. Мы сообщим вам, как только все будет готово.';
+            // Если статус 'pending' или 'rejected', показываем экран ожидания
+            let headerText = 'Ваш аккаунт на проверке';
+            let statusTitle = 'На проверке';
+            let statusSubtitle = 'до 24 часов';
+
             if (status === 'rejected') {
-                messageTitle = 'В верификации отказано';
-                messageText = 'К сожалению, мы не смогли подтвердить ваши данные. Пожалуйста, свяжитесь с поддержкой для уточнения деталей.';
+                headerText = 'В верификации отказано';
+                statusTitle = 'Отклонено';
+                statusSubtitle = 'Свяжитесь с поддержкой';
             }
             
-            // Заменяем все содержимое main на сообщение
             mainContent.innerHTML = `
-                <div style="text-align: center; padding-top: 40px;">
-                    <h2 style="margin-bottom: 15px;">${messageTitle}</h2>
-                    <p style="color: #556f6b; line-height: 1.5;">${messageText}</p>
+                <div class="verification-container">
+                    <h2 class="verification-header">${headerText}</h2>
+
+                    <div class="verification-status-card">
+                        <div class="icon-wrapper">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                        </div>
+                        <div class="verification-status-info">
+                            <h3>${statusTitle}</h3>
+                            ${status !== 'rejected' ? '<div class="progress-bar-container"><div class="progress-bar"></div></div>' : ''}
+                            <p>${statusSubtitle}</p>
+                        </div>
+                    </div>
+
+                    <h2>Чем заняться пока ждёте</h2>
+
+                    <div class="actions-grid">
+                        <div class="action-card" id="goto-profile-action">
+                            <div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>
+                            <span>Заполнить профиль</span>
+                        </div>
+                        <div class="action-card" id="connect-card-action">
+                             <div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg></div>
+                            <span>Подключить карту</span>
+                        </div>
+                    </div>
+                    
+                    <div class="action-card full-width" id="support-action">
+                        <div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg></div>
+                        <span>Поддержка</span>
+                    </div>
+
+                     <div class="action-card full-width" id="invite-friend-action">
+                        <div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="17" y1="11" x2="23" y2="11"></line></svg></div>
+                        <span>Пригласить друга</span>
+                    </div>
                 </div>
             `;
+            // Инициализируем обработчики для кнопок на экране верификации
+            initializeVerificationScreenEventListeners();
         }
         
     } catch (err) {
         console.error("Ошибка загрузки данных пользователя:", err);
-        // В случае ошибки тоже можно заблокировать интерфейс
         document.querySelector('.app-main').innerHTML = `<h2 style="text-align: center; color: red; padding-top: 40px;">Ошибка загрузки данных. Попробуйте позже.</h2>`;
     }
 }
+
+// Новая функция для навешивания событий на экране верификации
+function initializeVerificationScreenEventListeners() {
+    document.getElementById('goto-profile-action')?.addEventListener('click', () => {
+        window.location.href = 'profile.html';
+    });
+    
+    document.getElementById('connect-card-action')?.addEventListener('click', () => {
+        // Здесь можно открыть модалку профиля сразу на разделе карты
+        window.location.href = 'profile.html#card'; // или реализовать открытие модалки
+    });
+
+    document.getElementById('support-action')?.addEventListener('click', () => {
+        // Открыть модальное окно поддержки
+        // Предполагается, что у вас есть модалка с id="support-modal" в DOM index.html или вы перенаправляете
+        alert('Переход в поддержку...');
+    });
+
+    document.getElementById('invite-friend-action')?.addEventListener('click', () => {
+        const inviteLink = 'https://lucent-marshmallow-217b1e.netlify.app/registration.html?ref=12345';
+        navigator.clipboard.writeText(inviteLink).then(() => {
+            alert('Ссылка-приглашение скопирована в буфер обмена!');
+        }).catch(err => {
+            console.error('Ошибка копирования:', err);
+            alert('Не удалось скопировать ссылку.');
+        });
+    });
+}
+
+// Новая функция для навешивания событий на главном экране (когда верификация пройдена)
+function initializeMainScreenEventListeners() {
+    // Вставьте сюда ВЕСЬ код с обработчиками событий, который был у вас на index.html
+    // Например:
+    document.getElementById('scan-qr-btn')?.addEventListener('click', () => { /* ... */ });
+    document.getElementById('balance-card')?.addEventListener('click', () => { /* ... */ });
+    // и так далее для всех кнопок...
+}
+
+// Запускаем загрузку данных при старте
+loadUserData();
 
         // При загрузке страницы получаем данные пользователя
         loadUserData();

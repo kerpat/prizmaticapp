@@ -1007,3 +1007,94 @@ select.form-control:focus {
     transform: translateY(-50%);
     display: inline-block;
 }
+/* ===== СТИЛИ ДЛЯ ЭКРАНА ВЕРИФИКАЦИИ ===== */
+
+.verification-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-top: 20px;
+    gap: 25px;
+    width: 100%;
+}
+
+.verification-header {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--dark-green);
+}
+
+.verification-status-card {
+    background-color: var(--card-bg);
+    border-radius: 20px;
+    padding: 20px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.verification-status-card .icon-wrapper {
+    background-color: var(--light-green-bg);
+    border: 2px solid var(--icon-green);
+    color: var(--dark-green);
+}
+
+.verification-status-info {
+    text-align: left;
+    flex-grow: 1;
+}
+
+.verification-status-info h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--dark-green);
+}
+
+.verification-status-info .progress-bar-container {
+    margin: 8px 0;
+}
+.verification-status-info .progress-bar {
+    width: 66%; /* (2 / 3 шага) */
+    background-color: var(--dark-green);
+}
+
+.verification-status-info p {
+    font-size: 0.9rem;
+    color: #556f6b;
+}
+
+.actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    width: 100%;
+}
+
+.action-card {
+    background-color: var(--card-bg);
+    border-radius: 20px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    color: var(--dark-green);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.action-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.05);
+}
+
+.action-card.full-width {
+    grid-column: 1 / -1; /* Растягиваем на всю ширину */
+}
+
+.action-card .icon-wrapper {
+    background-color: var(--icon-green);
+}
