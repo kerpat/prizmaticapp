@@ -75,16 +75,17 @@ exports.handler = async function(event, context) {
 
         // 3. Формируем базовый объект платежа
         const paymentData = {
-    amount: { value: amount.toFixed(2), currency: "RUB" },
-    confirmation: {
-        type: "redirect",
-        return_url: "https://lucent-marshmallow-217b1e.netlify.app/index.html"
-    },
-    capture: true,
-    description: description,
-    metadata: { userId, bikeId, tariffId },
-    save_payment_method: true, // Просим YooKassa сохранить карту
-};
+            test: true, // <--- ВОТ ГЛАВНОЕ ДОПОЛНЕНИЕ!
+            amount: { value: amount.toFixed(2), currency: "RUB" },
+            confirmation: {
+                type: "redirect",
+                return_url: "https://lucent-marshmallow-217b1e.netlify.app/index.html"
+            },
+            capture: true,
+            description: description,
+            metadata: { userId, bikeId, tariffId },
+            save_payment_method: true, // Просим YooKassa сохранить карту
+        };
 
         // 4. ГЛАВНАЯ ЛОГИКА: Выбираем сценарий оплаты
         if (clientData.yookassa_payment_method_id) {
