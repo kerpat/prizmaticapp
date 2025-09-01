@@ -45,7 +45,7 @@ exports.handler = async function(event, context) {
             confirmation: {
                 type: "redirect",
                 // !!! ИЗМЕНИ НА СВОЙ ДОМЕН NETLIFY !!!
-                return_url: "https://your-site-name.netlify.app/index.html" 
+                return_url: "https://lucent-marshmallow-217b1e.netlify.app/index.html" 
             },
             capture: true,
             description: description,
