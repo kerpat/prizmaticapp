@@ -1009,6 +1009,13 @@ select.form-control:focus {
 }
 /* ===== СТИЛИ ДЛЯ ЭКРАНА ВЕРИФИКАЦИИ ===== */
 
+* ===== ОБНОВЛЕННЫЕ СТИЛИ ДЛЯ ЭКРАНА ВЕРИФИКАЦИИ ===== */
+
+/* Добавляем класс для центрирования заголовка */
+.header-centered {
+    text-align: center;
+}
+
 .verification-container {
     display: flex;
     flex-direction: column;
@@ -1030,20 +1037,12 @@ select.form-control:focus {
     border-radius: 20px;
     padding: 20px;
     width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.verification-status-card .icon-wrapper {
-    background-color: var(--light-green-bg);
-    border: 2px solid var(--icon-green);
-    color: var(--dark-green);
+    /* Убираем flex, так как иконки больше нет */
 }
 
 .verification-status-info {
     text-align: left;
-    flex-grow: 1;
+    width: 100%; /* Растягиваем на всю ширину карточки */
 }
 
 .verification-status-info h3 {
@@ -1056,7 +1055,7 @@ select.form-control:focus {
     margin: 8px 0;
 }
 .verification-status-info .progress-bar {
-    width: 66%; /* (2 / 3 шага) */
+    width: 66%;
     background-color: var(--dark-green);
 }
 
@@ -1065,9 +1064,10 @@ select.form-control:focus {
     color: #556f6b;
 }
 
+/* Ключевое изменение: сетка действий */
 .actions-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr; /* Всегда 2 колонки */
     gap: 15px;
     width: 100%;
 }
@@ -1075,24 +1075,22 @@ select.form-control:focus {
 .action-card {
     background-color: var(--card-bg);
     border-radius: 20px;
-    padding: 20px;
+    padding: 15px; /* Уменьшаем паддинг для компактности */
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center; /* Центрируем контент */
     gap: 10px;
     font-weight: 600;
     color: var(--dark-green);
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    aspect-ratio: 1 / 0.8; /* Делаем карточки пропорциональными, чтобы они были одинаковой высоты */
 }
 
 .action-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.05);
-}
-
-.action-card.full-width {
-    grid-column: 1 / -1; /* Растягиваем на всю ширину */
 }
 
 .action-card .icon-wrapper {
