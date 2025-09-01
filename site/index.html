@@ -999,22 +999,54 @@
         });
 
         balanceCard.addEventListener('click', () => topupModal.classList.remove('hidden'));
-        payBtn.addEventListener('click', () => {
-            const amount = parseFloat(amountInput.value);
-            if (!isNaN(amount) && amount > 0) {
-                const currentBalance = parseFloat(balanceAmountElement.textContent);
-                balanceAmountElement.textContent = (currentBalance + amount).toFixed(0) + ' ₽';
-                successAmountSpan.textContent = amount.toFixed(0) + ' ₽';
-                addTransactionToHistory({ type: 'Пополнение', detail: 'Через СБП', amount: amount, icon: 'topup' });
-                showToast(successToast);
-                topupModal.classList.add('hidden');
-                amountInput.value = '';
-                saveAppState(); // СОХРАНЯЕМ ИЗМЕНЕНИЯ
-            } else {
-                alert('Пожалуйста, введите корректную сумму.');
-            }
+        payBtn.addEventListener('click', async () => {
+    const amount = parseFloat(amountInput.value);
+    if (isNaN(amount) || amount <= 0) {
+        alert('Пожалуйста, введите корректную сумму.');
+        return;
+    }
+
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        alert('Ошибка: не удалось определить пользователя.');
+        return;
+    }
+    
+    payBtn.disabled = true;
+    payBtn.textContent = 'Создаем счет...';
+
+    try {
+        const response = await fetch('/.netlify/functions/create-payment', {
+            method: 'POST',
+            body: JSON.stringify({
+                userId: userId,
+                amount: amount // Передаем сумму для пополнения
+            })
         });
-    });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Неизвестная ошибка сервера');
+
+        if (data.confirmation_url) {
+            // Если карты нет, отправляем на страницу оплаты
+            window.location.href = data.confirmation_url;
+        } else if (data.status === 'pending' || data.status === 'succeeded') {
+            // Если карта есть и автосписание прошло
+            topupModal.classList.add('hidden');
+            alert('Баланс будет пополнен в течение минуты. Вы получите уведомление.');
+            // В будущем здесь нужно будет обновить баланс пользователя, запросив его с сервера
+        } else {
+            throw new Error('Произошла неизвестная ошибка при обработке платежа.');
+        }
+
+    } catch(error) {
+        alert('Ошибка пополнения: ' + error.message);
+    } finally {
+        payBtn.disabled = false;
+        payBtn.textContent = 'Пополнить через СБП';
+    }
+});
+});
 </script>
     <!-- Общий скрипт меню Prizmatic, подключается после основного скрипта -->
     <script src="menu.js" defer></script>

@@ -1,12 +1,10 @@
 const { createClient } = require('@supabase/supabase-js');
 const fetch = require('node-fetch');
 
-// Вспомогательная функция для приведения телефона к формату YooKassa (7xxxxxxxxxx)
+// Вспомогательная функция для очистки номера телефона
 function normalizePhone(phone) {
     if (!phone) return '';
-    // Удаляем все символы, кроме цифр
     let digits = phone.replace(/\D/g, '');
-    // Если номер начинается с 8, заменяем ее на 7
     if (digits.startsWith('8')) {
         digits = '7' + digits.slice(1);
     }
@@ -14,77 +12,88 @@ function normalizePhone(phone) {
 }
 
 exports.handler = async function(event, context) {
-    // Стандартные заголовки для CORS
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
         'Access-Control-Allow-Methods': 'POST, OPTIONS'
     };
 
-    // Netlify требует обрабатывать OPTIONS запросы для CORS
     if (event.httpMethod === 'OPTIONS') {
         return { statusCode: 200, headers };
     }
 
     try {
-        const { userId, bikeId, tariffId } = JSON.parse(event.body);
+        const { userId, bikeId, tariffId, amount: amountFromClient } = JSON.parse(event.body);
 
         if (!userId) {
             throw new Error("Не передан ID пользователя (userId)");
         }
 
-        const supabase = createClient(
-            process.env.SUPABASE_URL,
-            process.env.SUPABASE_ANON_KEY
-        );
+        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
-        // Получаем данные клиента, чтобы взять номер телефона для чека
+        // 1. Получаем данные клиента: телефон и привязанную карту
         const { data: clientData, error: clientError } = await supabase
             .from('clients')
-            .select('phone')
+            .select('phone, yookassa_payment_method_id')
             .eq('id', userId)
             .single();
 
-        if (clientError || !clientData || !clientData.phone) {
-            throw new Error(`Не удалось найти телефон для клиента с ID ${userId}`);
+        if (clientError || !clientData) {
+            throw new Error(`Не удалось найти клиента с ID ${userId}`);
+        }
+
+        const normalizedPhone = normalizePhone(clientData.phone);
+        if (!normalizedPhone) {
+            throw new Error(`У клиента ${userId} не указан корректный номер телефона.`);
         }
         
-        // === ИСПРАВЛЕНИЕ №1: Очищаем номер телефона ===
-        const normalizedPhone = normalizePhone(clientData.phone);
-        if (normalizedPhone.length < 11) {
-             throw new Error(`Некорректный формат номера телефона: ${clientData.phone}`);
-        }
+        // Определяем сумму. Если пришла с клиента (для пополнения), берем ее. Иначе - стандартная цена аренды.
+        const amount = amountFromClient ? parseFloat(amountFromClient) : 3750.00;
+        const description = bikeId ? `Аренда электровелосипеда #${bikeId}` : `Пополнение баланса`;
+        
+        const idempotenceKey = require('crypto').randomUUID();
 
-        const amount = 3750.00; // В будущем можно будет брать из базы по tariffId
-        const description = `Аренда электровелосипеда #${bikeId} (тариф #${tariffId})`;
-        const idempotenceKey = require('crypto').randomUUID(); // Ключ идемпотентности для защиты от двойных списаний
-
+        // 2. Формируем базовый объект платежа
         const paymentData = {
             amount: { value: amount.toFixed(2), currency: "RUB" },
-            confirmation: {
-                type: "redirect",
-                // === ИСПРАВЛЕНИЕ №2: Указываем твой реальный URL ===
-                return_url: "https://lucent-marshmallow-217b1e.netlify.app/index.html" 
-            },
-            capture: true, // Сразу списываем деньги, а не холдируем
+            capture: true,
             description: description,
             metadata: { userId, bikeId, tariffId },
-            receipt: {
-                customer: { phone: normalizedPhone }, // Передаем очищенный номер
-                items: [{
-                    description: description,
-                    quantity: "1.00",
-                    amount: { value: amount.toFixed(2), currency: "RUB" },
-                    vat_code: "1", // НДС не облагается
-                    payment_mode: "full_payment",
-                    payment_subject: "service"
-                }]
-            }
         };
 
-        // Аутентификация в YooKassa
+        // 3. Главная логика: автоплатеж или редирект?
+        if (clientData.yookassa_payment_method_id) {
+            // КАРТА ПРИВЯЗАНА -> АВТОСПИСАНИЕ
+            console.log(`Инициирую автосписание для пользователя ${userId}`);
+            paymentData.payment_method_id = clientData.yookassa_payment_method_id;
+            // Поле `confirmation` не нужно, т.к. подтверждение не требуется
+        } else {
+            // КАРТЫ НЕТ -> РЕДИРЕКТ НА СТРАНИЦУ ОПЛАТЫ
+            console.log(`Создаю платеж с редиректом для пользователя ${userId}`);
+            paymentData.confirmation = {
+                type: "redirect",
+                return_url: "https://lucent-marshmallow-217b1e.netlify.app/index.html"
+            };
+            // И предлагаем сохранить карту для будущих платежей
+            paymentData.save_payment_method = true; 
+        }
+
+        // 4. Добавляем данные для чека
+        paymentData.receipt = {
+            customer: { phone: normalizedPhone },
+            items: [{
+                description: description,
+                quantity: "1.00",
+                amount: { value: amount.toFixed(2), currency: "RUB" },
+                vat_code: "1",
+                payment_mode: "full_payment",
+                payment_subject: "service"
+            }]
+        };
+
         const authString = Buffer.from(`${process.env.YOOKASSA_SHOP_ID}:${process.env.YOOKASSA_SECRET_KEY}`).toString('base64');
 
+        // 5. Отправляем запрос в YooKassa
         const response = await fetch("https://api.yookassa.ru/v3/payments", {
             method: "POST",
             headers: {
@@ -98,20 +107,32 @@ exports.handler = async function(event, context) {
         const paymentResult = await response.json();
         
         if (!response.ok) {
-            // Если YooKassa вернула ошибку, логируем ее для отладки
             console.error("YooKassa API Error:", paymentResult);
-            throw new Error(`Ошибка YooKassa: ${paymentResult.description || 'Invalid request parameter'}`);
+            throw new Error(`Ошибка YooKassa: ${paymentResult.description || 'Неизвестная ошибка'}`);
         }
 
-        // Если все хорошо, возвращаем ссылку на оплату на фронтенд
-        return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({ confirmation_url: paymentResult.confirmation.confirmation_url })
-        };
+        // 6. Возвращаем разный результат в зависимости от сценария
+        if (clientData.yookassa_payment_method_id) {
+            // Для автосписания не нужна ссылка, просто сообщаем статус
+            // (он будет 'pending', а потом 'succeeded' придет на вебхук)
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({ 
+                    status: paymentResult.status, 
+                    message: "Автоплатеж инициирован. Ожидайте подтверждения." 
+                })
+            };
+        } else {
+            // Для обычной оплаты возвращаем ссылку для редиректа
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({ confirmation_url: paymentResult.confirmation.confirmation_url })
+            };
+        }
 
     } catch (error) {
-        // В случае любой ошибки, логируем ее и возвращаем на фронтенд
         console.error("Handler Error:", error.message);
         return {
             statusCode: 500,

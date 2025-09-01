@@ -439,6 +439,13 @@
     <script>
     document.addEventListener('DOMContentLoaded', () => {
 
+        const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('card_saved') === 'true') {
+    alert('Карта успешно привязана!');
+    window.history.replaceState({}, document.title, window.location.pathname);
+    updateCardView(); // Обновляем вид, чтобы показать привязанную карту
+}
+
         if (localStorage.getItem('isRegistered') !== 'true') {
             window.location.replace('start.html');
             return;
@@ -542,18 +549,49 @@
             }
         };
 
-        addCardForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            cardErrorMessage.classList.remove('visible');
-            if (cardNumberInput.value.length < 19 || cardExpiryInput.value.length < 5 || cardCvcInput.value.length < 3) {
-                cardErrorMessage.textContent = 'Пожалуйста, заполните все поля корректно.';
-                cardErrorMessage.classList.add('visible');
-                return;
-            }
-            const cardData = { number: cardNumberInput.value.replace(/\s/g, ''), expiry: cardExpiryInput.value };
-            localStorage.setItem('userCard', JSON.stringify(cardData));
-            updateCardView();
+        addCardForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    cardErrorMessage.classList.remove('visible');
+
+    if (cardNumberInput.value.length < 19 || cardExpiryInput.value.length < 5 || cardCvcInput.value.length < 3) {
+        cardErrorMessage.textContent = 'Пожалуйста, заполните все поля корректно.';
+        cardErrorMessage.classList.add('visible');
+        return;
+    }
+
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        alert('Ошибка: не удалось определить пользователя.');
+        return;
+    }
+
+    const submitBtn = addCardForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Создаем ссылку...';
+    
+    try {
+        const response = await fetch('/.netlify/functions/save-payment-method', {
+            method: 'POST',
+            body: JSON.stringify({ userId: userId })
         });
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.error);
+
+        if (data.confirmation_url) {
+            window.location.href = data.confirmation_url;
+        } else {
+            throw new Error('Не получена ссылка для привязки карты.');
+        }
+
+    } catch (error) {
+        cardErrorMessage.textContent = 'Ошибка: ' + error.message;
+        cardErrorMessage.classList.add('visible');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Привязать';
+    }
+});
+        
 
         deleteCardBtn.addEventListener('click', () => {
             localStorage.removeItem('userCard');
