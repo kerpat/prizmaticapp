@@ -305,36 +305,23 @@
 <div id="card-modal" class="modal-overlay hidden">
     <div class="modal-content">
         <button class="modal-close">&times;</button>
-        <h2 id="card-modal-title"></h2>
+        <h2 id="card-modal-title">Способ оплаты</h2>
+
+        <!-- Этот блок будет показываться, если карта УЖЕ привязана -->
         <div id="card-display-view" class="hidden">
             <div class="card-preview">
-                <div class="card-number" id="card-number-display"></div>
+                <div class="card-number" id="card-number-display">**** **** **** ****</div>
                 <div class="card-details">
-                    <span>Срок действия</span>
-                    <span id="card-expiry-display"></span>
+                    <span>Карта для списаний</span>
+                    <span id="card-type-display">Привязана</span>
                 </div>
             </div>
-            <button class="btn delete-card-btn" id="delete-card-btn">Удалить карту</button>
         </div>
+
+        <!-- Этот блок будет показываться, если карты ЕЩЕ НЕТ -->
         <div id="card-form-view" class="hidden">
-            <form id="add-card-form">
-                <div class="modal-form-group">
-                    <label for="card-number">Номер карты</label>
-                    <input type="text" id="card-number" class="form-input" placeholder="0000 0000 0000 0000" required>
-                </div>
-                <div class="input-group-row">
-                    <div class="modal-form-group">
-                        <label for="card-expiry">Срок (ММ/ГГ)</label>
-                        <input type="text" id="card-expiry" class="form-input" placeholder="05/28" required>
-                    </div>
-                    <div class="modal-form-group">
-                        <label for="card-cvc">CVC</label>
-                        <input type="text" id="card-cvc" class="form-input" placeholder="123" required>
-                    </div>
-                </div>
-                <div id="card-error-message" class="error-message"></div>
-                <button type="submit" class="btn btn-primary">Привязать</button>
-            </form>
+            <p style="margin-bottom: 20px; color: var(--dark-green);">У вас еще нет привязанной карты.</p>
+            <button id="add-card-btn" class="btn btn-primary">Привязать карту</button>
         </div>
     </div>
 </div>
@@ -438,14 +425,21 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
+    const SUPABASE_URL = 'https://avamqfmuhiwtlumjkzmv.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        const urlParams = new URLSearchParams(window.location.search);
+    const cardModal = document.getElementById('card-modal');
+    const cardDisplayView = document.getElementById('card-display-view');
+    const cardFormView = document.getElementById('card-form-view');
+    const addCardBtn = document.getElementById('add-card-btn');
+
+const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('card_saved') === 'true') {
     alert('Карта успешно привязана!');
     window.history.replaceState({}, document.title, window.location.pathname);
-    updateCardView(); // Обновляем вид, чтобы показать привязанную карту
 }
-
+        
         if (localStorage.getItem('isRegistered') !== 'true') {
             window.location.replace('start.html');
             return;
@@ -521,33 +515,60 @@ if (urlParams.get('card_saved') === 'true') {
             });
         });
 
-        // --- ЛОГИКА ДЛЯ ПРИВЯЗКИ КАРТЫ ---
-        const cardModal = document.getElementById('card-modal');
-        const cardModalTitle = document.getElementById('card-modal-title');
-        const cardDisplayView = document.getElementById('card-display-view');
-        const cardFormView = document.getElementById('card-form-view');
-        const addCardForm = document.getElementById('add-card-form');
-        const deleteCardBtn = document.getElementById('delete-card-btn');
-        const cardNumberInput = document.getElementById('card-number');
-        const cardExpiryInput = document.getElementById('card-expiry');
-        const cardCvcInput = document.getElementById('card-cvc');
-        const cardErrorMessage = document.getElementById('card-error-message');
+        const updateCardView = async () => {
+    const userId = localStorage.getItem('userId');
+    if (!userId) return;
 
-        const updateCardView = () => {
-            const savedCard = JSON.parse(localStorage.getItem('userCard'));
-            if (savedCard) {
-                cardModalTitle.textContent = "Привязанная карта";
-                document.getElementById('card-number-display').textContent = `**** **** **** ${savedCard.number.slice(-4)}`;
-                document.getElementById('card-expiry-display').textContent = savedCard.expiry;
-                cardDisplayView.classList.remove('hidden');
-                cardFormView.classList.add('hidden');
-            } else {
-                cardModalTitle.textContent = "Привязка карты";
-                cardDisplayView.classList.add('hidden');
-                cardFormView.classList.remove('hidden');
-                addCardForm.reset();
-            }
-        };
+    const { data, error } = await supabase
+        .from('clients')
+        .select('yookassa_payment_method_id')
+        .eq('id', userId)
+        .single();
+
+    if (error || !data.yookassa_payment_method_id) {
+        cardDisplayView.classList.add('hidden');
+        cardFormView.classList.remove('hidden');
+    } else {
+        document.getElementById('card-number-display').textContent = '**** **** **** ****';
+        document.getElementById('card-type-display').textContent = 'Привязана';
+        cardFormView.classList.add('hidden');
+        cardDisplayView.classList.remove('hidden');
+    }
+};
+
+addCardBtn.addEventListener('click', async () => {
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        alert('Ошибка: не удалось определить пользователя.');
+        return;
+    }
+
+    addCardBtn.disabled = true;
+    addCardBtn.textContent = 'Создаем ссылку...';
+    
+    try {
+        const response = await fetch('/.netlify/functions/save-payment-method', {
+            method: 'POST',
+            body: JSON.stringify({ userId: userId })
+        });
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.error);
+
+        if (data.confirmation_url) {
+            window.location.href = data.confirmation_url;
+        } else {
+            throw new Error('Не получена ссылка для привязки карты.');
+        }
+
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+        addCardBtn.disabled = false;
+        addCardBtn.textContent = 'Привязать карту';
+    }
+});
+
+    
 
         addCardForm.addEventListener('submit', async (e) => {
     e.preventDefault();
