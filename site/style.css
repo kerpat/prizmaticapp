@@ -884,3 +884,126 @@ body {
 .extend-container.hidden {
     display: none;
 }
+/* ===== НОВЫЕ СТИЛИ ДЛЯ КРАСИВОЙ ФОРМЫ РЕГИСТРАЦИИ ===== */
+
+/* 1. Стилизация выпадающих списков (select) */
+select.form-control {
+    width: 100%;
+    padding: 16px;
+    background-color: var(--card-bg);
+    border: 2px solid var(--card-bg);
+    border-radius: 16px;
+    font-size: 1rem;
+    color: var(--dark-green);
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s ease;
+    -webkit-appearance: none; /* Убираем стандартную стрелку в Chrome/Safari */
+    -moz-appearance: none;    /* Убираем стандартную стрелку в Firefox */
+    appearance: none;         /* Убираем стандартную стрелку в современных браузерах */
+    /* Добавляем свою кастомную стрелку */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23083830' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 1.2em;
+    cursor: pointer;
+}
+select.form-control:focus {
+    outline: none;
+    border-color: var(--icon-green);
+    background-color: var(--white);
+}
+
+/* 2. Стилизация кнопок выбора файла (input[type="file"]) */
+.file-upload-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+.file-upload-label {
+    display: inline-block;
+    padding: 10px 16px;
+    background-color: var(--icon-green);
+    color: var(--white);
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    flex-shrink: 0;
+}
+.file-upload-label:hover {
+    background-color: var(--dark-green);
+}
+.file-upload-input {
+    /* Полностью прячем стандартный инпут */
+    display: none;
+}
+.file-name {
+    margin-left: 15px;
+    color: #556f6b;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 3. Стилизация чекбокса */
+.custom-checkbox {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+.custom-checkbox input[type="checkbox"] {
+    display: none; /* Прячем стандартный чекбокс */
+}
+.custom-checkbox .checkbox-visual {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    background-color: var(--card-bg);
+    border: 2px solid var(--card-bg);
+    border-radius: 6px;
+    margin-right: 12px;
+    position: relative;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+/* Галочка внутри чекбокса (появляется при выборе) */
+.custom-checkbox .checkbox-visual::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 6px;
+    width: 6px;
+    height: 12px;
+    border: solid var(--white);
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+/* Стили для выбранного состояния */
+.custom-checkbox input[type="checkbox"]:checked + .checkbox-visual {
+    background-color: var(--icon-green);
+    border-color: var(--icon-green);
+}
+.custom-checkbox input[type="checkbox"]:checked + .checkbox-visual::after {
+    opacity: 1;
+}
+
+/* 4. Более красивый разделитель */
+.form-separator {
+    text-align: center;
+    color: #a0b5b1;
+    font-weight: 500;
+    margin: 20px 0 10px;
+    border: 0;
+    border-top: 1px solid #eaf0f0;
+}
+.form-separator p {
+    background: var(--white);
+    padding: 0 10px;
+    transform: translateY(-50%);
+    display: inline-block;
+}

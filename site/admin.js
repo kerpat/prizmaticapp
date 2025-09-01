@@ -254,46 +254,92 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Clients Logic ---
 
     async function loadClients() {
-        clientsTableBody.innerHTML = '<tr><td colspan="6">Загрузка клиентов...</td></tr>';
-        try {
-            const { data, error } = await supabase
-                .from('clients')
-                .select('*')
-                .order('created_at', { ascending: false });
+    clientsTableBody.innerHTML = '<tr><td colspan="7">Загрузка клиентов...</td></tr>'; // Увеличили colspan до 7
+    try {
+        const { data, error } = await supabase
+            .from('clients')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-            if (error) throw error;
-            clientsData = data || []; // Кэшируем данные для модальных окон
-            clientsTableBody.innerHTML = '';
+        if (error) throw error;
+        clientsData = data || []; 
+        clientsTableBody.innerHTML = '';
 
-            if (clientsData.length === 0) {
-                clientsTableBody.innerHTML = '<tr><td colspan="6">Клиенты не найдены.</td></tr>';
-                return;
+        if (clientsData.length === 0) {
+            clientsTableBody.innerHTML = '<tr><td colspan="7">Клиенты не найдены.</td></tr>';
+            return;
+        }
+
+        clientsData.forEach(client => {
+            const tr = document.createElement('tr');
+            const date = new Date(client.created_at).toLocaleDateString();
+            const status = client.verification_status || 'not_set'; // Статус по умолчанию
+            
+            let statusBadge = '';
+            switch(status) {
+                case 'approved':
+                    statusBadge = '<span class="status-badge status-approved">Одобрен</span>';
+                    break;
+                case 'rejected':
+                    statusBadge = '<span class="status-badge status-rejected">Отклонен</span>';
+                    break;
+                case 'pending':
+                    statusBadge = '<span class="status-badge status-pending">На проверке</span>';
+                    break;
+                default:
+                    statusBadge = '<span>Не задан</span>';
             }
 
-            clientsData.forEach(client => {
-                const tr = document.createElement('tr');
-                const date = new Date(client.created_at).toLocaleDateString();
-                const recognizedData = client.extra?.recognized_data || {};
-                const passportSummary = `${recognizedData['Фамилия'] || ''} ${recognizedData['Имя'] || ''}`.trim();
+            // Добавляем кнопки верификации только для тех, кто на проверке
+            const verificationButtons = status === 'pending'
+                ? `<button type="button" class="approve-btn" data-id="${client.id}">Одобрить</button>
+                   <button type="button" class="reject-btn" data-id="${client.id}">Отклонить</button>`
+                : '';
 
-                tr.innerHTML = `
-                    <td>${client.name}</td>
-                    <td>${client.phone || ''}</td>
-                    <td>${client.city || ''}</td>
-                    <td>${date}</td>
-                    <td>${passportSummary || 'Нет данных'}</td>
-                    <td>
-                        <button type="button" class="view-client-btn" data-id="${client.id}">Инфо</button>
-                        <button type="button" class="edit-client-btn" data-id="${client.id}">Ред.</button>
-                    </td>`;
-                clientsTableBody.appendChild(tr);
-            });
+            tr.innerHTML = `
+                <td>${client.name}</td>
+                <td>${client.phone || ''}</td>
+                <td>${statusBadge}</td>
+                <td>${date}</td>
+                <td><button type="button" class="view-client-btn" data-id="${client.id}">Инфо/Фото</button></td>
+                <td><button type="button" class="edit-client-btn" data-id="${client.id}">Ред. данных</button></td>
+                <td>${verificationButtons}</td>`;
+            clientsTableBody.appendChild(tr);
+        });
+    } catch (err) {
+        console.error('Ошибка загрузки клиентов:', err);
+        clientsTableBody.innerHTML = `<tr><td colspan="7">Ошибка: ${err.message}</td></tr>`;
+    }
+}
+  
+clientsTableBody.addEventListener('click', async (e) => {
+    const target = e.target;
+    const clientId = target.dataset.id;
+
+    if (!clientId) return;
+
+    let newStatus = '';
+    if (target.classList.contains('approve-btn')) newStatus = 'approved';
+    if (target.classList.contains('reject-btn')) newStatus = 'rejected';
+
+    if (newStatus) {
+        if (!confirm(`Вы уверены, что хотите изменить статус клиента #${clientId} на "${newStatus}"?`)) return;
+        
+        try {
+            const { error } = await supabase
+                .from('clients')
+                .update({ verification_status: newStatus })
+                .eq('id', clientId);
+
+            if (error) throw error;
+            
+            alert('Статус клиента успешно обновлен!');
+            loadClients(); // Перезагружаем список, чтобы увидеть изменения
         } catch (err) {
-            console.error('Ошибка загрузки клиентов:', err);
-            clientsTableBody.innerHTML = `<tr><td colspan="6">Ошибка: ${err.message}</td></tr>`;
+            alert(`Ошибка обновления статуса: ${err.message}`);
         }
     }
-    
+});
     // --- Rentals and Payments Loaders ---
 
     async function loadRentals() {

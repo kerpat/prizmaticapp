@@ -289,17 +289,61 @@
         }
 
         async function loadUserData() {
-            const userId = localStorage.getItem('userId');
-            if (!userId) {
-                // Если ID нет, возможно, пользователь зашел напрямую. Перенаправляем на регистрацию.
-                localStorage.clear();
-                window.location.replace('registration.html');
-                return;
-            }
-            // В будущем здесь будут запросы к Supabase для получения баланса и списка велосипедов
-            balanceAmountElement.textContent = '1000 ₽';
-            availableBikesCount.textContent = '100';
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        localStorage.clear();
+        window.location.replace('registration.html');
+        return;
+    }
+
+    try {
+        // Запрашиваем данные пользователя, включая новый статус
+        const { data: client, error } = await supabase
+            .from('clients')
+            .select('verification_status, name')
+            .eq('id', userId)
+            .single();
+
+        if (error || !client) {
+            throw new Error(error ? error.message : "Клиент не найден.");
         }
+
+        // Сохраняем актуальное имя
+        if (client.name) {
+             document.querySelector('.app-header h1').textContent = `Привет, ${client.name.split(' ')[0]}!`;
+        }
+
+        // --- ГЛАВНАЯ ЛОГИКА ПРОВЕРКИ СТАТУСА ---
+        const status = client.verification_status;
+        const mainContent = document.querySelector('.app-main');
+        
+        if (status === 'approved') {
+            // Если все хорошо, просто продолжаем работу
+            // Можно добавить сюда код для загрузки баланса и т.д.
+        } else {
+            // Если статус не 'approved', блокируем интерфейс
+            let messageTitle = 'Ваш аккаунт на проверке';
+            let messageText = 'Мы проверяем ваши документы. Обычно это занимает не больше 24 часов. Мы сообщим вам, как только все будет готово.';
+            if (status === 'rejected') {
+                messageTitle = 'В верификации отказано';
+                messageText = 'К сожалению, мы не смогли подтвердить ваши данные. Пожалуйста, свяжитесь с поддержкой для уточнения деталей.';
+            }
+            
+            // Заменяем все содержимое main на сообщение
+            mainContent.innerHTML = `
+                <div style="text-align: center; padding-top: 40px;">
+                    <h2 style="margin-bottom: 15px;">${messageTitle}</h2>
+                    <p style="color: #556f6b; line-height: 1.5;">${messageText}</p>
+                </div>
+            `;
+        }
+        
+    } catch (err) {
+        console.error("Ошибка загрузки данных пользователя:", err);
+        // В случае ошибки тоже можно заблокировать интерфейс
+        document.querySelector('.app-main').innerHTML = `<h2 style="text-align: center; color: red; padding-top: 40px;">Ошибка загрузки данных. Попробуйте позже.</h2>`;
+    }
+}
 
         // При загрузке страницы получаем данные пользователя
         loadUserData();

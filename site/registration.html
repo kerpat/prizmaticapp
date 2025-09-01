@@ -5,18 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Регистрация - Bike App</title>
 
-  <!-- Шрифты и TG WebApp (если нужно) -->
+  <!-- Шрифты -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
+  
   <!-- Supabase UMD -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
 
-  <!-- ваш внешний css по желанию -->
-  <link rel="stylesheet" href="style.css" />
-
+  <!-- ОСНОВНЫЕ СТИЛИ И СТИЛИ ФОРМЫ -->
   <style>
     :root{
       --primary-green:#29e29a;--dark-green:#083830;--icon-green:#26b999;
@@ -41,40 +38,14 @@
       width:100%;padding:16px;background-color:var(--card-bg);border:2px solid var(--card-bg);
       border-radius:16px;font-size:1rem;color:var(--dark-green);transition:all .2s ease
     }
-    textarea{
-      width:100%;padding:14px;background-color:var(--card-bg);border:2px solid var(--card-bg);
-      border-radius:16px;font-size:1rem;color:var(--dark-green);transition:all .2s ease;resize:vertical
-    }
-    input::placeholder,textarea::placeholder{color:var(--text-secondary)}
-    input:focus,textarea:focus{outline:0;border-color:var(--icon-green);background-color:var(--white)}
-    input.error,textarea.error{border-color:var(--danger-color)!important}
+    input::placeholder{color:var(--text-secondary)}
+    input:focus{outline:0;border-color:var(--icon-green);background-color:var(--white)}
+    input.error{border-color:var(--danger-color)!important}
     .btn{border-radius:18px;font-weight:700;cursor:pointer;border:none;transition:all .2s;padding:18px 10px;font-size:1.1rem;width:100%}
     .btn-primary{background-color:var(--dark-green);color:var(--white)}
-    .btn-secondary{background-color:var(--border-color);color:var(--dark-green)}
     .btn:disabled{background-color:#ccc;cursor:not-allowed}
     .validation-message{color:var(--danger-color);font-size:.9rem;text-align:center;margin-top:10px;display:none;font-weight:500}
     .hidden{display:none!important}
-
-    /* Кнопки SSO (если понадобится расширение) */
-    .sso-container{display:flex;flex-direction:column;gap:12px;margin-top:20px}
-    .sso-btn{display:flex;align-items:center;justify-content:center;padding:14px;border-radius:16px;text-decoration:none;font-weight:600;font-size:1rem;border:1px solid var(--border-color)}
-    .sso-btn:hover{opacity:.9}
-
-    /* Поля загрузки */
-    #prizmatic-extra-fields{display:flex;flex-direction:column;gap:20px}
-    #prizmatic-extra-fields input[type=file]{
-      width:100%;padding:14px;background-color:var(--card-bg);border:2px solid var(--card-bg);border-radius:16px;font-size:1rem;color:var(--dark-green);cursor:pointer
-    }
-    #prizmatic-extra-fields input[type=file]::file-selector-button{
-      background-color:var(--icon-green);color:#fff;border:none;border-radius:12px;padding:10px 16px;font-weight:600;cursor:pointer;margin-right:14px
-    }
-    #prizmatic-extra-fields input[type=file]:focus{outline:none;border-color:var(--icon-green);background-color:#fff}
-
-    /* Чекбокс "Я мигрант" */
-    .checkbox-label{display:flex;align-items:center;gap:8px;font-size:.9rem;font-weight:600;color:var(--dark-green);user-select:none}
-    .checkbox-label input[type=checkbox]{width:18px;height:18px;accent-color:var(--icon-green);cursor:pointer}
-
-    /* Оверлей подтверждения */
     #verify-overlay{
       position:fixed;inset:0;background-color:rgba(0,0,0,.5);display:flex;justify-content:center;align-items:center;z-index:100
     }
@@ -82,17 +53,40 @@
       background-color:#fff;border-radius:24px;padding:30px;width:90%;max-width:420px;max-height:90vh;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.15)
     }
     #verify-overlay h3{margin-bottom:20px;font-size:1.4rem;font-weight:700;color:var(--dark-green)}
-    #verify-form .form-group{margin-bottom:15px}
-    #verify-form label{display:block;margin-bottom:6px;font-size:.95rem;font-weight:600;color:var(--dark-green)}
     .modal-actions{display:flex;gap:10px;justify-content:space-between;margin-top:20px}
-
     .investor-link-container{text-align:center;margin-top:auto;padding-top:20px}
     #investor-link{font-size:.9rem;color:var(--text-secondary);font-weight:500;cursor:pointer;background:none;text-decoration:none;border:1px solid var(--text-secondary);border-radius:8px;padding:4px 12px}
     .back-link{font-size:.9rem;color:var(--text-secondary);font-weight:600;text-decoration:none;cursor:pointer;background:none;border:none;align-self:center;margin-top:20px}
+    
+    /* ===== СТИЛИ ДЛЯ КРАСИВОЙ ФОРМЫ РЕГИСТРАЦИИ ===== */
+    .form-hint { font-size: 0.85rem; color: #556f6b; margin-top: -5px; margin-bottom: 5px; }
+    select.form-control {
+        width: 100%; padding: 16px; background-color: var(--card-bg); border: 2px solid var(--card-bg);
+        border-radius: 16px; font-size: 1rem; color: var(--dark-green); font-family: 'Inter', sans-serif;
+        transition: all 0.2s ease; -webkit-appearance: none; -moz-appearance: none; appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23083830' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 16px center; background-size: 1.2em; cursor: pointer;
+    }
+    select.form-control:focus { outline: none; border-color: var(--icon-green); background-color: var(--white); }
+    .file-upload-wrapper { position: relative; display: flex; align-items: center; width: 100%; }
+    .file-upload-label { display: inline-block; padding: 10px 16px; background-color: var(--icon-green); color: var(--white);
+        border-radius: 12px; font-weight: 600; cursor: pointer; transition: background-color 0.2s ease; flex-shrink: 0; }
+    .file-upload-label:hover { background-color: var(--dark-green); }
+    .file-upload-input { display: none; }
+    .file-name { margin-left: 15px; color: #556f6b; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .custom-checkbox { display: flex; align-items: center; cursor: pointer; user-select: none; }
+    .custom-checkbox input[type="checkbox"] { display: none; }
+    .custom-checkbox .checkbox-visual { display: inline-block; width: 22px; height: 22px; background-color: var(--card-bg);
+        border: 2px solid var(--card-bg); border-radius: 6px; margin-right: 12px; position: relative;
+        transition: all 0.2s ease; flex-shrink: 0; }
+    .custom-checkbox .checkbox-visual::after { content: ''; position: absolute; top: 2px; left: 6px; width: 6px; height: 12px;
+        border: solid var(--white); border-width: 0 3px 3px 0; transform: rotate(45deg); opacity: 0; transition: opacity 0.2s ease; }
+    .custom-checkbox input[type="checkbox"]:checked + .checkbox-visual { background-color: var(--icon-green); border-color: var(--icon-green); }
+    .custom-checkbox input[type="checkbox"]:checked + .checkbox-visual::after { opacity: 1; }
+    .form-separator { text-align: center; color: #a0b5b1; font-weight: 500; margin: 20px 0 10px;
+        border: 0; border-top: 1px solid #eaf0f0; }
+    .form-separator p { background: var(--white); padding: 0 10px; transform: translateY(-50%); display: inline-block; }
   </style>
-
-  <!-- (необязательно) Дополнительные ассеты -->
-  <!-- <link rel="stylesheet" href="../../../assets/enhanced.css"> -->
 </head>
 <body>
 <div class="app-screen">
@@ -105,109 +99,126 @@
     <main class="app-main">
       <!-- ===== ОСНОВНАЯ РЕГИСТРАЦИЯ ===== -->
       <div id="registration-view">
-        <!-- Вставьте этот код в файл registration.html вместо старой формы -->
-<form id="registration-form" novalidate>
-    <!-- Блок 1: Основная информация (видна всем) -->
-    <div class="form-group">
-        <label for="name">Ваше имя (как в документе)</label>
-        <input type="text" id="name" placeholder="Иван Иванов" required />
-    </div>
-    <div class="form-group">
-        <label for="phone">Номер телефона</label>
-        <input type="tel" id="phone" placeholder="+7 (___) ___-__-__" required />
-    </div>
-    <div class="form-group">
-        <label for="city-select">Город работы</label>
-        <select id="city-select" required>
-            <option value="" disabled selected>Выберите город</option>
-            <option value="Москва">Москва</option>
-            <option value="Санкт-Петербург">Санкт-Петербург</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <label for="country-select">Страна гражданства</label>
-        <select id="country-select" required>
-            <option value="" disabled selected>Выберите страну</option>
-            <option value="ru">Российская Федерация</option>
-            <option value="kz">Казахстан</option>
-            <option value="kg">Кыргызстан</option>
-            <option value="uz">Узбекистан</option>
-            <option value="tj">Таджикистан</option>
-            <option value="other">Другое</option>
-        </select>
-    </div>
+        <form id="registration-form" novalidate>
+            <!-- Блок 1: Основная информация -->
+            <div class="form-group">
+                <label for="name">Ваше имя (как в документе)</label>
+                <input type="text" id="name" placeholder="Иван Иванов" required />
+            </div>
+            <div class="form-group">
+                <label for="phone">Номер телефона</label>
+                <input type="tel" id="phone" placeholder="+7 (___) ___-__-__" required />
+            </div>
+            <div class="form-group">
+                <label for="city-select">Город работы</label>
+                <select id="city-select" class="form-control" required>
+                    <option value="" disabled selected>Выберите город</option>
+                    <option value="Москва">Москва</option>
+                    <option value="Санкт-Петербург">Санкт-Петербург</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="country-select">Страна гражданства</label>
+                <select id="country-select" class="form-control" required>
+                    <option value="" disabled selected>Выберите страну</option>
+                    <option value="ru">Российская Федерация</option>
+                    <option value="kz">Казахстан</option>
+                    <option value="kg">Кыргызстан</option>
+                    <option value="uz">Узбекистан</option>
+                    <option value="tj">Таджикистан</option>
+                    <option value="other">Другое</option>
+                </select>
+            </div>
 
-    <!-- Блок 2: Документы для граждан РФ (изначально скрыт) -->
-    <div id="russian-fields" class="hidden">
-        <div class="form-group">
-            <label for="ru-passport-main">Фото паспорта (главный разворот)</label>
-            <input type="file" id="ru-passport-main" accept="image/*,application/pdf" />
-        </div>
-        <div class="form-group">
-            <label for="ru-passport-reg">Фото паспорта (страница с регистрацией)</label>
-            <input type="file" id="ru-passport-reg" accept="image/*,application/pdf" />
-        </div>
-        <div class="form-group">
-             <label class="checkbox-label">
-                <input type="checkbox" id="no-registration-checkbox" /> У меня нет штампа о регистрации в паспорте
-            </label>
-        </div>
-        <div class="form-group">
-            <label for="ru-inn">ИНН (12 цифр)</label>
-            <input type="tel" id="ru-inn" placeholder="Введите ваш ИНН" />
-        </div>
-    </div>
+            <!-- Блок 2: Документы для граждан РФ -->
+            <div id="russian-fields" class="hidden">
+                <div class="form-group">
+                    <label>Фото паспорта (главный разворот)</label>
+                    <div class="file-upload-wrapper">
+                        <label for="ru-passport-main" class="file-upload-label">Выберите файл</label>
+                        <input type="file" id="ru-passport-main" class="file-upload-input" accept="image/*,application/pdf" />
+                        <span id="ru-passport-main-filename" class="file-name">Файл не выбран</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Фото паспорта (страница с регистрацией)</label>
+                    <div class="file-upload-wrapper">
+                        <label for="ru-passport-reg" class="file-upload-label">Выберите файл</label>
+                        <input type="file" id="ru-passport-reg" class="file-upload-input" accept="image/*,application/pdf" />
+                        <span id="ru-passport-reg-filename" class="file-name">Файл не выбран</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                     <label for="no-registration-checkbox" class="custom-checkbox">
+                        <input type="checkbox" id="no-registration-checkbox" />
+                        <span class="checkbox-visual"></span>
+                        <span>У меня нет штампа о регистрации в паспорте</span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="ru-inn">ИНН (12 цифр)</label>
+                    <input type="tel" id="ru-inn" placeholder="Введите ваш ИНН" />
+                </div>
+            </div>
 
-    <!-- Блок 3: Документы для иностранных граждан (изначально скрыт) -->
-    <div id="foreign-fields" class="hidden">
-        <div class="form-group">
-            <label for="foreign-passport">Фото основного документа</label>
-            <p class="form-hint">Загранпаспорт (главная страница) или ID-карта (лицевая сторона).</p>
-            <input type="file" id="foreign-passport-front" accept="image/*,application/pdf" />
-        </div>
-        <div class="form-group" id="foreign-passport-back-group">
-            <label for="foreign-passport-back">Фото документа (оборотная сторона)</label>
-            <p class="form-hint">Только для ID-карт.</p>
-            <input type="file" id="foreign-passport-back" accept="image/*,application/pdf" />
-        </div>
-         <div class="form-group">
-            <label for="foreign-inn">ИНН РФ (если есть)</label>
-            <input type="tel" id="foreign-inn" placeholder="Введите ваш ИНН" />
-        </div>
-    </div>
-    
-    <!-- Блок 4: Патент для граждан не из ЕАЭС (изначально скрыт и необязателен) -->
-    <div id="patent-fields" class="hidden">
-        <hr>
-        <p class="form-hint" style="text-align: center; font-weight: 600;">Следующие поля необязательны</p>
-        <div class="form-group">
-            <label for="patent-front">Патент на работу (лицевая сторона)</label>
-            <input type="file" id="patent-front" accept="image/*,application/pdf" />
-        </div>
-        <div class="form-group">
-            <label for="patent-back">Патент на работу (оборотная сторона)</label>
-            <input type="file" id="patent-back" accept="image/*,application/pdf" />
-        </div>
-        <div class="form-group">
-            <label for="patent-receipt">Чек об оплате патента</label>
-            <input type="file" id="patent-receipt" accept="image/*,application/pdf" />
-        </div>
-    </div>
+            <!-- Блок 3: Документы для иностранных граждан -->
+            <div id="foreign-fields" class="hidden">
+                <div class="form-group">
+                    <label>Фото основного документа</label>
+                    <p class="form-hint">Загранпаспорт (главная страница) или ID-карта (лицевая сторона).</p>
+                    <div class="file-upload-wrapper">
+                        <label for="foreign-passport-front" class="file-upload-label">Выберите файл</label>
+                        <input type="file" id="foreign-passport-front" class="file-upload-input" accept="image/*,application/pdf" />
+                        <span id="foreign-passport-front-filename" class="file-name">Файл не выбран</span>
+                    </div>
+                </div>
+                <div class="form-group" id="foreign-passport-back-group">
+                    <label>Фото документа (оборотная сторона)</label>
+                    <p class="form-hint">Только для ID-карт.</p>
+                    <div class="file-upload-wrapper">
+                        <label for="foreign-passport-back" class="file-upload-label">Выберите файл</label>
+                        <input type="file" id="foreign-passport-back" class="file-upload-input" accept="image/*,application/pdf" />
+                        <span id="foreign-passport-back-filename" class="file-name">Файл не выбран</span>
+                    </div>
+                </div>
+                 <div class="form-group">
+                    <label for="foreign-inn">ИНН РФ (если есть)</label>
+                    <input type="tel" id="foreign-inn" placeholder="Введите ваш ИНН" />
+                </div>
+            </div>
+            
+            <!-- Блок 4: Патент для граждан не из ЕАЭС -->
+            <div id="patent-fields" class="hidden">
+                <div class="form-separator"><p>Следующие поля необязательны</p></div>
+                <div class="form-group">
+                    <label>Патент на работу (лицевая сторона)</label>
+                    <div class="file-upload-wrapper">
+                        <label for="patent-front" class="file-upload-label">Выберите файл</label>
+                        <input type="file" id="patent-front" class="file-upload-input" accept="image/*,application/pdf" />
+                        <span id="patent-front-filename" class="file-name">Файл не выбран</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Патент на работу (оборотная сторона)</label>
+                    <div class="file-upload-wrapper">
+                        <label for="patent-back" class="file-upload-label">Выберите файл</label>
+                        <input type="file" id="patent-back" class="file-upload-input" accept="image/*,application/pdf" />
+                        <span id="patent-back-filename" class="file-name">Файл не выбран</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Чек об оплате патента</label>
+                    <div class="file-upload-wrapper">
+                        <label for="patent-receipt" class="file-upload-label">Выберите файл</label>
+                        <input type="file" id="patent-receipt" class="file-upload-input" accept="image/*,application/pdf" />
+                        <span id="patent-receipt-filename" class="file-name">Файл не выбран</span>
+                    </div>
+                </div>
+            </div>
 
-
-    <div id="reg-validation-error" class="validation-message"></div>
-    <button type="submit" id="reg-submit-btn" class="btn btn-primary">Далее</button>
-</form>
-
-<!-- Добавьте немного CSS для подсказок и скрытых полей -->
-<style>
-    .hidden { display: none; }
-    .form-hint { font-size: 0.85rem; color: #556f6b; margin-top: -5px; margin-bottom: 5px; }
-    select {
-        width: 100%; padding: 16px; background-color: var(--card-bg); border: 2px solid var(--card-bg);
-        border-radius: 16px; font-size: 1rem; color: var(--dark-green); appearance: none;
-    }
-</style>
+            <div id="reg-validation-error" class="validation-message"></div>
+            <button type="submit" id="reg-submit-btn" class="btn btn-primary" style="margin-top: 15px;">Далее</button>
+        </form>
 
         <div class="investor-link-container">
           <button id="investor-link">Инвесторам</button>
@@ -233,7 +244,6 @@
           <div id="investor-validation-error" class="validation-message"></div>
           <button type="submit" id="investor-submit-btn" class="btn btn-primary">Отправить данные</button>
         </form>
-
         <button id="back-to-reg-link" class="back-link">Назад к регистрации</button>
       </div>
     </main>
@@ -252,75 +262,13 @@
   </div>
 </div>
 
-<!-- Основная логика. ВАЖНО: это ES-модуль -->
+<!-- Основная логика -->
 <script type="module">
   import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
-  const countrySelect = document.getElementById('country-select');
-const russianFields = document.getElementById('russian-fields');
-const foreignFields = document.getElementById('foreign-fields');
-const patentFields = document.getElementById('patent-fields');
-const noRegistrationCheckbox = document.getElementById('no-registration-checkbox');
-const ruPassportRegInput = document.getElementById('ru-passport-reg');
-
-// Функция для удобного переключения видимости блоков
-function toggleFields(showIds = [], hideIds = []) {
-    showIds.forEach(id => document.getElementById(id)?.classList.remove('hidden'));
-    hideIds.forEach(id => document.getElementById(id)?.classList.add('hidden'));
-}
-
-// ===== ГЛАВНЫЙ ОБРАБОТЧИК ЛОГИКИ ФОРМЫ =====
-countrySelect.addEventListener('change', (e) => {
-    const country = e.target.value;
-    
-    // Сначала делаем все поля обязательными по умолчанию
-    russianFields.querySelectorAll('input').forEach(i => i.required = false);
-    foreignFields.querySelectorAll('input').forEach(i => i.required = false);
-    
-    switch (country) {
-        case 'ru':
-            toggleFields(['russian-fields'], ['foreign-fields', 'patent-fields']);
-            // Делаем поля обязательными для РФ
-            document.getElementById('ru-passport-main').required = true;
-            document.getElementById('ru-passport-reg').required = !noRegistrationCheckbox.checked;
-            document.getElementById('ru-inn').required = true;
-            break;
-            
-        case 'kz':
-        case 'kg':
-            // Для стран ЕАЭС показываем только паспорт/ID, без патента
-            toggleFields(['foreign-fields'], ['russian-fields', 'patent-fields']);
-            document.getElementById('foreign-passport-front').required = true;
-            break;
-            
-        case 'uz':
-        case 'tj':
-        case 'other':
-            // Для остальных показываем и паспорт, и необязательный патент
-            toggleFields(['foreign-fields', 'patent-fields'], ['russian-fields']);
-            document.getElementById('foreign-passport-front').required = true;
-            break;
-            
-        default:
-            // Если ничего не выбрано, все скрываем
-            toggleFields([], ['russian-fields', 'foreign-fields', 'patent-fields']);
-            break;
-    }
-});
-
-// Обработчик для галочки "нет регистрации"
-noRegistrationCheckbox.addEventListener('change', () => {
-    if (countrySelect.value === 'ru') {
-        ruPassportRegInput.required = !noRegistrationCheckbox.checked;
-        if (noRegistrationCheckbox.checked) {
-            ruPassportRegInput.classList.remove('error'); // Убираем красную рамку, если поле стало необязательным
-        }
-    }
-});
+  
   // ===== КОНФИГ =====
   const SUPABASE_URL = "https://avamqfmuhiwtlumjkzmv.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I";
-
-  // ЗАМЕНИТЕ на ваш браузерный ключ Google AI Studio / Google Cloud AI с ограничением по домену!
   const GEMINI_API_KEY = "AIzaSyAUay_xvRT_gcMYs3-7i8Pcli680Or5Zwk";
 
   // ===== ИНИЦИАЛИЗАЦИЯ =====
@@ -332,14 +280,6 @@ noRegistrationCheckbox.addEventListener('change', () => {
   const submitBtn = document.getElementById("reg-submit-btn");
   const nameInput = document.getElementById("name");
   const phoneInput = document.getElementById("phone");
-  const cityInput = document.getElementById("city");
-  const passportInput = document.getElementById("passport_photo");
-  const registrationPhotoInput = document.getElementById("registration_photo");
-
-  const isMigrantCheckbox = document.getElementById("is_migrant");
-  const migrantFields = document.getElementById("migrant-fields");
-  const migrantCountry = document.getElementById("migrant_country");
-  const migrantDoc = document.getElementById("migrant_doc");
 
   const verifyOverlay = document.getElementById("verify-overlay");
   const verifyForm = document.getElementById("verify-form");
@@ -353,6 +293,12 @@ noRegistrationCheckbox.addEventListener('change', () => {
   const investorLink = document.getElementById("investor-link");
   const backToRegLink = document.getElementById("back-to-reg-link");
   const investorForm = document.getElementById("investor-form");
+  
+  const countrySelect = document.getElementById('country-select');
+  const russianFields = document.getElementById('russian-fields');
+  const foreignFields = document.getElementById('foreign-fields');
+  const patentFields = document.getElementById('patent-fields');
+  const noRegistrationCheckbox = document.getElementById('no-registration-checkbox');
 
   let pendingRegistrationData = null;
 
@@ -363,18 +309,14 @@ noRegistrationCheckbox.addEventListener('change', () => {
     el.textContent = msg || "Пожалуйста, заполните все обязательные поля.";
     el.style.display = "block";
   };
-
   const hideError = (id) => {
     const el = document.getElementById(id);
-    if (!el) return;
-    el.style.display = "none";
-    el.textContent = "";
+    if (el) el.style.display = "none";
   };
-
   const validateRequired = (form, errorId) => {
     hideError(errorId);
     let ok = true;
-    form.querySelectorAll("input[required], textarea[required]").forEach((input) => {
+    form.querySelectorAll("input[required], select[required]").forEach((input) => {
       input.classList.remove("error");
       if (!String(input.value || "").trim()) {
         input.classList.add("error");
@@ -384,328 +326,257 @@ noRegistrationCheckbox.addEventListener('change', () => {
     if (!ok) requiredError(errorId);
     return ok;
   };
-
   function toggleButtonLoading(btn, isLoading, textIdle, textBusy) {
     btn.disabled = !!isLoading;
     btn.textContent = isLoading ? textBusy : textIdle;
   }
-
   async function fileToGenerativePart(file) {
     const base64 = await new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        const res = reader.result;
-        const b64 = String(res).includes(",") ? res.split(",")[1] : res;
-        resolve(b64);
-      };
+      reader.onloadend = () => resolve(String(reader.result).split(",")[1]);
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
     return { inlineData: { data: base64, mimeType: file.type || "image/jpeg" } };
   }
-
   function tryParseJSON(text) {
-    // обрежем кодовые блоки ```json
     let cleaned = text.replace(/```json/gi, "").replace(/```/g, "").trim();
-    // прямая попытка
     try { return JSON.parse(cleaned); } catch {}
-    // попытка вытащить самый большой {...} блок
     const match = cleaned.match(/\{[\s\S]*\}/);
-    if (match) {
-      try { return JSON.parse(match[0]); } catch {}
-    }
+    if (match) { try { return JSON.parse(match[0]); } catch {} }
     return null;
   }
-
   function buildVerifyForm(data) {
     verifyForm.innerHTML = "";
     const longFieldKeys = new Set(["Кем выдан", "Адрес регистрации", "Место рождения"]);
-
     Object.keys(data).forEach((key) => {
       const value = data[key] ?? "";
       const id = `verify_${key.replace(/\s+/g, "_")}`;
-      const input =
-        longFieldKeys.has(key)
-          ? `<textarea id="${id}" name="${key}" rows="3">${String(value)}</textarea>`
-          : `<input type="text" id="${id}" name="${key}" value="${String(value)}" />`;
-
-      verifyForm.insertAdjacentHTML(
-        "beforeend",
-        `<div class="form-group">
-          <label for="${id}">${key}</label>
-          ${input}
-        </div>`
-      );
+      const input = longFieldKeys.has(key)
+        ? `<textarea id="${id}" name="${key}" rows="3">${String(value)}</textarea>`
+        : `<input type="text" id="${id}" name="${key}" value="${String(value)}" />`;
+      verifyForm.insertAdjacentHTML("beforeend", `<div class="form-group"><label for="${id}">${key}</label>${input}</div>`);
     });
   }
 
+  // ===== ЛОГИКА ФОРМЫ =====
+  document.querySelectorAll('.file-upload-input').forEach(input => {
+    const fileNameSpan = document.getElementById(`${input.id}-filename`);
+    if (fileNameSpan) {
+        input.addEventListener('change', () => {
+            fileNameSpan.textContent = input.files[0] ? input.files[0].name : 'Файл не выбран';
+        });
+    }
+  });
+
+  function toggleFields(showIds = [], hideIds = []) {
+    showIds.forEach(id => document.getElementById(id)?.classList.remove('hidden'));
+    hideIds.forEach(id => document.getElementById(id)?.classList.add('hidden'));
+  }
+
+  countrySelect.addEventListener('change', (e) => {
+    const country = e.target.value;
+    const allInputs = registrationForm.querySelectorAll('input, select');
+    allInputs.forEach(i => i.required = false); // Сбрасываем required у всех
+
+    // Восстанавливаем required для базовых полей
+    nameInput.required = true;
+    phoneInput.required = true;
+    document.getElementById('city-select').required = true;
+    countrySelect.required = true;
+    
+    switch (country) {
+        case 'ru':
+            toggleFields(['russian-fields'], ['foreign-fields', 'patent-fields']);
+            document.getElementById('ru-passport-main').required = true;
+            document.getElementById('ru-passport-reg').required = !noRegistrationCheckbox.checked;
+            document.getElementById('ru-inn').required = true;
+            break;
+        case 'kz': case 'kg':
+            toggleFields(['foreign-fields'], ['russian-fields', 'patent-fields']);
+            document.getElementById('foreign-passport-front').required = true;
+            break;
+        case 'uz': case 'tj': case 'other':
+            toggleFields(['foreign-fields', 'patent-fields'], ['russian-fields']);
+            document.getElementById('foreign-passport-front').required = true;
+            break;
+        default:
+            toggleFields([], ['russian-fields', 'foreign-fields', 'patent-fields']);
+            break;
+    }
+  });
+  
+  noRegistrationCheckbox.addEventListener('change', () => {
+    if (countrySelect.value === 'ru') {
+        const regInput = document.getElementById('ru-passport-reg');
+        regInput.required = !noRegistrationCheckbox.checked;
+        if (noRegistrationCheckbox.checked) {
+            regInput.closest('.file-upload-wrapper').classList.remove('error');
+        }
+    }
+  });
+  
   // ===== ГЛАВНЫЙ ФЛОУ РЕГИСТРАЦИИ =====
   registrationForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!validateRequired(registrationForm, "reg-validation-error")) return;
 
-    const passportFile = passportInput.files?.[0] || null;
-    const registrationFile = registrationPhotoInput.files?.[0] || null;
+    // --- УМНЫЙ СБОР ФОТОГРАФИЙ ДЛЯ GEMINI ---
+    const photosForGemini = [];
+    const mainPhotoInput = document.getElementById(countrySelect.value === 'ru' ? 'ru-passport-main' : 'foreign-passport-front');
+    const regPhotoInput = document.getElementById('ru-passport-reg');
 
-    const currentData = {
-      name: nameInput.value.trim(),
-      phone: phoneInput.value.trim(),
-      city: cityInput.value.trim(),
-      passportFile,
-      registrationFile,
-      // добавим отметки мигранта
-      migrant: {
-        is_migrant: !!isMigrantCheckbox.checked,
-        country: migrantCountry.value.trim() || "",
-        document: migrantDoc.value.trim() || ""
-      },
-      recognizedData: null
-    };
-
-    // Если есть фото паспорта — пробуем распознать
-    if (passportFile) {
-      toggleButtonLoading(submitBtn, true, "Зарегистрироваться", "Распознаем фото...");
-      try {
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-
-        const prompt =
-          "Ты — система верификации документов для сервиса аренды. " +
-          "Извлеки из этих изображений паспорта следующие данные в формате JSON: " +
-          "Фамилия, Имя, Отчество, Серия паспорта, Номер паспорта, Дата рождения, Место рождения, " +
-          "Кем выдан, Дата выдачи, Код подразделения, Адрес регистрации. " +
-          "Если каких-то данных нет, оставь поле пустым. " +
-          "Ответи строго JSON без пояснений.";
-
-        const parts = [await fileToGenerativePart(passportFile)];
-        if (registrationFile) parts.push(await fileToGenerativePart(registrationFile));
-
-        const result = await model.generateContent([prompt, ...parts]);
-        const text = await result.response.text();
-
-        const parsed = tryParseJSON(text);
-        if (parsed && typeof parsed === "object") {
-          currentData.recognizedData = parsed;
-          pendingRegistrationData = currentData;
-          buildVerifyForm(parsed);
-          verifyOverlay.classList.remove("hidden");
-        } else {
-          // не удалось распарсить — идём без верификации
-          await finalizeRegistration(currentData);
-        }
-      } catch (err) {
-        console.error("Ошибка распознавания Gemini:", err);
-        alert('Ошибка Gemini: ' + err.message);
-        await finalizeRegistration(currentData);
-      } finally {
-        toggleButtonLoading(submitBtn, false, "Зарегистрироваться", "Распознаем фото...");
-      }
-    } else {
-      // без фото — просто сохраняем
-      await finalizeRegistration(currentData);
+    if (mainPhotoInput && mainPhotoInput.files[0]) {
+        photosForGemini.push(mainPhotoInput.files[0]);
     }
-  });
+    // Добавляем фото прописки только если это паспорт РФ и галочка не стоит
+    if (countrySelect.value === 'ru' && regPhotoInput && regPhotoInput.files[0] && !noRegistrationCheckbox.checked) {
+        photosForGemini.push(regPhotoInput.files[0]);
+    }
+    
+    let currentData = { recognizedData: null };
 
-  // Подтверждение правок распознанных данных
+    if (photosForGemini.length > 0) {
+        toggleButtonLoading(submitBtn, true, "Далее", "Анализируем документы...");
+        try {
+            const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+            const prompt = "Ты — система верификации документов. Извлеки из этих изображений паспорта данные в формате JSON: Фамилия, Имя, Отчество, Серия паспорта, Номер паспорта, Дата рождения, Место рождения, Кем выдан, Дата выдачи, Код подразделения, Адрес регистрации. Если каких-то данных нет, оставь поле пустым. Ответь строго JSON без пояснений.";
+            
+            // Превращаем все собранные файлы в нужный для Gemini формат
+            const imageParts = await Promise.all(photosForGemini.map(file => fileToGenerativePart(file)));
+            
+            const result = await model.generateContent([prompt, ...imageParts]);
+            const text = await result.response.text();
+            const parsed = tryParseJSON(text);
+
+            if (parsed && typeof parsed === "object") {
+                currentData.recognizedData = parsed;
+                pendingRegistrationData = currentData;
+                buildVerifyForm(parsed);
+                verifyOverlay.classList.remove('hidden');
+            } else {
+                // Если распознать не удалось, продолжаем без данных
+                await finalizeRegistration(currentData);
+            }
+        } catch (err) {
+            console.error("Ошибка распознавания Gemini:", err);
+            alert('Не удалось распознать документы. Вы можете заполнить их вручную позже. Продолжаем регистрацию.');
+            await finalizeRegistration(currentData); // Продолжаем регистрацию даже если Gemini выдал ошибку
+        } finally {
+            toggleButtonLoading(submitBtn, false, "Далее", "Анализируем документы...");
+        }
+    } else {
+        // Если фото не прикрепили (хотя поля обязательны), просто идем дальше
+        await finalizeRegistration(currentData);
+    }
+});
+
   verifyConfirmBtn.addEventListener("click", async () => {
     if (!pendingRegistrationData) {
       verifyOverlay.classList.add("hidden");
       return;
     }
-    const updatedData = { ...pendingRegistrationData };
     const updatedRecognizedData = {};
-    // Соберём все поля из формы
-    new FormData(verifyForm).forEach((value, key) => {
-      updatedRecognizedData[key] = value;
-    });
-    updatedData.recognizedData = updatedRecognizedData;
-
+    new FormData(verifyForm).forEach((value, key) => { updatedRecognizedData[key] = value; });
+    pendingRegistrationData.recognizedData = updatedRecognizedData;
     verifyOverlay.classList.add("hidden");
-    await finalizeRegistration(updatedData);
+    await finalizeRegistration(pendingRegistrationData);
   });
+  
+  verifyCancelBtn.addEventListener("click", () => { verifyOverlay.classList.add("hidden"); });
+  
+  // ФУНКЦИЯ СОХРАНЕНИЯ В SUPABASE
+  async function finalizeRegistration(regData) {
+      toggleButtonLoading(submitBtn, true, "Далее", "Сохраняем данные...");
+      try {
+          const name = nameInput.value.trim();
+          const phone = phoneInput.value.trim();
+          const city = document.getElementById('city-select').value;
+          const citizenship = document.getElementById('country-select').value;
+          const filesToUpload = [
+              { id: 'ru-passport-main', description: 'ru_passport_main' },
+              { id: 'ru-passport-reg', description: 'ru_passport_reg' },
+              { id: 'foreign-passport-front', description: 'foreign_passport_front' },
+              { id: 'foreign-passport-back', description: 'foreign_passport_back' },
+              { id: 'patent-front', description: 'patent_front' },
+              { id: 'patent-back', description: 'patent_back' },
+              { id: 'patent-receipt', description: 'patent_receipt' }
+          ].map(f => ({ file: document.getElementById(f.id).files[0], description: f.description })).filter(f => f.file);
+          const extraData = {
+              citizenship: citizenship, city: city,
+              recognized_data: regData.recognizedData || {}, migrant_info: {}
+          };
+          if (citizenship === 'ru') {
+              extraData.inn = document.getElementById('ru-inn').value.trim();
+              extraData.has_no_registration_stamp = document.getElementById('no-registration-checkbox').checked;
+          } else {
+              extraData.inn = document.getElementById('foreign-inn').value.trim();
+              if (['uz', 'tj', 'other'].includes(citizenship)) {
+                  extraData.migrant_info.has_patent_front = !!document.getElementById('patent-front').files.length;
+                  extraData.migrant_info.has_patent_back = !!document.getElementById('patent-back').files.length;
+                  extraData.migrant_info.has_patent_receipt = !!document.getElementById('patent-receipt').files.length;
+              }
+          }
+          const { data: clientData, error: clientError } = await supabase
+              .from("clients").insert([{ name: name, phone: phone, city: city, extra: extraData }]).select().single();
+          if (clientError) {
+              if (clientError.message.includes('duplicate key value violates unique constraint "clients_phone_key"')) {
+                  throw new Error("Пользователь с таким номером телефона уже зарегистрирован.");
+              }
+              throw clientError;
+          }
+          const newUserId = clientData.id;
+          const uploadPromises = filesToUpload.map(async ({ file, description }) => {
+              const fileExt = file.name.split('.').pop();
+              const fileName = `${Date.now()}_${description}.${fileExt}`;
+              const filePath = `${newUserId}/${fileName}`;
+              const { error: uploadError } = await supabase.storage.from('passports').upload(filePath, file);
+              if (uploadError) console.warn(`Не удалось загрузить файл ${description}:`, uploadError);
+          });
+          await Promise.all(uploadPromises);
+          localStorage.setItem("isRegistered", "true");
+          localStorage.setItem("userName", clientData.name);
+          localStorage.setItem("userId", newUserId);
+          window.location.replace("index.html");
+      } catch (err) {
+          console.error("Финальная ошибка регистрации:", err);
+          requiredError("reg-validation-error", `Ошибка: ${err.message}`);
+      } finally {
+          toggleButtonLoading(submitBtn, false, "Далее", "Сохраняем данные...");
+      }
+  }
 
-  verifyCancelBtn.addEventListener("click", () => {
-    verifyOverlay.classList.add("hidden");
-  });
-
-  // Сохранение в Supabase
-  // Вставьте этот код внутрь тега <script type="module"> в файле registration.html
-
-/**
- * Финальный шаг регистрации: собирает все данные, загружает файлы,
- * создает запись в Supabase и перенаправляет пользователя.
- * @param {object} regData - Объект с данными, распознанными Gemini (может быть null).
- */
-async function finalizeRegistration(regData) {
-    toggleButtonLoading(submitBtn, true, "Далее", "Сохраняем данные...");
-
-    try {
-        // --- 1. СБОР ДАННЫХ ИЗ ФОРМЫ ---
-        const name = nameInput.value.trim();
-        const phone = phoneInput.value.trim();
-        const city = document.getElementById('city-select').value;
-        const citizenship = document.getElementById('country-select').value;
-
-        // --- 2. ПОДГОТОВКА ФАЙЛОВ ДЛЯ ЗАГРУЗКИ ---
-        const filesToUpload = [
-            { id: 'ru-passport-main', description: 'ru_passport_main' },
-            { id: 'ru-passport-reg', description: 'ru_passport_reg' },
-            { id: 'foreign-passport-front', description: 'foreign_passport_front' },
-            { id: 'foreign-passport-back', description: 'foreign_passport_back' },
-            { id: 'patent-front', description: 'patent_front' },
-            { id: 'patent-back', description: 'patent_back' },
-            { id: 'patent-receipt', description: 'patent_receipt' }
-        ].map(f => ({
-            file: document.getElementById(f.id).files[0],
-            description: f.description
-        })).filter(f => f.file); // Оставляем только те, где файл был выбран
-
-        // --- 3. ФОРМИРОВАНИЕ ОБЪЕКТА 'extra' ДЛЯ БАЗЫ ДАННЫХ ---
-        const extraData = {
-            citizenship: citizenship,
-            city: city,
-            recognized_data: regData.recognizedData || {},
-            migrant_info: {}
-        };
-
-        if (citizenship === 'ru') {
-            extraData.inn = document.getElementById('ru-inn').value.trim();
-            extraData.has_no_registration_stamp = document.getElementById('no-registration-checkbox').checked;
-        } else {
-            extraData.inn = document.getElementById('foreign-inn').value.trim();
-            if (['uz', 'tj', 'other'].includes(citizenship)) {
-                // Записываем сам факт наличия файлов, чтобы в админке было видно, что их загружали
-                extraData.migrant_info.has_patent_front = !!document.getElementById('patent-front').files.length;
-                extraData.migrant_info.has_patent_back = !!document.getElementById('patent-back').files.length;
-                extraData.migrant_info.has_patent_receipt = !!document.getElementById('patent-receipt').files.length;
-            }
-        }
-
-        // --- 4. СОЗДАНИЕ КЛИЕНТА В SUPABASE ---
-        const { data: clientData, error: clientError } = await supabase
-            .from("clients")
-            .insert([{
-                name: name,
-                phone: phone,
-                city: city, // Дублируем поле для удобных запросов и фильтров
-                extra: extraData
-            }])
-            .select()
-            .single();
-
-        if (clientError) {
-            // Если ошибка связана с дубликатом телефона, выводим понятное сообщение
-            if (clientError.message.includes('duplicate key value violates unique constraint "clients_phone_key"')) {
-                throw new Error("Пользователь с таким номером телефона уже зарегистрирован.");
-            }
-            throw clientError;
-        }
-
-        const newUserId = clientData.id;
-
-        // --- 5. ЗАГРУЗКА ФАЙЛОВ В SUPABASE STORAGE ---
-        // Используем Promise.all для параллельной загрузки всех файлов
-        const uploadPromises = filesToUpload.map(async ({ file, description }) => {
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Date.now()}_${description}.${fileExt}`;
-            const filePath = `${newUserId}/${fileName}`;
-            
-            const { error: uploadError } = await supabase.storage
-                .from('passports') // Убедитесь, что у вас есть бакет 'passports'
-                .upload(filePath, file);
-
-            if (uploadError) {
-                console.warn(`Не удалось загрузить файл ${description}:`, uploadError);
-                // Можно добавить логику для отслеживания ошибок загрузки
-            }
-        });
-
-        await Promise.all(uploadPromises);
-
-        // --- 6. ЗАВЕРШЕНИЕ РЕГИСТРАЦИИ И РЕДИРЕКТ ---
-        localStorage.setItem("isRegistered", "true");
-        localStorage.setItem("userName", clientData.name);
-        localStorage.setItem("userId", newUserId);
-        window.location.replace("index.html");
-
-    } catch (err) {
-        console.error("Финальная ошибка регистрации:", err);
-        requiredError("reg-validation-error", `Ошибка: ${err.message}`);
-    } finally {
-        // Вне зависимости от результата, снова включаем кнопку
-        toggleButtonLoading(submitBtn, false, "Далее", "Сохраняем данные...");
-    }
-}
-
-  // ===== INVESTOR VIEW переключение =====
+  // ===== INVESTOR VIEW & MASKS =====
   investorLink.addEventListener("click", () => {
     registrationView.classList.add("hidden");
     mainTitle.classList.add("hidden");
     investorView.classList.remove("hidden");
     investorTitle.classList.remove("hidden");
   });
-
   backToRegLink.addEventListener("click", () => {
     investorView.classList.add("hidden");
     investorTitle.classList.add("hidden");
     registrationView.classList.remove("hidden");
     mainTitle.classList.remove("hidden");
   });
-
-  // ===== Маски ввода =====
   phoneInput.addEventListener("input", (e) => {
     const x = e.target.value.replace(/\D/g, "").match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
-    e.target.value = !x[2]
-      ? x[1]
-      : "+" + x[1] + " (" + x[2] + ") " + x[3] + (x[4] ? "-" + x[4] : "") + (x[5] ? "-" + x[5] : "");
+    if (!x) return;
+    e.target.value = !x[2] ? (x[1] ? `+${x[1]}`: '') : `+${x[1]} (${x[2]}) ${x[3]}${x[4] ? `-${x[4]}` : ''}${x[5] ? `-${x[5]}` : ''}`;
   });
-
-  const innInput = document.getElementById("investor-inn");
-  if (innInput) {
-    innInput.addEventListener("input", (e) => {
-      let value = e.target.value.replace(/\D/g, "").substring(0, 12);
-      e.target.value = value.replace(/(\d{3})(?=\d)/g, "$1 ");
-    });
-  }
-
-  const passportInvInput = document.getElementById("investor-passport");
-  if (passportInvInput) {
-    passportInvInput.addEventListener("input", (e) => {
-      let value = e.target.value.replace(/\D/g, "").substring(0, 10);
-      let formattedValue = value;
-      if (value.length > 2) formattedValue = value.substring(0, 2) + " " + value.substring(2);
-      if (value.length > 4) formattedValue = value.substring(0, 2) + " " + value.substring(2, 4) + " " + value.substring(4);
-      e.target.value = formattedValue;
-    });
-  }
-
-  // ===== Валидация и сабмит инвестора (заглушка) =====
-  if (investorForm) {
-    investorForm.addEventListener("submit", (event) => {
+  investorForm.addEventListener("submit", (event) => {
       event.preventDefault();
-      const ok = validateRequired(investorForm, "investor-validation-error");
-      if (!ok) return;
-
+      if (!validateRequired(investorForm, "investor-validation-error")) return;
       const investorSubmitBtn = document.getElementById("investor-submit-btn");
       toggleButtonLoading(investorSubmitBtn, true, "Отправить данные", "Создание аккаунта...");
-
-      // Имитируем обработку
       setTimeout(() => {
         localStorage.setItem("isRegistered", "true");
         localStorage.setItem("isInvestor", "true");
-        const fullName = (document.getElementById("investor-name").value || "").trim().split(" ");
-        const displayName = fullName.length > 0 ? fullName[0] : "Инвестор";
-        localStorage.setItem("userName", displayName);
+        localStorage.setItem("userName", (document.getElementById("investor-name").value || "").trim().split(" ")[0] || "Инвестор");
         window.location.replace("investor_home.html");
       }, 800);
-    });
-  }
-
-  // ===== Логика отображения дополнительных полей мигранта =====
-  isMigrantCheckbox.addEventListener("change", () => {
-    migrantFields.classList.toggle("hidden", !isMigrantCheckbox.checked);
   });
 </script>
 
-<!-- (необязательно) <script defer src="../../../assets/enhance.js"></script> -->
 </body>
 </html>
