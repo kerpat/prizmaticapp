@@ -1,0 +1,4 @@
+[build]
+  command = "echo 'No build command'" # Команда сборки нам не нужна, у нас статика
+  publish = "site"                   # Говорим Netlify, что наш сайт лежит в папке 'site'
+  functions = "netlify/functions"    # Говорим, где лежат наши серверные функции
