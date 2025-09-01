@@ -439,7 +439,7 @@
     if (photosForGemini.length > 0) {
         toggleButtonLoading(submitBtn, true, "Далее", "Анализируем документы...");
         try {
-            const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
             const prompt = "Ты — система верификации документов. Извлеки из этих изображений паспорта данные в формате JSON: Фамилия, Имя, Отчество, Серия паспорта, Номер паспорта, Дата рождения, Место рождения, Кем выдан, Дата выдачи, Код подразделения, Адрес регистрации. Если каких-то данных нет, оставь поле пустым. Ответь строго JSON без пояснений.";
             
             // Превращаем все собранные файлы в нужный для Gemini формат
