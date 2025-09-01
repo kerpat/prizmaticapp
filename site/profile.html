@@ -307,21 +307,22 @@
         <button class="modal-close">&times;</button>
         <h2 id="card-modal-title">Способ оплаты</h2>
 
-        <!-- Этот блок будет показываться, если карта УЖЕ привязана -->
+        <!-- Этот блок для показа привязанной карты -->
         <div id="card-display-view" class="hidden">
             <div class="card-preview">
-                <div class="card-number" id="card-number-display">**** **** **** ****</div>
+                <div class="card-number">**** **** **** ****</div>
                 <div class="card-details">
-                    <span>Карта для списаний</span>
-                    <span id="card-type-display">Привязана</span>
+                    <span>Карта для автосписаний</span>
+                    <span>Привязана</span>
                 </div>
             </div>
         </div>
 
-        <!-- Этот блок будет показываться, если карты ЕЩЕ НЕТ -->
+        <!-- Этот блок для тех, у кого карты нет -->
         <div id="card-form-view" class="hidden">
-            <p style="margin-bottom: 20px; color: var(--dark-green);">У вас еще нет привязанной карты.</p>
-            <button id="add-card-btn" class="btn btn-primary">Привязать карту</button>
+            <p style="margin-bottom: 20px; color: var(--dark-green);">
+                У вас еще нет привязанной карты. Она будет автоматически сохранена после первой успешной оплаты аренды или пополнения баланса.
+            </p>
         </div>
     </div>
 </div>
@@ -519,20 +520,21 @@ if (urlParams.get('card_saved') === 'true') {
     const userId = localStorage.getItem('userId');
     if (!userId) return;
 
+    // Запрашиваем у Supabase, есть ли у пользователя сохраненная карта
     const { data, error } = await supabase
         .from('clients')
         .select('yookassa_payment_method_id')
         .eq('id', userId)
         .single();
 
-    if (error || !data.yookassa_payment_method_id) {
-        cardDisplayView.classList.add('hidden');
-        cardFormView.classList.remove('hidden');
+    if (error || !data || !data.yookassa_payment_method_id) {
+        // Если карты нет, показываем текст-объяснение
+        document.getElementById('card-display-view').classList.add('hidden');
+        document.getElementById('card-form-view').classList.remove('hidden');
     } else {
-        document.getElementById('card-number-display').textContent = '**** **** **** ****';
-        document.getElementById('card-type-display').textContent = 'Привязана';
-        cardFormView.classList.add('hidden');
-        cardDisplayView.classList.remove('hidden');
+        // Если карта есть, показываем ее макет
+        document.getElementById('card-form-view').classList.add('hidden');
+        document.getElementById('card-display-view').classList.remove('hidden');
     }
 };
 
