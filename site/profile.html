@@ -224,7 +224,7 @@
             color: var(--dark-green);
         }
     </style>
-  <link rel="stylesheet" href="../../../assets/enhanced.css">
+
 </head>
 <body>
 
@@ -434,6 +434,14 @@
     const cardDisplayView = document.getElementById('card-display-view');
     const cardFormView = document.getElementById('card-form-view');
     const addCardBtn = document.getElementById('add-card-btn');
+    // Elements for the legacy "add card" flow may be absent in markup.
+    // Query them defensively so missing nodes don't break the page logic.
+    const addCardForm = document.getElementById('add-card-form');
+    const cardErrorMessage = document.getElementById('card-error-message');
+    const cardNumberInput = document.getElementById('card-number-input');
+    const cardExpiryInput = document.getElementById('card-expiry-input');
+    const cardCvcInput = document.getElementById('card-cvc-input');
+    const deleteCardBtn = document.getElementById('delete-card-btn');
 
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('card_saved') === 'true') {
@@ -499,8 +507,10 @@ if (urlParams.get('card_saved') === 'true') {
         };
 
         modalTriggers.forEach(trigger => {
-            trigger.addEventListener('click', () => {
-                openModal(trigger.dataset.modalTarget);
+            trigger.addEventListener('click', (e) => {
+                e.preventDefault();
+                const id = trigger.dataset.modalTarget;
+                if (id) openModal(id);
             });
         });
 
@@ -538,7 +548,7 @@ if (urlParams.get('card_saved') === 'true') {
     }
 };
 
-addCardBtn.addEventListener('click', async () => {
+if (addCardBtn) addCardBtn.addEventListener('click', async () => {
     const userId = localStorage.getItem('userId');
     if (!userId) {
         alert('Ошибка: не удалось определить пользователя.');
@@ -572,7 +582,7 @@ addCardBtn.addEventListener('click', async () => {
 
     
 
-        addCardForm.addEventListener('submit', async (e) => {
+        if (addCardForm) addCardForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     cardErrorMessage.classList.remove('visible');
 
@@ -616,14 +626,16 @@ addCardBtn.addEventListener('click', async () => {
 });
         
 
-        deleteCardBtn.addEventListener('click', () => {
-            localStorage.removeItem('userCard');
-            updateCardView();
-        });
+        if (deleteCardBtn) {
+            deleteCardBtn.addEventListener('click', () => {
+                localStorage.removeItem('userCard');
+                updateCardView();
+            });
+        }
 
-        cardNumberInput.addEventListener('input', (e) => { e.target.value = e.target.value.replace(/[^\d]/g, '').replace(/(.{4})/g, '$1 ').trim().slice(0, 19); });
-        cardExpiryInput.addEventListener('input', (e) => { e.target.value = e.target.value.replace(/[^\d]/g, '').replace(/(.{2})/, '$1/').slice(0, 5); });
-        cardCvcInput.addEventListener('input', (e) => { e.target.value = e.target.value.replace(/[^\d]/g, '').slice(0, 3); });
+        if (cardNumberInput) cardNumberInput.addEventListener('input', (e) => { e.target.value = e.target.value.replace(/[^\d]/g, '').replace(/(.{4})/g, '$1 ').trim().slice(0, 19); });
+        if (cardExpiryInput) cardExpiryInput.addEventListener('input', (e) => { e.target.value = e.target.value.replace(/[^\d]/g, '').replace(/(.{2})/, '$1/').slice(0, 5); });
+        if (cardCvcInput) cardCvcInput.addEventListener('input', (e) => { e.target.value = e.target.value.replace(/[^\d]/g, '').slice(0, 3); });
 
 
         // --- ОБНОВЛЕННАЯ ЛОГИКА ДЛЯ ЧАТА ПОДДЕРЖКИ ---
@@ -721,6 +733,18 @@ addCardBtn.addEventListener('click', async () => {
             });
         });
 
+        // Safe redefinition (queries elements inside) to avoid TDZ issues
+        function updatePaymentSettingsView() {
+            const citySelectEl = document.getElementById('city-select');
+            const providerRadiosEls = document.querySelectorAll('input[name="provider"]');
+            const prizmaticOpts = document.getElementById('prizmatic-tariff-options');
+            const savedCity = localStorage.getItem('selectedCity');
+            if (savedCity && citySelectEl) citySelectEl.value = savedCity;
+            const savedProvider = localStorage.getItem('paymentProvider') || 'qr';
+            providerRadiosEls.forEach(r => { r.checked = (r.value === savedProvider); });
+            if (prizmaticOpts) prizmaticOpts.classList.add('hidden');
+        }
+
         // Сохранение настроек оплаты
         paymentSettingsForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -737,7 +761,8 @@ addCardBtn.addEventListener('click', async () => {
         });
 
         const logoutBtn = document.getElementById('logout-btn');
-        logoutBtn.addEventListener('click', () => {
+        logoutBtn.addEventListener('click', async () => {
+            try { await supabase.auth.signOut(); } catch (_) {}
             localStorage.clear();
             window.location.replace('start.html');
         });

@@ -1,0 +1,17 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+
+# Local data artifacts
+database.db
+*.db
+uploads/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -120,8 +120,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // === Динамическая загрузка тарифов из Supabase ===
     // Поддержка вызывается при нажатии на кнопку «Тарифы Prizmatic».
     // Чтобы активировать, сохраните URL и anon key в localStorage.
-    const supabaseUrl = localStorage.getItem('supabaseUrl');
-    const supabaseAnonKey = localStorage.getItem('supabaseAnonKey');
+    // Используем единый Supabase-клиент (без локального API фолбэка)
+    const supabaseUrl = 'https://avamqfmuhiwtlumjkzmv.supabase.co';
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I';
     if (window.supabase && supabaseUrl && supabaseAnonKey) {
         // === Загрузка тарифов через Supabase ===
         const client = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
@@ -178,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
         async function loadTariffsAPI() {
             let data;
             try {
-                const resp = await fetch('/api/tariffs');
+                const resp = await fetch('/supabase-tariffs-disabled');
                 if (resp.ok) {
                     data = await resp.json();
                     // Кэшируем локально

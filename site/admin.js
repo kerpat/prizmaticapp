@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const clientsSection = document.getElementById('clients-section');
     const rentalsSection = document.getElementById('rentals-section');
     const paymentsSection = document.getElementById('payments-section');
+    // duplicate removed: const templatesSection
 
     // Tariff elements
     const tariffTableBody = document.querySelector('#tariffs-table tbody');
@@ -39,7 +40,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const clientInfoOverlay = document.getElementById('client-info-overlay');
     const clientInfoContent = document.getElementById('client-info-content');
     const clientInfoCloseBtn = document.getElementById('client-info-close');
+    const clientInfoCloseBtn2 = document.getElementById('client-info-close-2');
+    const clientInfoEditToggle = document.getElementById('client-info-edit-toggle');
+    const clientInfoSaveBtn = document.getElementById('client-info-save');
+    const recognizedDisplay = document.getElementById('recognized-display');
+    const recognizedEditForm = document.getElementById('recognized-edit-form');
+    const imageViewerOverlay = document.getElementById('image-viewer-overlay');
+    const imageViewerImg = document.getElementById('image-viewer-img');
+    const imageViewerClose = document.getElementById('image-viewer-close');
+    const imageViewerPrev = document.getElementById('image-viewer-prev');
+    const imageViewerNext = document.getElementById('image-viewer-next');
+    let viewerImages = [];
+    let viewerIndex = 0;
+    // keep last caret position inside template editor
+    let lastSelRange = null;
     const exportBtn = document.getElementById('export-clients-btn');
+    const contractTemplateSelect = document.getElementById('contract-template-select');
+
+    // Templates elements
+    // duplicate removed: const templatesTableBody
+    // duplicate removed: const templateNewBtn
+    // duplicate removed: const templateSaveBtn
+    // duplicate removed: const templateIdInput
+    // duplicate removed: const templateNameInput
+    // duplicate removed: const templateActiveCheckbox
+    // duplicate removed: const templateEditor
+    const chipsClient = document.getElementById('chips-client');
+    const chipsTariff = document.getElementById('chips-tariff');
+    const chipsRental = document.getElementById('chips-rental');
+    const chipsAux = document.getElementById('chips-aux');
 
     // --- State Variables ---
     let clientsData = []; // Кэш данных клиентов для просмотра/редактирования
@@ -52,6 +81,131 @@ document.addEventListener('DOMContentLoaded', () => {
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // --- Tariff Extensions Logic ---
+
+    // Helper: render client info modal (view + edit + photos + lightbox)
+    async function renderClientInfo(clientId) {
+        try {
+            const { data: client, error } = await supabase.from('clients').select('*').eq('id', clientId).single();
+            if (error) throw error;
+
+            const rec = client?.extra?.recognized_data || {};
+            if (recognizedDisplay) {
+                recognizedDisplay.innerHTML = '';
+                const keys = Object.keys(rec);
+                if (keys.length === 0) {
+                    recognizedDisplay.innerHTML = '<p>Данных распознавания нет.</p>';
+                } else {
+                    keys.forEach(k => {
+                        const row = document.createElement('div');
+                        row.className = 'info-row';
+                        row.innerHTML = `<strong>${k}:</strong><span>${rec[k] ?? ''}</span>`;
+                        recognizedDisplay.appendChild(row);
+                    });
+                }
+            }
+            if (recognizedEditForm) {
+                recognizedEditForm.innerHTML = '';
+                Object.keys(rec).forEach(k => {
+                    const item = document.createElement('div');
+                    item.className = 'form-group';
+                    const val = (rec[k] ?? '').toString().replace(/"/g,'&quot;');
+                    item.innerHTML = `<label>${k}</label><input type="text" name="${k}" value="${val}">`;
+                    recognizedEditForm.appendChild(item);
+                });
+                recognizedEditForm.classList.add('hidden');
+                if (clientInfoEditToggle) clientInfoEditToggle.textContent = 'Редактировать';
+                if (clientInfoSaveBtn) clientInfoSaveBtn.classList.add('hidden');
+            }
+
+            // Photos grid
+            const photosDiv = document.getElementById('photo-links');
+            if (photosDiv) {
+                photosDiv.innerHTML = 'Загрузка...';
+                try {
+                    const { data: files, error: fErr } = await supabase.storage.from('passports').list(String(clientId));
+                    if (fErr) throw fErr;
+                    if (!files || files.length === 0) {
+                        photosDiv.innerHTML = '<p>Фото не найдены.</p>';
+                        viewerImages = [];
+                    } else {
+                        photosDiv.innerHTML = '';
+                        viewerImages = files.map(f => supabase.storage.from('passports').getPublicUrl(`${clientId}/${f.name}`).data.publicUrl);
+                        viewerIndex = 0;
+                        viewerImages.forEach(u => {
+                            const img = document.createElement('img');
+                            img.src = u;
+                            img.className = 'client-photo-thumb';
+                            img.addEventListener('click', () => {
+                                if (imageViewerOverlay && imageViewerImg) {
+                                    imageViewerImg.src = u;
+                                    viewerIndex = viewerImages.indexOf(u);
+                                    imageViewerOverlay.classList.remove('hidden');
+                                }
+                            });
+                            photosDiv.appendChild(img);
+                        });
+                    }
+                } catch (e) {
+                    photosDiv.innerHTML = `<p style="color:red;">Ошибка загрузки фото: ${e.message}</p>`;
+                }
+            }
+
+            // Toggle edit/view
+            currentEditingId = client.id;
+            currentEditingExtra = client.extra || {};
+            if (clientInfoEditToggle) {
+                clientInfoEditToggle.onclick = () => {
+                    const editing = !recognizedEditForm.classList.contains('hidden');
+                    if (editing) {
+                        recognizedEditForm.classList.add('hidden');
+                        recognizedDisplay.classList.remove('hidden');
+                        clientInfoEditToggle.textContent = 'Редактировать';
+                        if (clientInfoSaveBtn) clientInfoSaveBtn.classList.add('hidden');
+                    } else {
+                        recognizedEditForm.classList.remove('hidden');
+                        recognizedDisplay.classList.add('hidden');
+                        clientInfoEditToggle.textContent = 'Просмотр';
+                        if (clientInfoSaveBtn) clientInfoSaveBtn.classList.remove('hidden');
+                    }
+                };
+            }
+            if (clientInfoSaveBtn) {
+                clientInfoSaveBtn.onclick = async () => {
+                    const formData = new FormData(recognizedEditForm);
+                    const updated = {};
+                    for (const [k,v] of formData.entries()) updated[k] = String(v);
+                    const extraObj = JSON.parse(JSON.stringify(currentEditingExtra || {}));
+                    extraObj.recognized_data = updated;
+                    const { error: uerr } = await supabase.from('clients').update({ extra: extraObj }).eq('id', currentEditingId);
+                    if (uerr) { alert('Ошибка сохранения: ' + uerr.message); return; }
+                    // refresh view
+                    recognizedDisplay.innerHTML = '';
+                    Object.keys(updated).forEach(k => {
+                        const r = document.createElement('div');
+                        r.className = 'info-row';
+                        r.innerHTML = `<strong>${k}:</strong><span>${updated[k]}</span>`;
+                        recognizedDisplay.appendChild(r);
+                    });
+                    currentEditingExtra = extraObj;
+                    clientInfoEditToggle.click();
+                };
+            }
+
+            // lightbox arrows
+            if (imageViewerPrev) imageViewerPrev.onclick = () => {
+                if (!viewerImages.length) return;
+                viewerIndex = (viewerIndex - 1 + viewerImages.length) % viewerImages.length;
+                imageViewerImg.src = viewerImages[viewerIndex];
+            };
+            if (imageViewerNext) imageViewerNext.onclick = () => {
+                if (!viewerImages.length) return;
+                viewerIndex = (viewerIndex + 1) % viewerImages.length;
+                imageViewerImg.src = viewerImages[viewerIndex];
+            };
+        } catch (e) {
+            console.error('Ошибка подготовки карточки клиента:', e);
+        }
+    }
 
     function addExtensionRow(daysVal = '', priceVal = '') {
         if (!extensionsList) return;
@@ -128,12 +282,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function selectSection(name) {
-        [tariffsSection, clientsSection, rentalsSection, paymentsSection].forEach(sec => sec.classList.add('hidden'));
+        [tariffsSection, clientsSection, rentalsSection, paymentsSection, templatesSection].forEach(sec => sec && sec.classList.add('hidden'));
         const sectionMap = {
             'tariffs': { element: tariffsSection, loader: loadTariffs },
             'clients': { element: clientsSection, loader: loadClients },
             'rentals': { element: rentalsSection, loader: loadRentals },
             'payments': { element: paymentsSection, loader: loadPayments },
+            'templates': { element: templatesSection, loader: loadTemplates },
         };
         if (sectionMap[name]) {
             sectionMap[name].element.classList.remove('hidden');
@@ -483,6 +638,14 @@ if (clientsSection) {
     if (clientInfoCloseBtn) {
         clientInfoCloseBtn.addEventListener('click', () => clientInfoOverlay.classList.add('hidden'));
     }
+    if (typeof clientInfoCloseBtn2 !== 'undefined' && clientInfoCloseBtn2) {
+        clientInfoCloseBtn2.addEventListener('click', () => clientInfoOverlay.classList.add('hidden'));
+    }
+    if (typeof imageViewerOverlay !== 'undefined' && imageViewerOverlay) {
+        const closer = document.getElementById('image-viewer-close');
+        if (closer) closer.addEventListener('click', () => imageViewerOverlay.classList.add('hidden'));
+        imageViewerOverlay.addEventListener('click', (e) => { if (e.target === imageViewerOverlay) imageViewerOverlay.classList.add('hidden'); });
+    }
 
     if (clientEditCancelBtn) {
         clientEditCancelBtn.addEventListener('click', () => clientEditOverlay.classList.add('hidden'));
@@ -517,6 +680,146 @@ if (clientsSection) {
         });
     }
 
+    // Enhanced viewer/editor for client info within the info overlay
+    if (clientsSection) {
+        clientsSection.addEventListener('click', async (e) => {
+            const btn = e.target.closest('.view-client-btn');
+            if (!btn) return;
+            const clientId = parseInt(btn.dataset.id, 10);
+            try {
+                // небольшая задержка, чтобы базовый обработчик показал модалку
+                setTimeout(async () => {
+                    const recWrap = document.getElementById('recognized-data-container');
+                    const recView = document.getElementById('recognized-display');
+                    const recForm = document.getElementById('recognized-edit-form');
+                    const photosDiv = document.getElementById('photo-links');
+                    if (!recWrap || !recView || !recForm || !photosDiv) return;
+
+                    const { data: client, error } = await supabase.from('clients').select('*').eq('id', clientId).single();
+                    if (error) throw error;
+                    const rec = client?.extra?.recognized_data || {};
+
+                    // render view
+                    recView.innerHTML = '';
+                    const keys = Object.keys(rec);
+                    if (keys.length === 0) {
+                        recView.innerHTML = '<p>Данных распознавания нет.</p>';
+                    } else {
+                        keys.forEach(k => {
+                            const row = document.createElement('div');
+                            row.className = 'info-row';
+                            row.innerHTML = `<strong>${k}:</strong><span>${rec[k] ?? ''}</span>`;
+                            recView.appendChild(row);
+                        });
+                    }
+
+                    // render form
+                    recForm.innerHTML = '';
+                    keys.forEach(k => {
+                        const block = document.createElement('div');
+                        block.className = 'form-group';
+                        block.innerHTML = `<label>${k}</label><input type="text" name="${k}" value="${(rec[k] ?? '').toString().replace(/"/g,'&quot;')}">`;
+                        recForm.appendChild(block);
+                    });
+                    recForm.classList.add('hidden');
+                    recView.classList.remove('hidden');
+                    if (clientInfoEditToggle) clientInfoEditToggle.classList.remove('hidden');
+                    if (clientInfoSaveBtn) clientInfoSaveBtn.classList.add('hidden');
+                    
+                    // edit toggle
+                    if (clientInfoEditToggle) {
+                        clientInfoEditToggle.onclick = () => {
+                            const editing = !recForm.classList.contains('hidden');
+                            if (editing) {
+                                recForm.classList.add('hidden');
+                                recView.classList.remove('hidden');
+                                if (clientInfoSaveBtn) clientInfoSaveBtn.classList.add('hidden');
+                                clientInfoEditToggle.textContent = 'Редактировать';
+                            } else {
+                                recForm.classList.remove('hidden');
+                                recView.classList.add('hidden');
+                                if (clientInfoSaveBtn) clientInfoSaveBtn.classList.remove('hidden');
+                                clientInfoEditToggle.textContent = 'Просмотр';
+                            }
+                        };
+                    }
+                    if (clientInfoSaveBtn) {
+                        clientInfoSaveBtn.onclick = async () => {
+                            const formData = new FormData(recForm);
+                            const updated = {};
+                            for (const [k,v] of formData.entries()) updated[k] = String(v);
+                            const extraObj = JSON.parse(JSON.stringify(client.extra || {}));
+                            extraObj.recognized_data = updated;
+                            const { error: uerr } = await supabase.from('clients').update({ extra: extraObj }).eq('id', clientId);
+                            if (uerr) { alert('Ошибка сохранения: ' + uerr.message); return; }
+                            // refresh view
+                            recView.innerHTML = '';
+                            Object.keys(updated).forEach(k => {
+                                const row = document.createElement('div');
+                                row.className = 'info-row';
+                                row.innerHTML = `<strong>${k}:</strong><span>${updated[k]}</span>`;
+                                recView.appendChild(row);
+                            });
+                            clientInfoEditToggle.click();
+                        };
+                    }
+
+                    // photos grid + lightbox
+                    photosDiv.innerHTML = 'Загрузка...';
+                    try {
+                        const { data: files, error: ferr } = await supabase.storage.from('passports').list(String(clientId));
+                        if (ferr) throw ferr;
+                        if (!files || files.length === 0) {
+                            photosDiv.innerHTML = '<p>Фото не найдены.</p>';
+                        } else {
+                            photosDiv.innerHTML = '';
+                            files.forEach(file => {
+                                const { data } = supabase.storage.from('passports').getPublicUrl(`${clientId}/${file.name}`);
+                                const img = document.createElement('img');
+                                img.src = data.publicUrl;
+                                img.alt = file.name;
+                                img.className = 'client-photo-thumb';
+                                img.addEventListener('click', () => {
+                                    const overlay = document.getElementById('image-viewer-overlay');
+                                    const viewerImg = document.getElementById('image-viewer-img');
+                                    if (overlay && viewerImg) {
+                                        viewerImg.src = data.publicUrl;
+                                        overlay.classList.remove('hidden');
+                                    }
+                                });
+                                photosDiv.appendChild(img);
+                            });
+                            // На случай, если другой обработчик отрисовал <a>, перерисуем в превью
+                            setTimeout(() => {
+                                const anchors = photosDiv.querySelectorAll('a');
+                                if (anchors.length) {
+                                    const urls = Array.from(anchors).map(a => a.href);
+                                    photosDiv.innerHTML = '';
+                                    urls.forEach(u => {
+                                        const img = document.createElement('img');
+                                        img.src = u;
+                                        img.className = 'client-photo-thumb';
+                                        img.addEventListener('click', () => {
+                                            const overlay = document.getElementById('image-viewer-overlay');
+                                            const viewerImg = document.getElementById('image-viewer-img');
+                                            if (overlay && viewerImg) { viewerImg.src = u; overlay.classList.remove('hidden'); }
+                                        });
+                                        photosDiv.appendChild(img);
+                                    });
+                                }
+                            }, 600);
+                        }
+                    } catch (err2) {
+                        console.error('Ошибка загрузки фото:', err2);
+                        photosDiv.innerHTML = `<p style="color:red;">Ошибка загрузки фото: ${err2.message}</p>`;
+                    }
+                }, 0);
+            } catch (err) {
+                console.error('Ошибка подготовки карточки клиента:', err);
+            }
+        });
+    }
+
     // --- Export Logic ---
     if (exportBtn) {
         exportBtn.addEventListener('click', async () => {
@@ -546,4 +849,274 @@ if (clientsSection) {
 
     // --- Initial Load ---
     checkSession();
+
+    // ==== Templates Manager (Шаблоны договоров) ====
+    const templatesSection = document.getElementById('templates-section');
+    const templatesTableBody = document.querySelector('#templates-table tbody');
+    const templateNewBtn = document.getElementById('template-new-btn');
+    const templateSaveBtn = document.getElementById('template-save-btn');
+    const templateIdInput = document.getElementById('template-id');
+    const templateNameInput = document.getElementById('template-name');
+    const templateActiveCheckbox = document.getElementById('template-active');
+    const templateEditor = document.getElementById('template-editor');
+    // duplicate removed: const contractTemplateSelect
+    // duplicate removed: const chipsClient
+    // duplicate removed: const chipsTariff
+    // duplicate removed: const chipsRental
+    // duplicate removed: const chipsAux
+    // duplicate removed: const editorToolbar
+
+    const PLACEHOLDERS = {
+      client: [
+        ['client.full_name','ФИО'], ['client.first_name','Имя'], ['client.last_name','Фамилия'], ['client.middle_name','Отчество'],
+        ['client.passport_series','Серия паспорта'], ['client.passport_number','Номер паспорта'], ['client.issued_by','Кем выдан'],
+        ['client.issued_at','Дата выдачи'], ['client.birth_date','Дата рождения'], ['client.city','Город'], ['client.address','Адрес']
+      ],
+      tariff: [ ['tariff.title','Тариф'], ['tariff.duration_days','Дней'], ['tariff.price_rub','Сумма ₽'] ],
+      rental: [ ['rental.id','№ аренды'], ['rental.starts_at','Начало'], ['rental.ends_at','Конец'], ['rental.bike_id','ID велосипеда'] ],
+      aux: [ ['now.date','Дата'], ['now.time','Время'] ]
+    };
+
+    function mountChips(container, items) {
+      if (!container) return;
+      container.innerHTML = '';
+      items.forEach(([value,label]) => {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = label;
+        chip.title = `Вставить {{${value}}}`;
+        chip.addEventListener('click', () => insertAtCaret(`{{${value}}}`));
+        container.appendChild(chip);
+      });
+    }
+
+    function insertAtCaret(text) {
+      if (!templateEditor) return;
+      templateEditor.focus();
+      document.execCommand('insertText', false, text);
+    }
+
+    function toolbarAction(e) {
+      const btn = e.target.closest('button[data-cmd]');
+      if (!btn || !templateEditor) return;
+      const cmd = btn.dataset.cmd;
+      templateEditor.focus();
+      document.execCommand(cmd, false, null);
+    }
+
+    // selection tracking inside editor
+    function isWithinEditor(node){ return templateEditor && node && (node === templateEditor || templateEditor.contains(node)); }
+    document.addEventListener('selectionchange', () => {
+      const sel = window.getSelection ? window.getSelection() : null;
+      if (!sel || sel.rangeCount === 0) return;
+      const r = sel.getRangeAt(0);
+      if (isWithinEditor(r.startContainer)) {
+        lastSelRange = r.cloneRange();
+      }
+    });
+
+    function insertAtSavedRange(token){
+      if (!templateEditor) return;
+      templateEditor.focus();
+      const sel = window.getSelection();
+      try{
+        if (lastSelRange && isWithinEditor(lastSelRange.startContainer)) {
+          sel.removeAllRanges();
+          sel.addRange(lastSelRange);
+        }
+        const range = sel.rangeCount ? sel.getRangeAt(0) : null;
+        if (range) {
+          range.deleteContents();
+          const span = document.createElement('span');
+          span.className = 'ph';
+          span.textContent = token;
+          range.insertNode(span);
+          // move caret after inserted
+          range.setStartAfter(span);
+          range.collapse(true);
+          sel.removeAllRanges(); sel.addRange(range);
+        } else {
+          document.execCommand('insertText', false, token);
+        }
+      } catch {
+        document.execCommand('insertText', false, token);
+      }
+      // highlight
+      highlightPlaceholdersInEditor();
+    }
+
+    // --- Drag&Drop и подсветка плейсхолдеров ---
+    function enableDnDForChips() {
+      document.querySelectorAll('.chips .chip').forEach(chip => {
+        if (chip.dataset.dnd === '1') return;
+        chip.dataset.dnd = '1';
+        chip.setAttribute('draggable', 'true');
+        chip.addEventListener('dragstart', (e) => {
+          const token = `{{${chip.title.replace('Вставить ', '').replace(/[{}]/g,'').trim()}}}`;
+          e.dataTransfer.setData('text/plain', token);
+          chip.classList.add('dragging');
+        });
+        chip.addEventListener('dragend', () => chip.classList.remove('dragging'));
+        // после клика (вставки) подсветить
+        chip.addEventListener('click', () => setTimeout(highlightPlaceholdersInEditor, 0));
+      });
+      if (templateEditor) {
+        templateEditor.addEventListener('dragover', (e)=>{ e.preventDefault(); templateEditor.classList.add('drag-over'); });
+        templateEditor.addEventListener('dragleave', ()=> templateEditor.classList.remove('drag-over'));
+        templateEditor.addEventListener('drop', (e)=>{
+          e.preventDefault();
+          templateEditor.classList.remove('drag-over');
+          const text = e.dataTransfer.getData('text/plain');
+          if (text) {
+            templateEditor.focus();
+            document.execCommand('insertText', false, text);
+            highlightPlaceholdersInEditor();
+            templateEditor.classList.add('drop-anim');
+            setTimeout(()=>templateEditor.classList.remove('drop-anim'), 300);
+          }
+        });
+        templateEditor.addEventListener('blur', highlightPlaceholdersInEditor);
+      }
+    }
+
+    function highlightPlaceholdersInEditor() {
+      if (!templateEditor) return;
+      try {
+        let html = templateEditor.innerHTML;
+        html = html.replace(/<span class=\"ph\">(.*?)<\/span>/g, '$1');
+        html = html.replace(/(\{\{\s*[\w\.\-]+\s*\}\})/g, '<span class="ph">$1<\/span>');
+        templateEditor.innerHTML = html;
+      } catch {}
+    }
+
+    // Навешиваем кликовую вставку, которая сохраняет позицию курсора
+    function addChipClickHandlers() {
+      document.querySelectorAll('.chips .chip').forEach(chip => {
+        if (chip.dataset.clickBound === '1') return;
+        chip.dataset.clickBound = '1';
+        chip.addEventListener('mousedown', (e) => e.preventDefault());
+        chip.addEventListener('click', () => {
+          const m = /\{\{.*?\}\}/.exec(chip.title || '');
+          const token = m ? m[0] : `{{${chip.textContent.trim()}}}`;
+          insertAtSavedRange(token);
+        });
+      });
+    }
+
+    // --- Предпросмотр шаблона ---
+    const templatePreviewBtn = document.getElementById('template-preview-btn');
+    const templatePreviewOverlay = document.getElementById('template-preview-overlay');
+    const templatePreviewContent = document.getElementById('template-preview-content');
+    const templatePreviewClose = document.getElementById('template-preview-close');
+
+    function pathGet(obj, path){ try{ return path.split('.').reduce((o,k)=>(o&&o[k]!=null)?o[k]:'', obj); }catch{return ''} }
+    function buildPreviewHTML(){
+      const ctx = {
+        client:{ full_name:'Иванов Иван Иванович', first_name:'Иван', last_name:'Иванов', middle_name:'Иванович', passport_series:'12 34', passport_number:'567890', issued_by:'ОВД г. Москва', issued_at:'01.01.2020', birth_date:'02.02.1990', city:'Москва', address:'ул. Пушкина, д.1' },
+        tariff:{ title:'Золотой', duration_days:7, price_rub:3750 },
+        rental:{ id:12345, starts_at:'2025-09-01', ends_at:'2025-09-08', bike_id:'00001' },
+        now:{ date: new Date().toLocaleDateString('ru-RU'), time: new Date().toLocaleTimeString('ru-RU') }
+      };
+      let html = templateEditor ? templateEditor.innerHTML : '';
+      html = html.replace(/\{\{\s*([\w\.\-]+)\s*\}\}/g, (_,k)=>{ const v = pathGet(ctx,k); return v===undefined? '': String(v)});
+      return html;
+    }
+    function openTemplatePreview(){ if (!templatePreviewOverlay||!templatePreviewContent) return; templatePreviewContent.innerHTML = buildPreviewHTML(); templatePreviewOverlay.classList.remove('hidden'); }
+    function closeTemplatePreview(){ if (templatePreviewOverlay) templatePreviewOverlay.classList.add('hidden'); }
+    if (templatePreviewBtn) templatePreviewBtn.addEventListener('click', openTemplatePreview);
+    if (templatePreviewClose) templatePreviewClose.addEventListener('click', closeTemplatePreview);
+    if (templatePreviewOverlay) templatePreviewOverlay.addEventListener('click', (e)=>{ if (e.target === templatePreviewOverlay) closeTemplatePreview(); });
+
+    async function loadTemplates() {
+      try {
+        // chips
+        mountChips(chipsClient, PLACEHOLDERS.client);
+        mountChips(chipsTariff, PLACEHOLDERS.tariff);
+        mountChips(chipsRental, PLACEHOLDERS.rental);
+        mountChips(chipsAux, PLACEHOLDERS.aux);
+        addChipClickHandlers();
+
+        // включаем перетаскивание и постподсветку
+        enableDnDForChips();
+
+        const { data, error } = await supabase.from('contract_templates').select('*').order('id', { ascending: true });
+        if (error) throw error;
+        if (templatesTableBody) {
+          templatesTableBody.innerHTML = '';
+          (data||[]).forEach(t => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${t.name}</td>
+              <td>${t.is_active ? 'Да' : 'Нет'}</td>
+              <td class="table-actions">
+                <button type="button" class="template-edit-btn" data-id="${t.id}">Ред.</button>
+                <button type="button" class="template-delete-btn" data-id="${t.id}">Удалить</button>
+              </td>`;
+            templatesTableBody.appendChild(tr);
+          });
+        }
+        if (contractTemplateSelect) {
+          const selected = contractTemplateSelect.value;
+          contractTemplateSelect.innerHTML = '<option value="">— Не выбран —</option>' + (data||[]).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+          if (selected) contractTemplateSelect.value = selected;
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки шаблонов:', err);
+      }
+    }
+
+    async function saveTemplate() {
+      if (!templateEditor) return;
+      const id = (document.getElementById('template-id')||{}).value;
+      const name = (document.getElementById('template-name')||{}).value || 'Без названия';
+      const isActive = (document.getElementById('template-active')||{checked:true}).checked;
+      const content = templateEditor.innerHTML || '';
+      const rec = { name, content, is_active: isActive, placeholders: PLACEHOLDERS };
+      try {
+        let resp;
+        if (id) resp = await supabase.from('contract_templates').update(rec).eq('id', id).select('id').single();
+        else resp = await supabase.from('contract_templates').insert([rec]).select('id').single();
+        if (resp.error) throw resp.error;
+        document.getElementById('template-id').value = resp.data?.id || id || '';
+        await loadTemplates();
+        alert('Шаблон сохранён');
+      } catch (err) {
+        alert('Ошибка сохранения шаблона: ' + err.message);
+      }
+    }
+
+    function newTemplate() {
+      (document.getElementById('template-id')||{}).value = '';
+      (document.getElementById('template-name')||{}).value = '';
+      (document.getElementById('template-active')||{}).checked = true;
+      if (templateEditor) templateEditor.innerHTML = '';
+    }
+
+    if (editorToolbar) editorToolbar.addEventListener('click', toolbarAction);
+    document.getElementById('templates-table')?.addEventListener('click', async (e) => {
+      const editBtn = e.target.closest('.template-edit-btn');
+      const delBtn = e.target.closest('.template-delete-btn');
+      if (editBtn) {
+        const id = editBtn.dataset.id;
+        const { data, error } = await supabase.from('contract_templates').select('*').eq('id', id).single();
+        if (!error && data) {
+          document.getElementById('template-id').value = data.id;
+          document.getElementById('template-name').value = data.name;
+          document.getElementById('template-active').checked = !!data.is_active;
+          if (templateEditor) templateEditor.innerHTML = data.content || '';
+        }
+      }
+      if (delBtn) {
+        const id = delBtn.dataset.id;
+        if (!confirm('Удалить шаблон?')) return;
+        const { error } = await supabase.from('contract_templates').delete().eq('id', id);
+        if (error) alert('Ошибка удаления: ' + error.message);
+        await loadTemplates();
+      }
+    });
+    if (templateSaveBtn) templateSaveBtn.addEventListener('click', saveTemplate);
+    if (templateNewBtn) templateNewBtn.addEventListener('click', newTemplate);
+
+    // Попробуем заранее загрузить шаблоны (для выпадающего списка у тарифов)
+    loadTemplates().catch(()=>{});
 });

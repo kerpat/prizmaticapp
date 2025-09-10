@@ -352,8 +352,7 @@ async function loadUserData() {
                 if (_provider === 'prizmatic') {
                     _scanBtn.textContent = 'Тарифы';
                     if (_scanIconBtn) _scanIconBtn.style.display = 'none';
-                    // «Бронь» оставляем видимой для симметрии
-                    if (_bookingBtn) _bookingBtn.style.display = '';
+                    if (_bookingBtn) _bookingBtn.style.display = 'none';
                     // Добавляем кнопку "Продление" для симметрии, если её нет
                     if (_secondary && !document.getElementById('extend-row-btn')) {
                         const btn = document.createElement('button');
@@ -530,7 +529,7 @@ loadUserData();
                 scanBtn.textContent = 'Тарифы';
                 // Скрываем иконку для сканирования и кнопку бронирования
                 if (scanIconBtn) scanIconBtn.style.display = 'none';
-                if (bookingBtn) bookingBtn.style.display = '';
+                if (bookingBtn) bookingBtn.style.display = 'none';
             } else {
                 // В режиме QR отображаем стандартную надпись и все второстепенные действия
                 scanBtn.textContent = 'Сканировать QR-код';
@@ -561,7 +560,7 @@ loadUserData();
                 if (_provider === 'prizmatic') {
                     _scanBtn.textContent = 'Тарифы';
                     if (_scanIconBtn) _scanIconBtn.style.display = 'none';
-                    if (_bookingBtn) _bookingBtn.style.display = '';
+                    if (_bookingBtn) _bookingBtn.style.display = 'none';
                 } else {
                     _scanBtn.textContent = 'Сканировать QR-код';
                     if (_scanIconBtn) _scanIconBtn.style.display = '';
@@ -1203,8 +1202,6 @@ loadUserData();
                 bookingListModal.classList.add('hidden');
                 rentBtn.textContent = 'Забронировать на час';
                 rentBtn.dataset.action = 'book';
-                const qrTitleEl = qrModal.querySelector('h2');
-                if (qrTitleEl) { qrTitleEl.innerHTML = `Вы бронируете<br>Электровелосипед #${selectedId || '00001'}`; }
                 qrModal.classList.remove('hidden');
             }
         });
@@ -1278,7 +1275,6 @@ loadUserData();
             const balance = e.target.closest('#balance-card');
             const idbtn = e.target.closest('#id-input-btn');
             const extend = e.target.closest('#extend-row-btn');
-            const booking = e.target.closest('#booking-btn');
 
             if (scan) {
                 e.preventDefault();
@@ -1294,12 +1290,6 @@ loadUserData();
                         rentBtnEl.textContent = 'Арендовать';
                         rentBtnEl.dataset.action = 'rent';
                     }
-                    // Обновим заголовок модалки для сценария аренды
-                    try {
-                        const curId = (document.getElementById('bike-label')?.textContent || '00001').trim();
-                        const qrTitle2 = document.querySelector('#qr-modal h2');
-                        if (qrTitle2) qrTitle2.innerHTML = `Вы арендуете<br>Электровелосипед #${curId}`;
-                    } catch (_) {}
                     const modal = document.getElementById('qr-modal');
                     if (modal) modal.classList.remove('hidden');
                 }
@@ -1346,12 +1336,6 @@ loadUserData();
                     });
                 }
                 const modal = document.getElementById('extend-modal');
-                if (modal) modal.classList.remove('hidden');
-            }
-
-            if (booking) {
-                e.preventDefault();
-                const modal = document.getElementById('booking-list-modal');
                 if (modal) modal.classList.remove('hidden');
             }
         });
