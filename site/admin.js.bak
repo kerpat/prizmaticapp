@@ -565,8 +565,8 @@ if (clientsSection) {
         const editBtn = e.target.closest('.edit-client-btn');
         if (!viewBtn && !editBtn) return;
 
-        const clientId = viewBtn ? viewBtn.dataset.id : editBtn.dataset.id;
-        const client = clientsData.find(c => c.id == clientId);
+        const clientId = parseInt(viewBtn ? viewBtn.dataset.id : editBtn.dataset.id, 10);
+        const client = clientsData.find(c => c.id === clientId);
         if (!client) return;
 
         const recognizedData = client.extra?.recognized_data || {};
@@ -692,7 +692,7 @@ if (clientsSection) {
         clientsSection.addEventListener('click', async (e) => {
             const btn = e.target.closest('.view-client-btn');
             if (!btn) return;
-            const clientId = btn.dataset.id;
+            const clientId = parseInt(btn.dataset.id, 10);
             try {
                 // небольшая задержка, чтобы базовый обработчик показал модалку
                 setTimeout(async () => {
@@ -990,8 +990,8 @@ if (clientsSection) {
       if (!templateEditor) return;
       try {
         let html = templateEditor.innerHTML;
-        html = html.replace(/<span class=\"ph\">(.*?)<\/span>/g, '$1');
-        html = html.replace(/(\{\{\s*[\w\.\-]+\s*\}\})/g, '<span class="ph">$1<\/span>');
+        html = html.replace(/<span class="ph">(.*?)</span>/g, '$1');
+        html = html.replace(/(\{\{\s*[\w\.\-]+\s*\}\})/g, '<span class="ph">$1</span>');
         templateEditor.innerHTML = html;
       } catch {}
     }
