@@ -74,7 +74,7 @@
             try {
                 const [bikesRes, clientsRes] = await Promise.all([
                     supabase.from('bikes').select('bike_code, model_name, status, location'),
-                    supabase.from('clients').select('id, name, last_location').not('last_location', 'is', null)
+                    supabase.rpc('get_clients_with_locations')
                 ]);
 
                 if (bikesRes.error) throw bikesRes.error;
@@ -107,13 +107,13 @@
                     };
                 }).filter(Boolean);
 
-                const clientFeatures = clientsRes.data.map((client, index) => {
-                    const coords = client.last_location.match(/POINT\(([-\d\.]+) ([-\d\.]+)\)/);
-                    if (!coords) return null;
+                                const clientFeatures = clientsRes.data.map((client, index) => {
+                    if (!client.location_geojson || !client.location_geojson.coordinates) return null;
+                    const coords = client.location_geojson.coordinates; // [longitude, latitude]
                     return {
                         type: 'Feature',
                         id: `client_${client.id}`,
-                        geometry: { type: 'Point', coordinates: [parseFloat(coords[2]), parseFloat(coords[1])] },
+                        geometry: { type: 'Point', coordinates: coords },
                         properties: {
                             hintContent: `Курьер: ${client.name}`,
                             balloonContent: `<strong>${client.name}</strong><br>ID: ${client.id}`
