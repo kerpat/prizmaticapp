@@ -117,7 +117,15 @@ body {
 }
 
 /* Section header + toolbar */
-.section-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--progress-bar-bg);
+}
 .section-toolbar { display: flex; gap: 10px; align-items: center; }
 .toolbar-input { height: 36px; padding: 0 12px; border: 1px solid var(--progress-bar-bg); border-radius: 10px; font-size: .95rem; }
 
@@ -243,27 +251,92 @@ button.edit-tariff-btn, button.close-rental-btn {
     color: var(--dark-green);
 }
 
-/* Overlay for editing client passport data */
-/* Overlay basics */
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; justify-content: center; align-items: center; z-index: 2000; }
-.overlay.hidden { display: none; }
+/* Overlay & Modal Styling */
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(8, 56, 48, 0.6);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0s 0.3s;
+}
+.overlay:not(.hidden) {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease, visibility 0s;
+}
 
-#client-edit-overlay { }
-#client-info-overlay { }
-#client-info-overlay .modal, #client-edit-overlay .modal {
+.overlay .modal {
     background-color: var(--white);
     border-radius: 20px;
-    padding: 30px;
+    padding: 0; /* Use header/body/footer for padding */
     width: 100%;
-    max-width: 900px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    max-width: 800px; /* Default */
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    transform: translateY(20px) scale(0.98);
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
-#client-info-overlay h3, #client-edit-overlay h3 {
-    margin-bottom: 20px;
+.overlay:not(.hidden) .modal {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+}
+
+/* Modal Structure */
+.modal-header {
+    padding: 20px 30px;
+    border-bottom: 1px solid var(--progress-bar-bg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.modal-header h3 {
+    margin: 0;
     font-size: 1.3rem;
     font-weight: 700;
     color: var(--dark-green);
 }
+.modal-header .close-btn {
+    background: none;
+    border: none;
+    font-size: 28px;
+    font-weight: 300;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    color: #999;
+    transition: color .2s;
+}
+.modal-header .close-btn:hover { color: #333; }
+
+.modal-body {
+    padding: 25px 30px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.modal-footer {
+    padding: 20px 30px;
+    border-top: 1px solid var(--progress-bar-bg);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    background-color: #f7faf7;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+}
+
+/* Specific modal overrides */
+#client-info-overlay .modal { max-width: 900px; }
+#client-edit-overlay .modal { max-width: 520px; }
+#invoice-modal .modal { max-width: 420px; }
+#template-preview-overlay .modal { max-width: 900px; }
+
 #client-info-content .info-row {
     margin-bottom: 12px;
     font-size: 0.95rem;
@@ -302,14 +375,6 @@ button.edit-tariff-btn, button.close-rental-btn {
 #recognized-edit-form label { display: block; margin-bottom: 6px; font-weight: 600; }
 #recognized-edit-form input, #recognized-edit-form textarea { width: 100%; padding: 10px; border: 1px solid var(--progress-bar-bg); border-radius: 10px; font-size: .95rem; }
 
-/* Edit modal a bit narrower */
-#client-edit-overlay .modal { max-width: 520px; }
-#client-edit-overlay h3 {
-    margin-bottom: 20px;
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: var(--dark-green);
-}
 #client-edit-form .form-group {
     margin-bottom: 15px;
 }
@@ -327,7 +392,7 @@ button.edit-tariff-btn, button.close-rental-btn {
     border-radius: 12px;
     font-size: 1rem;
 }
-.modal-actions, .modal-footer {
+.modal-actions {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
@@ -425,4 +490,47 @@ button.delete-tariff-btn {
 
 button.delete-tariff-btn:hover {
     background-color: #c53030; /* Более темный красный при наведении */
+}
+
+.modal-form-input,
+textarea.modal-form-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--progress-bar-bg);
+    border-radius: 12px;
+    font-size: 1rem;
+    font-family: 'Inter', sans-serif;
+    background-color: var(--card-bg);
+    color: var(--dark-green);
+    transition: all 0.2s ease;
+}
+
+.modal-form-input:focus,
+textarea.modal-form-input:focus {
+    outline: none;
+    border-color: var(--icon-green);
+    background-color: var(--white);
+    box-shadow: 0 0 0 3px rgba(38, 185, 153, 0.2);
+}
+
+textarea.modal-form-input {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+    margin-bottom: 2rem;
+    background: #f7faf7;
+    border-radius: 16px;
+    padding: 1rem;
+}
+rgba(38, 185, 153, 0.2);
+}
+
+textarea.modal-form-input {
+    resize: vertical;
+    min-height: 80px;
 }

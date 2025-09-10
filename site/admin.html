@@ -229,11 +229,11 @@
                 <input type="hidden" id="invoice-client-id">
                 <div class="form-group">
                   <label for="invoice-amount">Сумма (₽)</label>
-                  <input type="number" id="invoice-amount" class="toolbar-input" style="width: 100%;" placeholder="Например: 500" required>
+                  <input type="number" id="invoice-amount" class="modal-form-input" placeholder="Например: 500" required>
                 </div>
                 <div class="form-group">
                   <label for="invoice-description">Описание счета</label>
-                  <textarea id="invoice-description" class="toolbar-input" style="width: 100%;" placeholder="Например: Штраф за повреждение" rows="3" required></textarea>
+                  <textarea id="invoice-description" class="modal-form-input" placeholder="Например: Штраф за повреждение" rows="3" required></textarea>
                 </div>
               </form>
             </div>
@@ -275,7 +275,12 @@
 
       <!-- Платежи -->
       <section id="payments-section" class="admin-section hidden">
-        <h2>Платежи</h2>
+        <div class="section-header">
+          <h2>Платежи</h2>
+        </div>
+        <div class="chart-container">
+            <canvas id="payments-chart"></canvas>
+        </div>
         <table id="payments-table" class="admin-table">
           <thead>
           <tr>
@@ -337,6 +342,7 @@
       }
     });
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
   <script src="admin.js" defer></script>
 </body>
 </html>

@@ -565,8 +565,60 @@ clientsTableBody.addEventListener('click', async (e) => {
                     <td>${p.created_at ? new Date(p.created_at).toLocaleString('ru-RU') : '—'}</td>`;
                 tbody.appendChild(tr);
             });
+
+            // --- Chart.js Logic ---
+            const chartCanvas = document.getElementById('payments-chart');
+            if (window.paymentsChart instanceof Chart) {
+                window.paymentsChart.destroy();
+            }
+            
+            const successfulPayments = (data || []).filter(p => p.status === 'succeeded' && p.amount_rub > 0);
+            const paymentsByDay = successfulPayments.reduce((acc, p) => {
+                const day = new Date(p.created_at).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+                acc[day] = (acc[day] || 0) + p.amount_rub;
+                return acc;
+            }, {});
+
+            const labels = Object.keys(paymentsByDay).reverse();
+            const chartData = Object.values(paymentsByDay).reverse();
+
+            window.paymentsChart = new Chart(chartCanvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Доход по дням, ₽',
+                        data: chartData,
+                        backgroundColor: 'rgba(38, 185, 153, 0.6)',
+                        borderColor: 'rgba(38, 185, 153, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#083830',
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 12 },
+                            padding: 10,
+                            cornerRadius: 8,
+                            displayColors: false,
+                        }
+                    }
+                }
+            });
+
         } catch (err) {
             tbody.innerHTML = `<tr><td colspan="5">Ошибка загрузки платежей: ${err.message}</td></tr>`;
+            console.error('Ошибка загрузки платежей:', err);
         }
     }
 
@@ -588,6 +640,7 @@ if (clientsSection) {
 
         // --- ЛОГИКА ДЛЯ ПРОСМОТРА ИНФОРМАЦИИ И ФОТО ---
         if (viewBtn) {
+            currentEditingId = client.id; // Set the current client ID
             const recognizedContainer = document.getElementById('recognized-data-container');
             const photoLinksDiv = document.getElementById('photo-links');
 
@@ -719,6 +772,7 @@ if (clientsSection) {
 
                     const { data: client, error } = await supabase.from('clients').select('*').eq('id', clientId).single();
                     if (error) throw error;
+                    currentEditingId = client.id; // Set the current client ID
                     const rec = client?.extra?.recognized_data || {};
 
                     // render view
