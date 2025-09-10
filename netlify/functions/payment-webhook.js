@@ -93,7 +93,22 @@ exports.handler = async function(event, context) {
 
         } else if (userId) {
             // --- СЦЕНАРИЙ: ЭТО БЫЛО ОБЫЧНОЕ ПОПОЛНЕНИЕ БАЛАНСА ---
-            // Оставляем эту логику для совместимости
+            
+            // 1. Вызываем RPC функцию для атомарного обновления баланса
+            const { error: balanceError } = await supabaseAdmin
+                .rpc('add_to_balance', {
+                    client_id_to_update: userId,
+                    amount_to_add: paymentAmount
+                });
+
+            if (balanceError) {
+                console.error(`Ошибка обновления баланса для пользователя ${userId}:`, balanceError);
+                // Важно: даже если баланс не обновился, платеж нужно записать, чтобы не потерять деньги
+            } else {
+                console.log(`Баланс пользователя ${userId} успешно пополнен на ${paymentAmount}.`);
+            }
+
+            // 2. Записываем сам факт платежа в историю
             const { error: paymentError } = await supabaseAdmin
                 .from('payments')
                 .insert({
@@ -106,7 +121,7 @@ exports.handler = async function(event, context) {
                 });
 
             if (paymentError) throw paymentError;
-            console.log(`Пополнение баланса для пользователя ${userId} на сумму ${paymentAmount} зарегистрировано.`);
+            console.log(`Платеж (пополнение) для пользователя ${userId} на сумму ${paymentAmount} зарегистрирован.`);
         }
 
         // YooKassa ждет от нас ответ 200 OK

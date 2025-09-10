@@ -584,7 +584,7 @@ async function initializeRentalSystem() {
     try {
         const { data: client, error } = await supabase
             .from('clients')
-            .select('verification_status, name')
+            .select('verification_status, name, balance_rub') // <-- ИЗМЕНЕНИЕ 1
             .eq('id', userId)
             .single();
 
@@ -594,13 +594,11 @@ async function initializeRentalSystem() {
         const mainContent = document.querySelector('.app-main');
         const status = client.verification_status;
         
-        // Сбрасываем центрирование по умолчанию
         appHeader.classList.remove('header-centered');
 
         if (status === 'approved') {
             appHeader.querySelector('h1').textContent = `Привет, ${userName}!`;
             
-            // --- НОВАЯ ЛОГИКА ПРОВЕРКИ АРЕНДЫ ---
             const { data: rental, error: rentalError } = await supabase
                 .from('rentals')
                 .select('*, tariffs(duration_days)')
@@ -617,7 +615,6 @@ async function initializeRentalSystem() {
             }
 
             if (rental) {
-                // Если есть активная/просроченная аренда, показываем соответствующий экран
                 switch(rental.status) {
                     case 'active':
                         renderActiveRentalView(rental, mainContent);
@@ -633,10 +630,8 @@ async function initializeRentalSystem() {
                         initializeMainScreenEventListeners();
                 }
             } else {
-                // Если аренды нет, показываем стандартный экран
                 renderDefaultView(mainContent);
                 initializeMainScreenEventListeners();
-                 // Синхронизируем подпись главной кнопки с выбранным провайдером
                 (function(){
                     const _scanBtn = document.getElementById('scan-qr-btn');
                     const _scanIconBtn = document.getElementById('scan-icon-btn');
@@ -666,11 +661,14 @@ async function initializeRentalSystem() {
                         if (btn) btn.style.display = 'none';
                     }
                 })();
+                // --- ИЗМЕНЕНИЕ 2: ОБНОВЛЕНИЕ ОТОБРАЖЕНИЯ БАЛАНСА ---
+                const balanceAmountEl = document.getElementById('balance-amount');
+                if (balanceAmountEl) {
+                    balanceAmountEl.textContent = `${Math.round(client.balance_rub) || 0} ₽`;
+                }
             }
-            // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
         } else {
-            // Пользователь на верификации
-            appHeader.classList.add('header-centered'); // <-- Центрируем заголовок
+            appHeader.classList.add('header-centered');
             appHeader.querySelector('h1').textContent = `Привет, ${userName}!`;
             
             let headerText = 'Ваш аккаунт на проверке';
@@ -686,7 +684,6 @@ async function initializeRentalSystem() {
             mainContent.innerHTML = `
                 <div class="verification-container">
                     <h2 class="verification-header">${headerText}</h2>
-
                     <div class="verification-status-card">
                         <div class="verification-status-info">
                             <h3>${statusTitle}</h3>
@@ -694,9 +691,7 @@ async function initializeRentalSystem() {
                             <p>${statusSubtitle}</p>
                         </div>
                     </div>
-
                     <h2>Чем заняться пока ждёте</h2>
-
                     <div class="actions-grid">
                         <div class="action-card" id="goto-profile-action">
                             <div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>
