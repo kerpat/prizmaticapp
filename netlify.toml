@@ -1,4 +1,9 @@
-[build]
-  command = "echo 'No build command'" # Команда сборки нам не нужна, у нас статика
-  publish = "site"                   # Говорим Netlify, что наш сайт лежит в папке 'site'
-  functions = "netlify/functions"    # Говорим, где лежат наши серверные функции
+[functions]
+  # Указываем, где лежат наши функции
+  directory = "netlify/functions/"
+
+# Добавляем блок для задач по расписанию
+[functions."process-renewals"]
+  # Cron-выражение: "в 3 часа ночи по UTC каждый день"
+  # Можете поменять на "0 * * * *" для теста (каждый час)
+  schedule = "0 3 * * *"

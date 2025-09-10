@@ -219,7 +219,210 @@
     const SUPABASE_URL = 'https://avamqfmuhiwtlumjkzmv.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // =======================================================================
+// === ШАГ 1: ВСТАВЬТЕ ЭТОТ БОЛЬШОЙ БЛОК КОДА ПЕРЕД DOMContentLoaded ===
+// =======================================================================
 
+// --- НОВАЯ ГЛАВНАЯ ФУНКЦИЯ УПРАВЛЕНИЯ ИНТЕРФЕЙСОМ ---
+async function initializeRentalSystem() {
+    const mainContent = document.querySelector('.app-main');
+    const appHeader = document.querySelector('.app-header h1');
+    let currentUser = null;
+    let activeRental = null;
+
+    // --- ШАБЛОНЫ ДЛЯ РАЗНЫХ СОСТОЯНИЙ ---
+
+    const renderDefaultView = () => {
+        mainContent.innerHTML = `
+            <div class="bike-image-wrapper">
+                <img src="bike-delivery.png" alt="Electric bike" class="bike-image" id="main-bike-image">
+                <div id="bike-label" class="bike-label">00001</div>
+            </div>
+            <div class="progress-section">
+                <div class="progress-bar-container"><div class="progress-bar" id="progress-bar-fill"></div></div>
+                <div class="progress-labels"><span id="progress-start-label">0 дней</span><span id="progress-end-label">...</span></div>
+            </div>
+            <h2>Найти и арендовать электровелосипед рядом.</h2>
+            <div class="info-cards">
+                <div class="card"><div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div><div class="text-content"><span>Свободных</span><strong id="available-bikes-count">100</strong></div></div>
+                <div class="card" id="balance-card"><div class="icon-wrapper dollar"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div><div class="text-content"><span>Баланс</span><strong id="balance-amount">0 ₽</strong></div></div>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="scan-qr-btn">Сканировать QR-код</button>
+                <div class="secondary-actions">
+                    <button class="btn btn-secondary" id="scan-icon-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/></svg></button>
+                    <button class="btn btn-secondary text-btn" id="id-input-btn">Ввести ID</button>
+                    <button class="btn btn-secondary text-btn" id="booking-btn">Бронь</button>
+                </div>
+            </div>
+            <div id="extend-container" class="hidden extend-container"><button id="extend-rental-btn" class="btn btn-primary">Продлить аренду</button></div>
+        `;
+        // Вызываем ВАШУ старую функцию, чтобы она "оживила" все кнопки
+        initializeMainScreenEventListeners(startRentalFlow);
+    };
+
+    const renderActiveRentalView = (rental) => {
+        const endsDate = new Date(rental.current_period_ends_at);
+        const daysLeft = Math.ceil((endsDate - new Date()) / (1000 * 60 * 60 * 24));
+        const durationDays = rental.tariffs?.duration_days || 7;
+        const progress = Math.max(0, 100 - (daysLeft / durationDays * 100));
+
+        mainContent.innerHTML = `
+            <div class="bike-image-wrapper">
+                <img src="bike00001.png" alt="Rented Electric bike" class="bike-image">
+                <div class="bike-label">${rental.bike_id}</div>
+            </div>
+            <div class="progress-section">
+                <div class="progress-bar-container"><div class="progress-bar" style="width: ${progress}%;"></div></div>
+                <div class="progress-labels"><span>В аренде</span><span>Осталось ~${daysLeft} д.</span></div>
+            </div>
+            <h2>Ваша аренда активна</h2>
+            <p style="text-align: center; color: var(--dark-green);">Следующее автоматическое списание ${endsDate.toLocaleDateString('ru-RU')}.</p>
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="return-bike-btn">Сдать велосипед</button>
+            </div>`;
+        document.getElementById('return-bike-btn').addEventListener('click', returnBike);
+    };
+
+    const renderOverdueRentalView = (rental) => {
+        mainContent.innerHTML = `
+            <div class="bike-image-wrapper">
+                <img src="bike00001.png" alt="Rented Electric bike" class="bike-image" style="filter: grayscale(1);">
+                <div class="bike-label">${rental.bike_id}</div>
+            </div>
+            <h2 style="color: #e53e3e; text-align: center;">Аренда просрочена</h2>
+            <p style="text-align: center; color: var(--dark-green);">Последний платеж не прошел. Пожалуйста, проверьте баланс карты.</p>
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="retry-payment-btn">Повторить платеж</button>
+                <button class="btn btn-secondary text-btn" id="return-bike-btn">Сдать велосипед</button>
+            </div>`;
+        document.getElementById('retry-payment-btn').addEventListener('click', retryPayment);
+        document.getElementById('return-bike-btn').addEventListener('click', returnBike);
+    };
+    
+    const renderPendingReturnView = (rental) => {
+        mainContent.innerHTML = `
+            <div class="bike-image-wrapper">
+                <img src="bike00001.png" alt="Rented Electric bike" class="bike-image" style="opacity: 0.7;">
+                <div class="bike-label">${rental.bike_id}</div>
+            </div>
+            <h2 style="text-align: center;">Ожидание сдачи</h2>
+            <p style="text-align: center; color: var(--dark-green);">Заявка на сдачу принята. Автосписания остановлены. Ожидайте подтверждения администратора.</p>`;
+    };
+    
+    // --- ДЕЙСТВИЯ ПОЛЬЗОВАТЕЛЯ ---
+
+    const startRentalFlow = async () => {
+        const tariffId = 1;
+        const bikeId = "00001";
+        
+        const button = document.getElementById('scan-qr-btn') || document.getElementById('rent-flow-start-btn');
+        if (!button) return;
+        button.disabled = true;
+        button.textContent = 'Создаем заказ...';
+
+        try {
+            const response = await fetch('/.netlify/functions/create-payment', {
+                method: 'POST',
+                body: JSON.stringify({ userId: currentUser.id, bikeId, tariffId })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Неизвестная ошибка');
+            if (data.confirmation_url) {
+                window.location.href = data.confirmation_url;
+            } else {
+                throw new Error('Не удалось получить ссылку на оплату.');
+            }
+        } catch (error) {
+            alert('Ошибка: ' + error.message);
+            button.disabled = false;
+            button.textContent = 'Арендовать велосипед';
+        }
+    };
+
+    const returnBike = async () => {
+        if (!activeRental || !confirm("Вы уверены, что хотите сдать велосипед?")) return;
+        
+        const { error } = await supabase
+            .from('rentals')
+            .update({ status: 'pending_return' })
+            .eq('id', activeRental.id);
+            
+        if (error) {
+            alert("Ошибка: " + error.message);
+        } else {
+            renderPendingReturnView(activeRental);
+        }
+    };
+    
+    const retryPayment = () => {
+        alert("Пожалуйста, пополните привязанную карту. Система автоматически попытается списать средства в ближайшие часы.");
+    };
+
+    // --- ГЛАВНАЯ ИНИЦИАЛИЗИРУЮЩАЯ ФУНКЦИЯ ---
+
+    const initializePage = async () => {
+        const userId = localStorage.getItem('userId');
+        const { data: client, error: clientError } = await supabase.from('clients').select('*').eq('id', userId).single();
+        if (clientError || !client) {
+            localStorage.clear(); window.location.replace('start.html'); return;
+        }
+        currentUser = client;
+        appHeader.textContent = `Привет, ${currentUser.name.split(' ')[0]}!`;
+
+        // Вызываем ВАШУ функцию `loadUserData`, но передаем ей колбэк
+        loadUserData(supabase, () => {
+            // Этот код выполнится, только если верификация пройдена
+            checkAndRenderRentalStatus();
+        });
+    };
+
+    const checkAndRenderRentalStatus = async () => {
+        const { data: rental, error: rentalError } = await supabase
+            .from('rentals')
+            .select('*, tariffs(duration_days)')
+            .eq('user_id', currentUser.id)
+            .in('status', ['active', 'overdue', 'pending_return'])
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (rentalError && rentalError.code !== 'PGRST116') {
+             console.error("Rental fetch error:", rentalError);
+        }
+
+        activeRental = rental;
+
+        if (activeRental) {
+            switch(activeRental.status) {
+                case 'active': renderActiveRentalView(activeRental); break;
+                case 'overdue': renderOverdueRentalView(activeRental); break;
+                case 'pending_return': renderPendingReturnView(activeRental); break;
+                default: renderDefaultView();
+            }
+        } else {
+            renderDefaultView();
+        }
+    };
+    
+    // Запускаем всё
+    initializePage();
+}
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Проверка регистрации и анимация
+        if (localStorage.getItem('isRegistered') !== 'true') {
+            window.location.replace('start.html');
+            return;
+        }
+        initializePageTransitions();
+
+        // Запуск новой системы
+        initializeRentalSystem();
+        
+        // Логика для модальных окон, которая не зависит от статуса аренды
+        initializeModals();
+    });
     document.addEventListener('DOMContentLoaded', () => {
         // --- ПРОВЕРКА, ЗАЛОГИНЕН ЛИ ПОЛЬЗОВАТЕЛЬ ---
         if (localStorage.getItem('isRegistered') !== 'true') {
@@ -291,7 +494,84 @@
 
        // Файл: index.html, внутри <script>
 
-async function loadUserData() {
+       // --- НОВЫЕ ФУНКЦИИ РЕНДЕРИНГА И ДЕЙСТВИЙ ---
+    const returnBike = async (rentalId) => {
+        if (!rentalId || !confirm("Вы уверены, что хотите сдать велосипед?")) return;
+        
+        const { error } = await supabase
+            .from('rentals')
+            .update({ status: 'pending_return' })
+            .eq('id', rentalId);
+            
+        if (error) {
+            alert("Ошибка: " + error.message);
+        } else {
+            window.location.reload();
+        }
+    };
+    
+    const retryPayment = () => {
+        alert("Пожалуйста, пополните привязанную карту. Система автоматически попытается списать средства в ближайшие часы.");
+    };
+
+    const renderActiveRentalView = (rental, container) => {
+        const endsDate = new Date(rental.current_period_ends_at);
+        const startDate = new Date(rental.starts_at);
+        const durationDays = rental.tariffs?.duration_days || 7;
+        const daysPassed = (new Date() - startDate) / (1000 * 60 * 60 * 24);
+        const progress = Math.min(100, (daysPassed / durationDays) * 100);
+        const daysLeft = Math.max(0, Math.ceil((endsDate - new Date()) / (1000 * 60 * 60 * 24)));
+
+        container.innerHTML = `
+            <div class="bike-image-wrapper"><img src="bike00001.png" alt="Rented Electric bike" class="bike-image"><div class="bike-label">${rental.bike_id}</div></div>
+            <div class="progress-section"><div class="progress-bar-container"><div class="progress-bar" style="width: ${progress}%;"></div></div><div class="progress-labels"><span>В аренде</span><span>Осталось ~${daysLeft} д.</span></div></div>
+            <h2>Ваша аренда активна</h2>
+            <p style="text-align: center; color: var(--dark-green);">Следующее списание: ${endsDate.toLocaleDateString('ru-RU')}</p>
+            <div class="action-buttons"><button class="btn btn-primary" id="return-bike-btn">Сдать велосипед</button></div>`;
+        document.getElementById('return-bike-btn').addEventListener('click', () => returnBike(rental.id));
+    };
+
+    const renderOverdueRentalView = (rental, container) => {
+        container.innerHTML = `
+            <div class="bike-image-wrapper"><img src="bike00001.png" alt="Rented Electric bike" class="bike-image" style="filter: grayscale(1);"><div class="bike-label">${rental.bike_id}</div></div>
+            <h2 style="color: #e53e3e; text-align: center;">Аренда просрочена</h2>
+            <p style="text-align: center; color: var(--dark-green);">Платеж не прошел. Проверьте карту.</p>
+            <div class="action-buttons"><button class="btn btn-primary" id="retry-payment-btn">Повторить платеж</button><button class="btn btn-secondary text-btn" id="return-bike-btn">Сдать велосипед</button></div>`;
+        document.getElementById('retry-payment-btn').addEventListener('click', retryPayment);
+        document.getElementById('return-bike-btn').addEventListener('click', () => returnBike(rental.id));
+    };
+    
+    const renderPendingReturnView = (rental, container) => {
+        container.innerHTML = `
+            <div class="bike-image-wrapper"><img src="bike00001.png" alt="Rented Electric bike" class="bike-image" style="opacity: 0.7;"><div class="bike-label">${rental.bike_id}</div></div>
+            <h2 style="text-align: center;">Ожидание сдачи</h2>
+            <p style="text-align: center; color: var(--dark-green);">Автосписания остановлены. Ожидайте подтверждения.</p>`;
+    };
+
+    const renderDefaultView = (container) => {
+        container.innerHTML = `
+            <div class="bike-image-wrapper">
+                <img src="bike-delivery.png" alt="Electric bike" class="bike-image" id="main-bike-image">
+                <div id="bike-label" class="bike-label">00001</div>
+            </div>
+            <div class="progress-section">
+                <div class="progress-bar-container"><div class="progress-bar" id="progress-bar-fill"></div></div>
+                <div class="progress-labels"><span id="progress-start-label">0 дней</span><span id="progress-end-label">...</span></div>
+            </div>
+            <h2>Найти и арендовать электровелосипед рядом.</h2>
+            <div class="info-cards">
+                <div class="card"><div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div><div class="text-content"><span>Свободных</span><strong id="available-bikes-count">100</strong></div></div>
+                <div class="card" id="balance-card"><div class="icon-wrapper dollar"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div><div class="text-content"><span>Баланс</span><strong id="balance-amount">0 ₽</strong></div></div>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="scan-qr-btn">Сканировать QR-код</button>
+                <div class="secondary-actions"><button class="btn btn-secondary" id="scan-icon-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path></svg></button><button class="btn btn-secondary text-btn" id="id-input-btn">Ввести ID</button><button class="btn btn-secondary text-btn" id="booking-btn">Бронь</button></div>
+            </div>
+            <div id="extend-container" class="hidden extend-container"><button id="extend-rental-btn" class="btn btn-primary">Продлить аренду</button></div>
+        `;
+    };
+
+    async function loadUserData() {
     const userId = localStorage.getItem('userId');
     const appHeader = document.querySelector('.app-header'); // Находим заголовок
 
@@ -319,60 +599,75 @@ async function loadUserData() {
 
         if (status === 'approved') {
             appHeader.querySelector('h1').textContent = `Привет, ${userName}!`;
-            // Возвращаем старый HTML для рабочего экрана
-            mainContent.innerHTML = `
-                <div class="bike-image-wrapper">
-                    <img src="bike-delivery.png" alt="Electric bike" class="bike-image" id="main-bike-image">
-                    <div id="bike-label" class="bike-label">00001</div>
-                </div>
-                <div class="progress-section">
-                    <div class="progress-bar-container"><div class="progress-bar" id="progress-bar-fill"></div></div>
-                    <div class="progress-labels"><span id="progress-start-label">0 дней</span><span id="progress-end-label">...</span></div>
-                </div>
-                <h2>Найти и арендовать электровелосипед рядом.</h2>
-                <div class="info-cards">
-                    <div class="card"><div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div><div class="text-content"><span>Свободных</span><strong id="available-bikes-count">100</strong></div></div>
-                    <div class="card" id="balance-card"><div class="icon-wrapper dollar"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div><div class="text-content"><span>Баланс</span><strong id="balance-amount">0 ₽</strong></div></div>
-                </div>
-                <div class="action-buttons">
-                    <button class="btn btn-primary" id="scan-qr-btn">Сканировать QR-код</button>
-                    <div class="secondary-actions"><button class="btn btn-secondary" id="scan-icon-btn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path></svg></button><button class="btn btn-secondary text-btn" id="id-input-btn">Ввести ID</button><button class="btn btn-secondary text-btn" id="booking-btn">Бронь</button></div>
-                </div>
-                <div id="extend-container" class="hidden extend-container"><button id="extend-rental-btn" class="btn btn-primary">Продлить аренду</button></div>
-            `;
-            initializeMainScreenEventListeners();
-            // Синхронизируем подпись главной кнопки с выбранным провайдером
-            (function(){
-                const _scanBtn = document.getElementById('scan-qr-btn');
-                const _scanIconBtn = document.getElementById('scan-icon-btn');
-                const _bookingBtn = document.getElementById('booking-btn');
-                const _secondary = document.querySelector('.secondary-actions');
-                const _provider = localStorage.getItem('paymentProvider') || 'qr';
-                if (!_scanBtn) return;
-                if (_provider === 'prizmatic') {
-                    _scanBtn.textContent = 'Тарифы';
-                    if (_scanIconBtn) _scanIconBtn.style.display = 'none';
-                    // «Бронь» оставляем видимой для симметрии
-                    if (_bookingBtn) _bookingBtn.style.display = '';
-                    // Добавляем кнопку "Продление" для симметрии, если её нет
-                    if (_secondary && !document.getElementById('extend-row-btn')) {
-                        const btn = document.createElement('button');
-                        btn.id = 'extend-row-btn';
-                        btn.className = 'btn btn-secondary text-btn';
-                        btn.textContent = 'Продление';
-                        _secondary.appendChild(btn);
-                    } else if (_secondary) {
-                        const btn = document.getElementById('extend-row-btn');
-                        if (btn) btn.style.display = '';
-                    }
-                } else {
-                    _scanBtn.textContent = 'Сканировать QR-код';
-                    if (_scanIconBtn) _scanIconBtn.style.display = '';
-                    if (_bookingBtn) _bookingBtn.style.display = '';
-                    const btn = document.getElementById('extend-row-btn');
-                    if (btn) btn.style.display = 'none';
+            
+            // --- НОВАЯ ЛОГИКА ПРОВЕРКИ АРЕНДЫ ---
+            const { data: rental, error: rentalError } = await supabase
+                .from('rentals')
+                .select('*, tariffs(duration_days)')
+                .eq('user_id', userId)
+                .in('status', ['active', 'overdue', 'pending_return'])
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (rentalError && rentalError.code !== 'PGRST116') {
+                console.error("Ошибка при получении аренды:", rentalError);
+                mainContent.innerHTML = `<h2 style="text-align: center; color: red;">Не удалось загрузить данные об аренде.</h2>`;
+                return;
+            }
+
+            if (rental) {
+                // Если есть активная/просроченная аренда, показываем соответствующий экран
+                switch(rental.status) {
+                    case 'active':
+                        renderActiveRentalView(rental, mainContent);
+                        break;
+                    case 'overdue':
+                        renderOverdueRentalView(rental, mainContent);
+                        break;
+                    case 'pending_return':
+                        renderPendingReturnView(rental, mainContent);
+                        break;
+                    default:
+                        renderDefaultView(mainContent);
+                        initializeMainScreenEventListeners();
                 }
-            })();
+            } else {
+                // Если аренды нет, показываем стандартный экран
+                renderDefaultView(mainContent);
+                initializeMainScreenEventListeners();
+                 // Синхронизируем подпись главной кнопки с выбранным провайдером
+                (function(){
+                    const _scanBtn = document.getElementById('scan-qr-btn');
+                    const _scanIconBtn = document.getElementById('scan-icon-btn');
+                    const _bookingBtn = document.getElementById('booking-btn');
+                    const _secondary = document.querySelector('.secondary-actions');
+                    const _provider = localStorage.getItem('paymentProvider') || 'qr';
+                    if (!_scanBtn) return;
+                    if (_provider === 'prizmatic') {
+                        _scanBtn.textContent = 'Тарифы';
+                        if (_scanIconBtn) _scanIconBtn.style.display = 'none';
+                        if (_bookingBtn) _bookingBtn.style.display = '';
+                        if (_secondary && !document.getElementById('extend-row-btn')) {
+                            const btn = document.createElement('button');
+                            btn.id = 'extend-row-btn';
+                            btn.className = 'btn btn-secondary text-btn';
+                            btn.textContent = 'Продление';
+                            _secondary.appendChild(btn);
+                        } else if (_secondary) {
+                            const btn = document.getElementById('extend-row-btn');
+                            if (btn) btn.style.display = '';
+                        }
+                    } else {
+                        _scanBtn.textContent = 'Сканировать QR-код';
+                        if (_scanIconBtn) _scanIconBtn.style.display = '';
+                        if (_bookingBtn) _bookingBtn.style.display = '';
+                        const btn = document.getElementById('extend-row-btn');
+                        if (btn) btn.style.display = 'none';
+                    }
+                })();
+            }
+            // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
         } else {
             // Пользователь на верификации
             appHeader.classList.add('header-centered'); // <-- Центрируем заголовок
