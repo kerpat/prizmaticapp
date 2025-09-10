@@ -3,6 +3,24 @@ const fetch = require('node-fetch');
 const crypto = require('crypto');
 
 /**
+ * Вспомогательная функция для приведения номера телефона к формату,
+ * который требует YooKassa (например, 79991234567).
+ * @param {string} phone - Исходный номер телефона.
+ * @returns {string} - Очищенный номер телефона.
+ */
+function normalizePhone(phone) {
+    if (!phone) return '';
+    // Удаляем все символы, кроме цифр
+    let digits = phone.replace(/\D/g, '');
+    // Если номер начинается с 8, заменяем ее на 7
+    if (digits.startsWith('8')) {
+        digits = '7' + digits.slice(1);
+    }
+    return digits;
+}
+
+
+/**
  * Admin: Create and charge an invoice for a client.
  * POST JSON: { userId: string(uuid), amount: number|string, description: string }
  * Behavior:
@@ -11,9 +29,9 @@ const crypto = require('crypto');
  *  - If no saved card, returns 400 with message for the UI.
  */
 exports.handler = async function(event) {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
-  }
+  // if (event.httpMethod !== 'POST') {
+  //   return { statusCode: 405, body: 'Method Not Allowed' };
+  // }
   try {
     const { userId, amount, description } = JSON.parse(event.body || '{}');
     if (!userId || !amount || !description) {
@@ -23,7 +41,7 @@ exports.handler = async function(event) {
     const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
     const { data: client, error: cErr } = await supabase
       .from('clients')
-      .select('id, yookassa_payment_method_id')
+      .select('id, yookassa_payment_method_id, phone')
       .eq('id', userId)
       .single();
     if (cErr || !client) {
@@ -33,6 +51,11 @@ exports.handler = async function(event) {
     const methodId = client.yookassa_payment_method_id;
     if (!methodId) {
       return { statusCode: 400, body: JSON.stringify({ error: 'У клиента нет сохранённой карты. Попросите привязать карту.' }) };
+    }
+
+    const normalizedPhone = normalizePhone(client.phone);
+    if (!normalizedPhone) {
+        return { statusCode: 400, body: JSON.stringify({ error: 'У клиента не указан корректный номер телефона для чека.' }) };
     }
 
     const value = Number(amount);
@@ -48,7 +71,19 @@ exports.handler = async function(event) {
       capture: true,
       description: description.slice(0, 255),
       payment_method_id: methodId,
-      metadata: { userId, payment_type: 'invoice' }
+      save_payment_method: true, // Попытаемся пересохранить карту на случай, если она была одноразовой
+      metadata: { userId, payment_type: 'invoice' },
+      receipt: {
+        customer: { phone: normalizedPhone },
+        items: [{
+            description: description.slice(0, 255),
+            quantity: "1.00",
+            amount: { value: value.toFixed(2), currency: "RUB" },
+            vat_code: "1", // НДС не облагается
+            payment_mode: "full_payment",
+            payment_subject: "service"
+        }]
+      }
     };
 
     const resp = await fetch('https://api.yookassa.ru/v3/payments', {

@@ -948,21 +948,33 @@ if (clientsSection) {
                     body: JSON.stringify({ userId, amount, description })
                 });
 
-                const result = await response.json();
-
                 if (!response.ok) {
-                    // Use the error message from the server function if available
-                    throw new Error(result.error || 'Неизвестная ошибка при выставлении счета.');
+                    const errorText = await response.text();
+                    throw new Error(errorText || `Ошибка сервера: ${response.status}`);
                 }
 
-                alert(result.message || 'Счет успешно создан и отправлен на списание.');
+                const responseText = await response.text();
+                
+                // Если ответ пустой, считаем, что все прошло успешно
+                if (!responseText) {
+                    alert('Счет успешно создан и отправлен на списание.');
+                } else {
+                    // Иначе, пытаемся парсить JSON
+                    const result = JSON.parse(responseText);
+                    alert(result.message || 'Счет успешно создан и отправлен на списание.');
+                }
+
                 invoiceModal.classList.add('hidden');
-                // Clear form for next time
                 invoiceAmountInput.value = '';
                 invoiceDescriptionInput.value = '';
 
             } catch (err) {
-                alert('Ошибка: ' + err.message);
+                // Умное сообщение об ошибке
+                if (err.message.includes('Unexpected token')) {
+                    alert('Ошибка: получен некорректный ответ от сервера. Возможно, он временно недоступен.');
+                } else {
+                    alert('Ошибка: ' + err.message);
+                }
             } finally {
                 toggleButtonLoading(invoiceSubmitBtn, false, 'Выставить и списать', 'Отправка...');
             }
