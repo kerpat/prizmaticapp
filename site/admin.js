@@ -57,6 +57,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportBtn = document.getElementById('export-clients-btn');
     const contractTemplateSelect = document.getElementById('contract-template-select');
 
+    // Invoice elements
+    const invoiceCreateBtn = document.getElementById('invoice-create-btn');
+    const invoiceModal = document.getElementById('invoice-modal');
+    const invoiceCancelBtn = document.getElementById('invoice-cancel-btn');
+    const invoiceSubmitBtn = document.getElementById('invoice-submit-btn');
+    const invoiceClientIdInput = document.getElementById('invoice-client-id');
+    const invoiceAmountInput = document.getElementById('invoice-amount');
+    const invoiceDescriptionInput = document.getElementById('invoice-description');
+
     // Templates elements
     // duplicate removed: const templatesTableBody
     // duplicate removed: const templateNewBtn
@@ -79,6 +88,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const SUPABASE_URL = 'https://avamqfmuhiwtlumjkzmv.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    function toggleButtonLoading(btn, isLoading, textIdle, textBusy) {
+        if (!btn) return;
+        btn.disabled = !!isLoading;
+        btn.textContent = isLoading ? textBusy : textIdle;
+    }
 
     // --- Tariff Extensions Logic ---
 
@@ -823,6 +838,79 @@ if (clientsSection) {
                 }, 0);
             } catch (err) {
                 console.error('Ошибка подготовки карточки клиента:', err);
+            }
+        });
+    }
+
+    // --- Invoice Logic ---
+    if (invoiceCreateBtn) {
+        invoiceCreateBtn.addEventListener('click', () => {
+            // currentEditingId is set when the client info modal is opened
+            if (currentEditingId && invoiceModal) {
+                invoiceClientIdInput.value = currentEditingId;
+                // It's better to hide the info overlay before showing the invoice one
+                if (clientInfoOverlay) clientInfoOverlay.classList.add('hidden');
+                invoiceModal.classList.remove('hidden');
+            } else {
+                alert('Сначала выберите клиента для выставления счета.');
+            }
+        });
+    }
+
+    if (invoiceCancelBtn) {
+        invoiceCancelBtn.addEventListener('click', () => {
+            if (invoiceModal) {
+                invoiceModal.classList.add('hidden');
+            }
+        });
+    }
+    
+    // Also close on overlay click
+    if (invoiceModal) {
+        invoiceModal.addEventListener('click', (e) => {
+            if (e.target === invoiceModal) {
+                invoiceModal.classList.add('hidden');
+            }
+        });
+    }
+
+    if (invoiceSubmitBtn) {
+        invoiceSubmitBtn.addEventListener('click', async () => {
+            const userId = invoiceClientIdInput.value;
+            const amount = invoiceAmountInput.value;
+            const description = invoiceDescriptionInput.value;
+
+            if (!userId || !amount || !description) {
+                alert('Пожалуйста, заполните все поля: сумма и описание.');
+                return;
+            }
+
+            toggleButtonLoading(invoiceSubmitBtn, true, 'Выставить и списать', 'Отправка...');
+
+            try {
+                const response = await fetch('/.netlify/functions/create-invoice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, amount, description })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    // Use the error message from the server function if available
+                    throw new Error(result.error || 'Неизвестная ошибка при выставлении счета.');
+                }
+
+                alert(result.message || 'Счет успешно создан и отправлен на списание.');
+                invoiceModal.classList.add('hidden');
+                // Clear form for next time
+                invoiceAmountInput.value = '';
+                invoiceDescriptionInput.value = '';
+
+            } catch (err) {
+                alert('Ошибка: ' + err.message);
+            } finally {
+                toggleButtonLoading(invoiceSubmitBtn, false, 'Выставить и списать', 'Отправка...');
             }
         });
     }
