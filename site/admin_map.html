@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Карта велосипедов | Bike App</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="admin.css">
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=ВАШ_API_КЛЮЧ_ЯНДЕКС_КАРТ"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
+    <style>
+        #admin-map-container {
+            width: 100%;
+            height: 70vh; /* 70% of the viewport height */
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body>
+  <div id="admin-app">
+    <div id="dashboard-section">
+      <nav id="admin-nav">
+        <button type="button" data-section="dashboard-main">Dashboard</button>
+        <button type="button" data-section="tariffs">Тарифы</button>
+        <button type="button" data-section="clients">Клиенты</button>
+        <button type="button" data-section="rentals">Аренды</button>
+        <button type="button" data-section="payments">Платежи</button>
+        <button type="button" data-section="bikes">Велосипеды</button>
+        <button type="button" data-section="templates">Шаблоны</button>
+        <button type="button" data-section="admin-map" class="active">Карта велосипедов</button>
+      </nav>
+
+      <section id="admin-map-section" class="admin-section">
+        <div class="section-header">
+          <h2>Карта велосипедов</h2>
+        </div>
+        <div id="admin-map-container"></div>
+      </section>
+    </div>
+  </div>
+
+<script>
+    const SUPABASE_URL = 'https://avamqfmuhiwtlumjkzmv.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Basic navigation logic to redirect to the main admin page
+    document.getElementById('admin-nav').addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-section]');
+        if (btn && btn.dataset.section !== 'admin-map') {
+            window.location.href = `admin.html?section=${btn.dataset.section}`;
+        }
+    });
+
+    ymaps.ready(init);
+
+    async function init() {
+        const myMap = new ymaps.Map("admin-map-container", {
+            center: [55.76, 37.64], // Default center Moscow
+            zoom: 10
+        });
+
+        try {
+            const { data: bikes, error } = await supabase.from('bikes').select('bike_code, model_name, status, location');
+            if (error) throw error;
+
+            const placemarks = bikes.filter(bike => bike.location).map(bike => {
+                const coords = bike.location.match(/POINT\(([-\d\.]+) ([-\d\.]+)\)/);
+                if (!coords) return null;
+
+                const placemark = new ymaps.Placemark([coords[2], coords[1]], {
+                    hintContent: `${bike.model_name} (${bike.bike_code})`,
+                    balloonContent: `<strong>${bike.model_name}</strong><br>Код: ${bike.bike_code}<br>Статус: ${bike.status}`
+                }, {
+                    preset: 'islands#dotIcon',
+                    iconColor: getIconColor(bike.status)
+                });
+                return placemark;
+            }).filter(Boolean);
+
+            if (placemarks.length > 0) {
+                myMap.geoObjects.add(placemarks[0]); // Add the first placemark to set the map center
+                myMap.setBounds(myMap.geoObjects.getBounds(), { checkZoomRange: true, zoomMargin: 35 });
+                placemarks.slice(1).forEach(pm => myMap.geoObjects.add(pm));
+            } else {
+                console.log("No bikes with location data found.");
+            }
+
+        } catch (err) {
+            console.error("Error loading bike data:", err);
+        }
+    }
+
+    function getIconColor(status) {
+        switch (status) {
+            case 'available': return '#26b999'; // Green
+            case 'rented': return '#1e98ff'; // Blue
+            case 'in_service': return '#f5a623'; // Orange
+            default: return '#777777'; // Grey
+        }
+    }
+</script>
+
+</body>
+</html>

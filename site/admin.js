@@ -13,10 +13,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginPassword = document.getElementById('login-password');
     const adminNav = document.getElementById('admin-nav');
 
+    const dashboardMainSection = document.getElementById('dashboard-main-section');
+
     const tariffsSection = document.getElementById('tariffs-section');
     const clientsSection = document.getElementById('clients-section');
     const rentalsSection = document.getElementById('rentals-section');
     const paymentsSection = document.getElementById('payments-section');
+    const bikesSection = document.getElementById('bikes-section');
     // duplicate removed: const templatesSection
 
     // Tariff elements
@@ -56,6 +59,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastSelRange = null;
     const exportBtn = document.getElementById('export-clients-btn');
     const contractTemplateSelect = document.getElementById('contract-template-select');
+
+    // Bike elements
+    const bikesTableBody = document.querySelector('#bikes-table tbody');
+    const bikeAddBtn = document.getElementById('bike-add-btn');
+    const bikeForm = document.getElementById('bike-form');
+    const bikeFormTitle = document.getElementById('bike-form-title');
+    const bikeIdInput = document.getElementById('bike-id');
+    const bikeCodeInput = document.getElementById('bike-code');
+    const bikeModelInput = document.getElementById('bike-model');
+    const bikeStatusSelect = document.getElementById('bike-status');
+    const bikeCancelBtn = document.getElementById('bike-cancel-btn');
 
     // Invoice elements
     const invoiceCreateBtn = document.getElementById('invoice-create-btn');
@@ -272,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showDashboard() {
         loginSection.classList.add('hidden');
         dashboardSection.classList.remove('hidden');
-        selectSection('tariffs');
+        selectSection('dashboard-main');
     }
 
     loginForm.addEventListener('submit', async (e) => {
@@ -297,17 +311,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function selectSection(name) {
-        [tariffsSection, clientsSection, rentalsSection, paymentsSection, templatesSection].forEach(sec => sec && sec.classList.add('hidden'));
+        [dashboardMainSection, tariffsSection, clientsSection, rentalsSection, paymentsSection, bikesSection, templatesSection].forEach(sec => sec && sec.classList.add('hidden'));
         const sectionMap = {
+            'dashboard-main': { element: dashboardMainSection, loader: loadDashboardData },
             'tariffs': { element: tariffsSection, loader: loadTariffs },
             'clients': { element: clientsSection, loader: loadClients },
             'rentals': { element: rentalsSection, loader: loadRentals },
             'payments': { element: paymentsSection, loader: loadPayments },
+            'bikes': { element: bikesSection, loader: loadBikes },
             'templates': { element: templatesSection, loader: loadTemplates },
         };
         if (sectionMap[name]) {
             sectionMap[name].element.classList.remove('hidden');
-            sectionMap[name].loader();
+            if (sectionMap[name].loader) {
+                sectionMap[name].loader();
+            }
         }
     }
 
@@ -421,10 +439,193 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tariffCancelBtn.addEventListener('click', resetTariffForm);
 
+    // --- Refund Logic ---
+    const refundModal = document.getElementById('refund-modal');
+    const refundCancelBtn = document.getElementById('refund-cancel-btn');
+    const refundSubmitBtn = document.getElementById('refund-submit-btn');
+    const refundPaymentIdInput = document.getElementById('refund-payment-id');
+    const refundAmountInput = document.getElementById('refund-amount');
+    const refundReasonInput = document.getElementById('refund-reason');
+    const paymentsTableBody = document.querySelector('#payments-table tbody');
+
+    if (paymentsTableBody) {
+        paymentsTableBody.addEventListener('click', (e) => {
+            const refundBtn = e.target.closest('.refund-btn');
+            if (refundBtn) {
+                const paymentId = refundBtn.dataset.paymentId;
+                const amount = refundBtn.dataset.amount;
+                refundPaymentIdInput.value = paymentId;
+                refundAmountInput.value = amount;
+                refundModal.classList.remove('hidden');
+            }
+        });
+    }
+
+    if (refundCancelBtn) {
+        refundCancelBtn.addEventListener('click', () => refundModal.classList.add('hidden'));
+    }
+    if (refundModal) {
+        refundModal.addEventListener('click', (e) => {
+            if (e.target === refundModal) refundModal.classList.add('hidden');
+        });
+    }
+
+    if (refundSubmitBtn) {
+        refundSubmitBtn.addEventListener('click', async () => {
+            const payment_id = refundPaymentIdInput.value;
+            const amount = refundAmountInput.value;
+            const reason = refundReasonInput.value;
+
+            if (!payment_id || !amount) {
+                alert('ID платежа и сумма обязательны.');
+                return;
+            }
+
+            toggleButtonLoading(refundSubmitBtn, true, 'Выполнить возврат', 'Обработка...');
+
+            try {
+                const response = await fetch('/.netlify/functions/create-refund', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ payment_id, amount, reason })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || `Ошибка сервера: ${response.status}`);
+                }
+
+                alert(result.message || 'Запрос на возврат успешно отправлен.');
+                refundModal.classList.add('hidden');
+                loadPayments(); // Refresh the payments list
+
+            } catch (err) {
+                alert('Ошибка возврата: ' + err.message);
+            } finally {
+                toggleButtonLoading(refundSubmitBtn, false, 'Выполнить возврат', 'Обработка...');
+            }
+        });
+    }
+
+    // --- Bikes CRUD ---
+    function showBikeForm(bike = null) {
+        bikeForm.classList.remove('hidden');
+        bikeFormTitle.classList.remove('hidden');
+        if (bike) {
+            bikeFormTitle.textContent = 'Редактировать велосипед';
+            bikeIdInput.value = bike.id;
+            bikeCodeInput.value = bike.bike_code;
+            bikeModelInput.value = bike.model_name;
+            bikeStatusSelect.value = bike.status;
+        } else {
+            bikeFormTitle.textContent = 'Новый велосипед';
+            bikeForm.reset();
+            bikeIdInput.value = '';
+        }
+    }
+
+    function hideBikeForm() {
+        bikeForm.classList.add('hidden');
+        bikeFormTitle.classList.add('hidden');
+        bikeForm.reset();
+        bikeIdInput.value = '';
+    }
+
+    async function loadBikes() {
+        if (!bikesTableBody) return;
+        bikesTableBody.innerHTML = '<tr><td colspan="5">Загрузка...</td></tr>';
+        try {
+            const { data, error } = await supabase.from('bikes').select('*').order('id', { ascending: true });
+            if (error) throw error;
+            bikesTableBody.innerHTML = '';
+            if (!data || data.length === 0) {
+                bikesTableBody.innerHTML = '<tr><td colspan="5">Велосипеды еще не добавлены.</td></tr>';
+                return;
+            }
+            data.forEach(bike => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${bike.id}</td>
+                    <td>${bike.bike_code}</td>
+                    <td>${bike.model_name || ''}</td>
+                    <td>${bike.status}</td>
+                    <td class="table-actions">
+                        <button type="button" class="edit-bike-btn" data-id="${bike.id}">Ред.</button>
+                        <button type="button" class="delete-bike-btn" data-id="${bike.id}">Удалить</button>
+                    </td>`;
+                bikesTableBody.appendChild(tr);
+            });
+        } catch (err) {
+            console.error('Ошибка загрузки велосипедов:', err);
+            bikesTableBody.innerHTML = `<tr><td colspan="5">Ошибка: ${err.message}</td></tr>`;
+        }
+    }
+
+    if (bikeAddBtn) {
+        bikeAddBtn.addEventListener('click', () => showBikeForm());
+    }
+    if (bikeCancelBtn) {
+        bikeCancelBtn.addEventListener('click', hideBikeForm);
+    }
+
+    if (bikeForm) {
+        bikeForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = bikeIdInput.value;
+            const bikeData = {
+                bike_code: bikeCodeInput.value,
+                model_name: bikeModelInput.value,
+                status: bikeStatusSelect.value,
+            };
+
+            try {
+                const { error } = id
+                    ? await supabase.from('bikes').update(bikeData).eq('id', id)
+                    : await supabase.from('bikes').insert([bikeData]);
+                if (error) throw error;
+                await loadBikes();
+                hideBikeForm();
+            } catch (err) {
+                alert('Ошибка сохранения велосипеда: ' + err.message);
+            }
+        });
+    }
+
+    if (bikesTableBody) {
+        bikesTableBody.addEventListener('click', async (e) => {
+            const editBtn = e.target.closest('.edit-bike-btn');
+            if (editBtn) {
+                const id = editBtn.dataset.id;
+                const { data, error } = await supabase.from('bikes').select('*').eq('id', id).single();
+                if (error) {
+                    alert('Не удалось загрузить данные велосипеда: ' + error.message);
+                } else {
+                    showBikeForm(data);
+                }
+                return;
+            }
+
+            const deleteBtn = e.target.closest('.delete-bike-btn');
+            if (deleteBtn) {
+                const id = deleteBtn.dataset.id;
+                if (confirm(`Вы уверены, что хотите удалить велосипед с ID ${id}?`)) {
+                    try {
+                        const { error } = await supabase.from('bikes').delete().eq('id', id);
+                        if (error) throw error;
+                        await loadBikes();
+                    } catch (err) {
+                        alert('Ошибка удаления велосипеда: ' + err.message);
+                    }
+                }
+            }
+        });
+    }
+
     // --- Clients Logic ---
 
     async function loadClients() {
-    clientsTableBody.innerHTML = '<tr><td colspan="7">Загрузка клиентов...</td></tr>'; // Увеличили colspan до 7
+    clientsTableBody.innerHTML = '<tr><td colspan="9">Загрузка клиентов...</td></tr>'; // Increased colspan
     try {
         const { data, error } = await supabase
             .from('clients')
@@ -436,49 +637,45 @@ document.addEventListener('DOMContentLoaded', () => {
         clientsTableBody.innerHTML = '';
 
         if (clientsData.length === 0) {
-            clientsTableBody.innerHTML = '<tr><td colspan="7">Клиенты не найдены.</td></tr>';
+            clientsTableBody.innerHTML = '<tr><td colspan="9">Клиенты не найдены.</td></tr>';
             return;
         }
 
         clientsData.forEach(client => {
             const tr = document.createElement('tr');
             const date = new Date(client.created_at).toLocaleDateString();
-            const status = client.verification_status || 'not_set'; // Статус по умолчанию
+            const status = client.verification_status || 'not_set';
+            const tags = client.extra?.tags || [];
             
             let statusBadge = '';
             switch(status) {
-                case 'approved':
-                    statusBadge = '<span class="status-badge status-approved">Одобрен</span>';
-                    break;
-                case 'rejected':
-                    statusBadge = '<span class="status-badge status-rejected">Отклонен</span>';
-                    break;
-                case 'pending':
-                    statusBadge = '<span class="status-badge status-pending">На проверке</span>';
-                    break;
-                default:
-                    statusBadge = '<span>Не задан</span>';
+                case 'approved': statusBadge = '<span class="status-badge status-approved">Одобрен</span>'; break;
+                case 'rejected': statusBadge = '<span class="status-badge status-rejected">Отклонен</span>'; break;
+                case 'pending': statusBadge = '<span class="status-badge status-pending">На проверке</span>'; break;
+                default: statusBadge = '<span>Не задан</span>';
             }
 
-            // Добавляем кнопки верификации только для тех, кто на проверке
             const verificationButtons = status === 'pending'
-                ? `<button type="button" class="approve-btn" data-id="${client.id}">Одобрить</button>
-                   <button type="button" class="reject-btn" data-id="${client.id}">Отклонить</button>`
+                ? `<button type="button" class="approve-btn" data-id="${client.id}">Одобрить</button>\n<button type="button" class="reject-btn" data-id="${client.id}">Отклонить</button>`
                 : '';
+
+            const tagsHtml = tags.map(tag => `<span class="chip" style="background-color: #eef7ff; border-color: #cfe6ff; color: #004a80; margin: 2px;">${tag}</span>`).join('');
 
             tr.innerHTML = `
                 <td>${client.name}</td>
                 <td>${client.phone || ''}</td>
                 <td>${statusBadge}</td>
+                <td>${tagsHtml}</td>
                 <td>${date}</td>
                 <td><button type="button" class="view-client-btn" data-id="${client.id}">Инфо/Фото</button></td>
                 <td><button type="button" class="edit-client-btn" data-id="${client.id}">Ред. данных</button></td>
-                <td>${verificationButtons}</td>`;
+                <td>${verificationButtons}</td>
+                <td><button type="button" class="delete-client-btn btn-danger" data-id="${client.id}" style="background-color:#e53e3e;color:white;">Удалить</button></td>`;
             clientsTableBody.appendChild(tr);
         });
     } catch (err) {
         console.error('Ошибка загрузки клиентов:', err);
-        clientsTableBody.innerHTML = `<tr><td colspan="7">Ошибка: ${err.message}</td></tr>`;
+        clientsTableBody.innerHTML = `<tr><td colspan="9">Ошибка: ${err.message}</td></tr>`;
     }
 }
   
@@ -508,13 +705,38 @@ clientsTableBody.addEventListener('click', async (e) => {
         } catch (err) {
             alert(`Ошибка обновления статуса: ${err.message}`);
         }
+        return;
+    }
+
+    if (target.classList.contains('delete-client-btn')) {
+        if (confirm(`ВНИМАНИЕ!\n\nВы уверены, что хотите НАВСЕГДА удалить клиента с ID ${clientId}?\n\nЭто действие также удалит всю его историю аренд и платежей. Отменить это будет невозможно.`)) {
+            try {
+                target.disabled = true;
+                target.textContent = 'Удаление...';
+                
+                // Сначала удаляем связанные записи, чтобы избежать ошибок внешнего ключа
+                await supabase.from('payments').delete().eq('client_id', clientId);
+                await supabase.from('rentals').delete().eq('user_id', clientId);
+                
+                // Наконец, удаляем самого клиента
+                const { error } = await supabase.from('clients').delete().eq('id', clientId);
+                if (error) throw error;
+                
+                alert('Клиент успешно удален.');
+                loadClients(); // Обновляем список
+            } catch (err) {
+                alert(`Ошибка удаления: ${err.message}`);
+                target.disabled = false;
+                target.textContent = 'Удалить';
+            }
+        }
     }
 });
     // --- Rentals and Payments Loaders ---
 
     async function loadRentals() {
         const tbody = document.querySelector('#rentals-table tbody');
-        tbody.innerHTML = '<tr><td colspan="7">Загрузка...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8">Загрузка...</td></tr>';
         try {
             const { data, error } = await supabase
                 .from('rentals')
@@ -526,6 +748,11 @@ clientsTableBody.addEventListener('click', async (e) => {
                 const tr = document.createElement('tr');
                 const start = r.starts_at ? new Date(r.starts_at).toLocaleString('ru-RU') : '—';
                 const end = r.current_period_ends_at ? new Date(r.current_period_ends_at).toLocaleString('ru-RU') : '—';
+                
+                const actionsCell = (r.status === 'active')
+                    ? `<button type="button" class="end-rental-btn" data-id="${r.id}">Завершить</button>`
+                    : '';
+
                 tr.innerHTML = `
                     <td>${r.clients?.name || 'Н/Д'}</td>
                     <td>${r.clients?.phone || 'Н/Д'}</td>
@@ -533,92 +760,170 @@ clientsTableBody.addEventListener('click', async (e) => {
                     <td>${start}</td>
                     <td>${end}</td>
                     <td>${typeof r.total_paid_rub === 'number' ? r.total_paid_rub : 0}</td>
-                    <td>${r.status || ''}</td>`;
+                    <td>${r.status || ''}</td>
+                    <td>${actionsCell}</td>`;
                 tbody.appendChild(tr);
             });
         } catch (err) {
-            tbody.innerHTML = `<tr><td colspan="7">Ошибка загрузки аренд: ${err.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8">Ошибка загрузки аренд: ${err.message}</td></tr>`;
         }
+    }
+
+    const rentalsTableBody = document.querySelector('#rentals-table tbody');
+    if (rentalsTableBody) {
+        rentalsTableBody.addEventListener('click', async (e) => {
+            const endBtn = e.target.closest('.end-rental-btn');
+            if (endBtn) {
+                const rentalId = endBtn.dataset.id;
+                if (confirm(`Вы уверены, что хотите принудительно завершить аренду с ID ${rentalId}?`)) {
+                    try {
+                        const { error } = await supabase
+                            .from('rentals')
+                            .update({ status: 'completed_by_admin' })
+                            .eq('id', rentalId);
+
+                        if (error) throw error;
+                        
+                        alert('Аренда успешно завершена.');
+                        loadRentals(); // Refresh the list
+                    } catch (err) {
+                        alert('Ошибка завершения аренды: ' + err.message);
+                    }
+                }
+            }
+        });
+    }
+
+    function renderPaymentsChart(paymentsData) {
+        const chartCanvas = document.getElementById('payments-chart');
+        if (!chartCanvas) return; // Don't do anything if canvas isn't on the page
+
+        if (window.paymentsChart instanceof Chart) {
+            window.paymentsChart.destroy();
+        }
+        
+        const successfulPayments = (paymentsData || []).filter(p => p.status === 'succeeded' && p.amount_rub > 0);
+        const paymentsByDay = successfulPayments.reduce((acc, p) => {
+            const day = new Date(p.created_at).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+            acc[day] = (acc[day] || 0) + p.amount_rub;
+            return acc;
+        }, {});
+
+        const labels = Object.keys(paymentsByDay).reverse();
+        const chartData = Object.values(paymentsByDay).reverse();
+
+        window.paymentsChart = new Chart(chartCanvas, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Доход по дням, ₽',
+                    data: chartData,
+                    backgroundColor: 'rgba(38, 185, 153, 0.6)',
+                    borderColor: 'rgba(38, 185, 153, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true },
+                    x: { grid: { display: false } }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#083830',
+                        titleFont: { size: 14, weight: 'bold' },
+                        bodyFont: { size: 12 },
+                        padding: 10,
+                        cornerRadius: 8,
+                        displayColors: false,
+                    }
+                }
+            }
+        });
     }
     
     async function loadPayments() {
         const tbody = document.querySelector('#payments-table tbody');
-        tbody.innerHTML = '<tr><td colspan="5">Загрузка...</td></tr>';
+        if (!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="6">Загрузка...</td></tr>';
         try {
             const { data, error } = await supabase
                 .from('payments')
-                .select('id, amount_rub, payment_method_title, payment_type, status, created_at, clients (name)')
+                .select('id, yookassa_payment_id, amount_rub, payment_method_title, payment_type, status, created_at, clients (name)')
                 .order('created_at', { ascending: false });
             if (error) throw error;
             tbody.innerHTML = '';
             (data || []).forEach(p => {
-                const methodRuMap = { initial: 'Аренда', renewal: 'Продление', 'top-up': 'Пополнение', invoice: 'Списание по счёту' };
+                const methodRuMap = { initial: 'Аренда', renewal: 'Продление', 'top-up': 'Пополнение', invoice: 'Списание по счёту', adjustment: 'Корректировка' };
                 const statusRuMap = { succeeded: 'Успешно', pending: 'Ожидает', canceled: 'Отменён', failed: 'Ошибка' };
                 const method = p.payment_method_title || methodRuMap[p.payment_type] || '—';
                 const status = statusRuMap[p.status] || p.status || '';
+                
+                const actionsCell = (p.status === 'succeeded' && p.yookassa_payment_id && !p.yookassa_payment_id.startsWith('manual'))
+                    ? `<button type="button" class="refund-btn" data-payment-id="${p.yookassa_payment_id}" data-amount="${p.amount_rub}">Вернуть</button>`
+                    : '';
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${p.clients?.name || 'Н/Д'}</td>
                     <td>${p.amount_rub ?? 0}</td>
                     <td>${method}</td>
                     <td>${status}</td>
-                    <td>${p.created_at ? new Date(p.created_at).toLocaleString('ru-RU') : '—'}</td>`;
+                    <td>${p.created_at ? new Date(p.created_at).toLocaleString('ru-RU') : '—'}</td>
+                    <td>${actionsCell}</td>`;
                 tbody.appendChild(tr);
             });
-
-            // --- Chart.js Logic ---
-            const chartCanvas = document.getElementById('payments-chart');
-            if (window.paymentsChart instanceof Chart) {
-                window.paymentsChart.destroy();
-            }
-            
-            const successfulPayments = (data || []).filter(p => p.status === 'succeeded' && p.amount_rub > 0);
-            const paymentsByDay = successfulPayments.reduce((acc, p) => {
-                const day = new Date(p.created_at).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
-                acc[day] = (acc[day] || 0) + p.amount_rub;
-                return acc;
-            }, {});
-
-            const labels = Object.keys(paymentsByDay).reverse();
-            const chartData = Object.values(paymentsByDay).reverse();
-
-            window.paymentsChart = new Chart(chartCanvas, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Доход по дням, ₽',
-                        data: chartData,
-                        backgroundColor: 'rgba(38, 185, 153, 0.6)',
-                        borderColor: 'rgba(38, 185, 153, 1)',
-                        borderWidth: 1,
-                        borderRadius: 4,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true },
-                        x: { grid: { display: false } }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: '#083830',
-                            titleFont: { size: 14, weight: 'bold' },
-                            bodyFont: { size: 12 },
-                            padding: 10,
-                            cornerRadius: 8,
-                            displayColors: false,
-                        }
-                    }
-                }
-            });
-
         } catch (err) {
-            tbody.innerHTML = `<tr><td colspan="5">Ошибка загрузки платежей: ${err.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6">Ошибка загрузки платежей: ${err.message}</td></tr>`;
             console.error('Ошибка загрузки платежей:', err);
+        }
+    }
+
+    async function loadDashboardData() {
+        // 1. Load Bike Stats
+        const metricsContainer = document.getElementById('dashboard-metrics');
+        if (metricsContainer) {
+            metricsContainer.innerHTML = '<p>Загрузка метрик...</p>';
+            try {
+                const { data, error } = await supabase.from('bikes').select('status');
+                if (error) throw error;
+
+                const stats = data.reduce((acc, bike) => {
+                    acc[bike.status] = (acc[bike.status] || 0) + 1;
+                    return acc;
+                }, {});
+
+                const total = data.length;
+                const available = stats.available || 0;
+                const rented = stats.rented || 0;
+                const in_service = stats.in_service || 0;
+
+                metricsContainer.innerHTML = `
+                    <div class="card"><div class="text-content"><span>Всего велосипедов</span><strong>${total}</strong></div></div>
+                    <div class="card"><div class="text-content"><span>Свободно</span><strong>${available}</strong></div></div>
+                    <div class="card"><div class="text-content"><span>В аренде</span><strong>${rented}</strong></div></div>
+                    <div class="card"><div class="text-content"><span>В ремонте</span><strong>${in_service}</strong></div></div>
+                `;
+            } catch (err) {
+                metricsContainer.innerHTML = `<p>Ошибка загрузки статистики велосипедов: ${err.message}</p>`;
+            }
+        }
+
+        // 2. Load Payments for Chart
+        try {
+            const { data, error } = await supabase
+                .from('payments')
+                .select('created_at, amount_rub, status')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            renderPaymentsChart(data);
+        } catch (err) {
+            console.error('Ошибка загрузки данных для графика платежей:', err);
         }
     }
 
@@ -774,6 +1079,8 @@ if (clientsSection) {
                     if (error) throw error;
                     currentEditingId = client.id; // Set the current client ID
                     const rec = client?.extra?.recognized_data || {};
+                    renderNotes(client.extra?.notes);
+                    renderTags(client.extra?.tags);
 
                     // render view
                     recView.innerHTML = '';
@@ -892,6 +1199,259 @@ if (clientsSection) {
                 }, 0);
             } catch (err) {
                 console.error('Ошибка подготовки карточки клиента:', err);
+            }
+        });
+    }
+
+    // --- Balance Adjustment Logic ---
+    const balanceModal = document.getElementById('balance-modal');
+    const balanceAdjustBtn = document.getElementById('balance-adjust-btn');
+    const balanceCancelBtn = document.getElementById('balance-cancel-btn');
+    const balanceSubmitBtn = document.getElementById('balance-submit-btn');
+    const balanceClientIdInput = document.getElementById('balance-client-id');
+    const balanceAmountInput = document.getElementById('balance-amount');
+    const balanceReasonInput = document.getElementById('balance-reason');
+
+    if (balanceAdjustBtn) {
+        balanceAdjustBtn.addEventListener('click', () => {
+            if (currentEditingId && balanceModal) {
+                balanceClientIdInput.value = currentEditingId;
+                if (clientInfoOverlay) clientInfoOverlay.classList.add('hidden');
+                balanceModal.classList.remove('hidden');
+            } else {
+                alert('Сначала выберите клиента.');
+            }
+        });
+    }
+
+    if (balanceCancelBtn) {
+        balanceCancelBtn.addEventListener('click', () => {
+            if (balanceModal) balanceModal.classList.add('hidden');
+        });
+    }
+
+    if (balanceModal) {
+        balanceModal.addEventListener('click', (e) => {
+            if (e.target === balanceModal) {
+                balanceModal.classList.add('hidden');
+            }
+        });
+    }
+
+    if (balanceSubmitBtn) {
+        balanceSubmitBtn.addEventListener('click', async () => {
+            const userId = balanceClientIdInput.value;
+            const amount = balanceAmountInput.value;
+            const reason = balanceReasonInput.value;
+
+            if (!userId || !amount || !reason) {
+                alert('Пожалуйста, заполните все поля: сумма и причина.');
+                return;
+            }
+
+            toggleButtonLoading(balanceSubmitBtn, true, 'Применить', 'Применяем...');
+
+            try {
+                const response = await fetch('/.netlify/functions/adjust-balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, amount, reason })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || `Ошибка сервера: ${response.status}`);
+                }
+                
+                alert(result.message || 'Баланс успешно скорректирован.');
+                balanceModal.classList.add('hidden');
+                balanceAmountInput.value = '';
+                balanceReasonInput.value = '';
+
+            } catch (err) {
+                alert('Ошибка: ' + err.message);
+            } finally {
+                toggleButtonLoading(balanceSubmitBtn, false, 'Применить', 'Применяем...');
+            }
+        });
+    }
+
+    // --- Client Tags Logic ---
+    const clientTagsContainer = document.getElementById('client-tags-container');
+    const clientTagInput = document.getElementById('client-tag-input');
+    const addTagBtn = document.getElementById('add-tag-btn');
+
+    function renderTags(tags = []) {
+        if (!clientTagsContainer) return;
+        clientTagsContainer.innerHTML = '';
+        if (!tags || tags.length === 0) {
+            clientTagsContainer.innerHTML = '<p style="color: #6b6b6b;">Тегов нет.</p>';
+            return;
+        }
+        tags.forEach(tag => {
+            const tagEl = document.createElement('span');
+            tagEl.className = 'chip'; // Re-using chip style for tags
+            tagEl.style.cursor = 'pointer';
+            tagEl.style.backgroundColor = '#e0f8f1';
+            tagEl.style.borderColor = '#26b999';
+            tagEl.style.color = '#083830';
+            tagEl.textContent = tag;
+            const removeBtn = document.createElement('span');
+            removeBtn.textContent = ' ×';
+            removeBtn.style.fontWeight = 'bold';
+            removeBtn.style.marginLeft = '4px';
+            removeBtn.onclick = (e) => {
+                e.stopPropagation();
+                removeTag(tag);
+            };
+            tagEl.appendChild(removeBtn);
+            clientTagsContainer.appendChild(tagEl);
+        });
+    }
+
+    async function updateClientTags(newTags) {
+        try {
+            const { data: client, error: fetchError } = await supabase
+                .from('clients')
+                .select('extra')
+                .eq('id', currentEditingId)
+                .single();
+            if (fetchError) throw fetchError;
+
+            const extra = client.extra || {};
+            extra.tags = newTags;
+
+            const { error: updateError } = await supabase
+                .from('clients')
+                .update({ extra: extra })
+                .eq('id', currentEditingId);
+            if (updateError) throw updateError;
+
+            return newTags;
+        } catch (err) {
+            alert('Не удалось обновить теги: ' + err.message);
+            return null;
+        }
+    }
+
+    async function addTag() {
+        const tagText = clientTagInput.value.trim();
+        if (!tagText || !currentEditingId) return;
+
+        toggleButtonLoading(addTagBtn, true, 'Добавить', '...');
+        const { data: client, error } = await supabase.from('clients').select('extra').eq('id', currentEditingId).single();
+        const currentTags = client.extra?.tags || [];
+        if (currentTags.includes(tagText)) {
+            alert('Такой тег уже существует.');
+            toggleButtonLoading(addTagBtn, false, 'Добавить', '...');
+            return;
+        }
+        const newTags = [...currentTags, tagText];
+        const updatedTags = await updateClientTags(newTags);
+        if (updatedTags !== null) {
+            renderTags(updatedTags);
+            clientTagInput.value = '';
+            loadClients(); // Refresh the main table to show new tags
+        }
+        toggleButtonLoading(addTagBtn, false, 'Добавить', '...');
+    }
+
+    async function removeTag(tagToRemove) {
+        const { data: client, error } = await supabase.from('clients').select('extra').eq('id', currentEditingId).single();
+        const currentTags = client.extra?.tags || [];
+        const newTags = currentTags.filter(t => t !== tagToRemove);
+        const updatedTags = await updateClientTags(newTags);
+        if (updatedTags !== null) {
+            renderTags(updatedTags);
+            loadClients(); // Refresh the main table
+        }
+    }
+
+    if (addTagBtn) {
+        addTagBtn.addEventListener('click', addTag);
+    }
+    if (clientTagInput) {
+        clientTagInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addTag();
+            }
+        });
+    }
+
+    // --- Client Notes Logic ---
+    const clientNotesList = document.getElementById('client-notes-list');
+    const clientNoteInput = document.getElementById('client-note-input');
+    const addNoteBtn = document.getElementById('add-note-btn');
+
+    function renderNotes(notes = []) {
+        if (!clientNotesList) return;
+        if (!notes || notes.length === 0) {
+            clientNotesList.innerHTML = '<p style="color: #6b6b6b; text-align: center;">Заметок пока нет.</p>';
+            return;
+        }
+        clientNotesList.innerHTML = '';
+        notes.slice().reverse().forEach(note => {
+            const noteEl = document.createElement('div');
+            noteEl.style.borderBottom = '1px solid var(--progress-bar-bg)';
+            noteEl.style.padding = '8px 0';
+            noteEl.style.marginBottom = '8px';
+            const author = note.author || 'Неизвестный автор';
+            const date = note.timestamp ? new Date(note.timestamp).toLocaleString('ru-RU') : '';
+            noteEl.innerHTML = `
+                <p style="margin:0; white-space: pre-wrap; word-wrap: break-word;">${note.text}</p>
+                <small style="color: #6b6b6b;">- ${author} (${date})</small>
+            `;
+            clientNotesList.appendChild(noteEl);
+        });
+    }
+
+    if (addNoteBtn) {
+        addNoteBtn.addEventListener('click', async () => {
+            const noteText = clientNoteInput.value.trim();
+            if (!noteText || !currentEditingId) return;
+
+            toggleButtonLoading(addNoteBtn, true, 'Добавить заметку', 'Добавление...');
+
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                const authorEmail = user ? user.email : 'admin';
+
+                const newNote = {
+                    text: noteText,
+                    author: authorEmail,
+                    timestamp: new Date().toISOString()
+                };
+
+                // Fetch the latest extra data to avoid overwriting other changes
+                const { data: client, error: fetchError } = await supabase
+                    .from('clients')
+                    .select('extra')
+                    .eq('id', currentEditingId)
+                    .single();
+
+                if (fetchError) throw fetchError;
+
+                const extra = client.extra || {};
+                const notes = extra.notes || [];
+                notes.push(newNote);
+                extra.notes = notes;
+
+                const { error: updateError } = await supabase
+                    .from('clients')
+                    .update({ extra: extra })
+                    .eq('id', currentEditingId);
+
+                if (updateError) throw updateError;
+
+                clientNoteInput.value = '';
+                renderNotes(notes); // Re-render the notes list
+
+            } catch (err) {
+                alert('Не удалось добавить заметку: ' + err.message);
+            } finally {
+                toggleButtonLoading(addNoteBtn, false, 'Добавить заметку', 'Добавление...');
             }
         });
     }

@@ -9,6 +9,24 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="admin.css">
+  <style>
+    #tariff-form .form-group {
+        margin-bottom: 15px;
+    }
+    #tariff-form textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--progress-bar-bg);
+        border-radius: 8px;
+        font-size: 0.95rem;
+        resize: vertical;
+        min-height: 80px;
+    }
+    #tariff-form input[type="text"],
+    #tariff-form input[type="number"] {
+        margin-bottom: 0;
+    }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
 </head>
 <body>
@@ -26,15 +44,35 @@
     <!-- Основной интерфейс -->
     <div id="dashboard-section" class="hidden">
       <nav id="admin-nav">
-        <button type="button" data-section="tariffs" class="active">Тарифы</button>
+        <button type="button" data-section="dashboard-main" class="active">Dashboard</button>
+        <button type="button" data-section="tariffs">Тарифы</button>
         <button type="button" data-section="clients">Клиенты</button>
         <button type="button" data-section="rentals">Аренды</button>
         <button type="button" data-section="payments">Платежи</button>
+        <button type="button" data-section="bikes">Велосипеды</button>
         <button type="button" data-section="templates">Шаблоны</button>
+        <a href="admin_map.html" class="admin-nav-link-button"><button type="button" data-section="admin-map">Карта велосипедов</button></a>
       </nav>
 
+      <!-- Dashboard -->
+      <section id="dashboard-main-section" class="admin-section">
+        <div class="section-header">
+          <h2>Панель мониторинга</h2>
+        </div>
+        
+        <div class="info-cards" id="dashboard-metrics" style="margin-bottom: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+          <!-- Bike stats will be loaded here by JS -->
+        </div>
+
+        <h3>Доход по дням, ₽</h3>
+        <div class="chart-container">
+            <canvas id="payments-chart"></canvas>
+        </div>
+        <h3 style="margin-top: 30px;">История платежей</h3>
+      </section>
+
       <!-- Тарифы -->
-      <section id="tariffs-section" class="admin-section active">
+      <section id="tariffs-section" class="admin-section hidden">
         <div class="section-header">
           <h2>Тарифы</h2>
           <div class="section-toolbar">
@@ -58,21 +96,31 @@
         <h3 id="tariff-form-title">Новый тариф</h3>
         <form id="tariff-form">
           <input type="hidden" id="tariff-id">
-          <input type="text" id="tariff-title" placeholder="Название тарифа" required>
-          <textarea id="tariff-description" placeholder="Описание тарифа" rows="3"></textarea>
-          <label class="checkbox-label"><input type="checkbox" id="tariff-active" checked> Активен</label>
+          <div class="form-group">
+            <label for="tariff-title">Название тарифа</label>
+            <input type="text" id="tariff-title" placeholder="Название тарифа" required>
+          </div>
+          <div class="form-group">
+            <label for="tariff-description">Описание тарифа</label>
+            <textarea id="tariff-description" placeholder="Описание тарифа" rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label"><input type="checkbox" id="tariff-active" checked> Активен</label>
+          </div>
 
-          <div class="form-row">
+          <div class="form-group">
             <label for="contract-template-select">Шаблон договора:</label>
             <select id="contract-template-select">
               <option value="">— Не выбран —</option>
             </select>
           </div>
 
-          <div id="tariff-extensions-container" class="tariff-extensions-container">
-            <label>Продления тарифа (опционально):</label>
-            <div id="extensions-list" class="extensions-list"></div>
-            <button type="button" id="add-extension-btn" class="admin-small-btn">Добавить продление</button>
+          <div class="form-group">
+            <div id="tariff-extensions-container" class="tariff-extensions-container">
+              <label>Продления тарифа (опционально):</label>
+              <div id="extensions-list" class="extensions-list"></div>
+              <button type="button" id="add-extension-btn" class="admin-small-btn">Добавить продление</button>
+            </div>
           </div>
 
           <div class="form-actions">
@@ -167,10 +215,12 @@
             <th>Имя</th>
             <th>Телефон</th>
             <th>Статус</th>
+            <th>Теги</th>
             <th>Создан</th>
             <th>Просмотр</th>
             <th>Редактирование</th>
             <th>Верификация</th>
+            <th>Действия</th>
           </tr>
           </thead>
           <tbody></tbody>
@@ -205,11 +255,33 @@
                 <div id="recognized-display"></div>
                 <form id="recognized-edit-form" class="hidden"></form>
               </div>
+
+              <!-- Client Tags Section -->
+              <h4 style="margin-top: 20px;">Теги</h4>
+              <div id="client-tags-container" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                <!-- Tags will be loaded here -->
+              </div>
+              <div class="form-group" style="display: flex; gap: 10px;">
+                  <input type="text" id="client-tag-input" class="modal-form-input" placeholder="Добавить тег...">
+                  <button type="button" id="add-tag-btn" class="btn btn-secondary">Добавить</button>
+              </div>
+
               <h4 style="margin-top: 20px;">Загруженные фото:</h4>
               <div id="photo-links" class="photo-grid"></div>
+
+              <!-- NEW NOTES SECTION -->
+              <h4 style="margin-top: 20px;">Заметки о клиенте</h4>
+              <div id="client-notes-list" style="margin-bottom: 15px; max-height: 200px; overflow-y: auto; background-color: var(--card-bg); border-radius: 12px; padding: 10px;">
+                <!-- Notes will be loaded here -->
+              </div>
+              <div class="form-group">
+                  <textarea id="client-note-input" class="modal-form-input" placeholder="Добавить новую заметку..." rows="3"></textarea>
+              </div>
+              <button type="button" id="add-note-btn" class="btn btn-secondary" style="width: 100%;">Добавить заметку</button>
             </div>
             <div class="modal-footer">
               <button type="button" id="invoice-create-btn" class="btn btn-primary">Выставить счет</button>
+              <button type="button" id="balance-adjust-btn" class="btn btn-secondary">Изменить баланс</button>
               <button type="button" id="client-info-edit-toggle" class="btn btn-secondary">Редактировать</button>
               <button type="button" id="client-info-save" class="btn btn-primary hidden">Сохранить</button>
               <button type="button" id="client-info-close-2" class="btn btn-secondary">Закрыть</button>
@@ -243,6 +315,33 @@
           </div>
         </div>
 
+        <!-- Модальное окно для корректировки баланса -->
+        <div id="balance-modal" class="overlay hidden">
+          <div class="modal" style="max-width: 420px;">
+            <div class="modal-header">
+              <h3>Корректировка баланса</h3>
+              <button id="balance-cancel-btn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+              <form id="balance-form">
+                <input type="hidden" id="balance-client-id">
+                <div class="form-group">
+                  <label for="balance-amount">Сумма (₽)</label>
+                  <p class="form-hint" style="font-size: 0.8rem; color: #6b6b6b; margin-top: -5px;">Используйте отрицательное число для списания.</p>
+                  <input type="number" id="balance-amount" class="modal-form-input" placeholder="Например: 500 или -100" required>
+                </div>
+                <div class="form-group">
+                  <label for="balance-reason">Причина корректировки</label>
+                  <input type="text" id="balance-reason" class="modal-form-input" placeholder="Например: Бонус за лояльность" required>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" id="balance-submit-btn" class="btn btn-primary">Применить</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Просмотр фото (увеличение) -->
         <div id="image-viewer-overlay" class="overlay hidden">
           <div class="image-viewer">
@@ -256,7 +355,9 @@
 
       <!-- Аренды -->
       <section id="rentals-section" class="admin-section hidden">
-        <h2>Аренды</h2>
+        <div class="section-header">
+          <h2>Аренды</h2>
+        </div>
         <table id="rentals-table" class="admin-table">
           <thead>
           <tr>
@@ -267,6 +368,7 @@
             <th>Конец</th>
             <th>Сумма</th>
             <th>Статус</th>
+            <th>Действия</th>
           </tr>
           </thead>
           <tbody></tbody>
@@ -278,9 +380,6 @@
         <div class="section-header">
           <h2>Платежи</h2>
         </div>
-        <div class="chart-container">
-            <canvas id="payments-chart"></canvas>
-        </div>
         <table id="payments-table" class="admin-table">
           <thead>
           <tr>
@@ -289,11 +388,88 @@
             <th>Метод</th>
             <th>Статус</th>
             <th>Дата</th>
+            <th>Действия</th>
           </tr>
           </thead>
           <tbody></tbody>
         </table>
       </section>
+
+      <!-- Велосипеды -->
+      <section id="bikes-section" class="admin-section hidden">
+        <div class="section-header">
+          <h2>Велосипеды</h2>
+          <div class="section-toolbar">
+            <button type="button" id="bike-add-btn" class="btn btn-primary">Добавить велосипед</button>
+          </div>
+        </div>
+
+        <table id="bikes-table" class="admin-table">
+          <thead>
+          <tr>
+            <th>ID</th>
+            <th>Код</th>
+            <th>Модель</th>
+            <th>Статус</th>
+            <th>Действия</th>
+          </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <h3 id="bike-form-title" class="hidden" style="margin-top: 30px;">Новый велосипед</h3>
+        <form id="bike-form" class="hidden">
+          <input type="hidden" id="bike-id">
+          <div class="form-group">
+              <label for="bike-code">Код велосипеда (уникальный)</label>
+              <input type="text" id="bike-code" placeholder="Например: 00004" required>
+          </div>
+          <div class="form-group">
+              <label for="bike-model">Модель</label>
+              <input type="text" id="bike-model" placeholder="Например: Trek FX 2" required>
+          </div>
+          <div class="form-group">
+            <label for="bike-status">Статус</label>
+            <select id="bike-status" class="form-control" required>
+                <option value="available">Свободен</option>
+                <option value="rented">В аренде</option>
+                <option value="in_service">На обслуживании</option>
+                <option value="unavailable">Недоступен</option>
+            </select>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit">Сохранить</button>
+            <button type="button" id="bike-cancel-btn">Отмена</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Модальное окно для возврата -->
+      <div id="refund-modal" class="overlay hidden">
+        <div class="modal" style="max-width: 420px;">
+          <div class="modal-header">
+            <h3>Оформить возврат</h3>
+            <button id="refund-cancel-btn" class="close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <form id="refund-form">
+              <input type="hidden" id="refund-payment-id">
+              <div class="form-group">
+                <label for="refund-amount">Сумма возврата (₽)</label>
+                <input type="number" id="refund-amount" class="modal-form-input" placeholder="Например: 100.50" required>
+              </div>
+              <div class="form-group">
+                <label for="refund-reason">Причина возврата (необязательно)</label>
+                <input type="text" id="refund-reason" class="modal-form-input" placeholder="Например: Некачественная услуга">
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="refund-submit-btn" class="btn btn-primary">Выполнить возврат</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
