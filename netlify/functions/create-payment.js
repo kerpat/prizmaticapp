@@ -75,7 +75,7 @@ exports.handler = async function(event, context) {
 
         // 3. Формируем базовый объект платежа
         const paymentData = {
-            test: true, // <--- ВОТ ГЛАВНОЕ ДОПОЛНЕНИЕ!
+            // test: true, // ВРЕМЕННО ОТКЛЮЧАЕМ ДЛЯ РЕАЛЬНОГО ПЛАТЕЖА
             amount: { value: amount.toFixed(2), currency: "RUB" },
             confirmation: {
                 type: "redirect",

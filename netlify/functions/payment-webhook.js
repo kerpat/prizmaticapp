@@ -12,7 +12,7 @@ exports.handler = async function(event, context) {
 
         const payment = notification.object;
         const metadata = payment.metadata || {};
-        const { userId, bikeId, tariffId } = metadata;
+        const { userId, bikeId, tariffId, payment_type } = metadata;
         const paymentAmount = parseFloat(payment.amount.value);
         const yookassaPaymentId = payment.id; // Уникальный ID платежа из YooKassa
 
@@ -85,6 +85,7 @@ exports.handler = async function(event, context) {
                     amount_rub: paymentAmount,
                     status: 'succeeded',
                     payment_type: 'initial', // Указываем, что это первый платеж
+                    payment_method_title: payment.payment_method?.title,
                     yookassa_payment_id: yookassaPaymentId
                 });
 
@@ -109,6 +110,8 @@ exports.handler = async function(event, context) {
             }
 
             // 2. Записываем сам факт платежа в историю
+            const typeOfPayment = payment_type === 'invoice' ? 'invoice' : 'top-up';
+
             const { error: paymentError } = await supabaseAdmin
                 .from('payments')
                 .insert({
@@ -116,12 +119,13 @@ exports.handler = async function(event, context) {
                     rental_id: null,
                     amount_rub: paymentAmount,
                     status: 'succeeded',
-                    payment_type: 'top-up', // Тип - пополнение
+                    payment_type: typeOfPayment, // Тип - пополнение или счет
+                    payment_method_title: payment.payment_method?.title,
                     yookassa_payment_id: yookassaPaymentId
                 });
 
             if (paymentError) throw paymentError;
-            console.log(`Платеж (пополнение) для пользователя ${userId} на сумму ${paymentAmount} зарегистрирован.`);
+            console.log(`Платеж (тип: ${typeOfPayment}) для пользователя ${userId} на сумму ${paymentAmount} зарегистрирован.`);
         }
 
         // YooKassa ждет от нас ответ 200 OK

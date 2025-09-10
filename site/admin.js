@@ -499,27 +499,30 @@ clientsTableBody.addEventListener('click', async (e) => {
 
     async function loadRentals() {
         const tbody = document.querySelector('#rentals-table tbody');
-        tbody.innerHTML = '<tr><td colspan="6">Загрузка...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7">Загрузка...</td></tr>';
         try {
             const { data, error } = await supabase
                 .from('rentals')
-                .select('id, starts_at, ends_at, status, clients (name), tariffs (title)')
+                .select('id, bike_id, starts_at, current_period_ends_at, total_paid_rub, status, clients (name, phone)')
                 .order('starts_at', { ascending: false });
             if (error) throw error;
             tbody.innerHTML = '';
-            data.forEach(r => {
+            (data || []).forEach(r => {
                 const tr = document.createElement('tr');
+                const start = r.starts_at ? new Date(r.starts_at).toLocaleString('ru-RU') : '—';
+                const end = r.current_period_ends_at ? new Date(r.current_period_ends_at).toLocaleString('ru-RU') : '—';
                 tr.innerHTML = `
                     <td>${r.clients?.name || 'Н/Д'}</td>
-                    <td>${r.tariffs?.title || 'Н/Д'}</td>
-                    <td>${new Date(r.starts_at).toLocaleString()}</td>
-                    <td>${new Date(r.ends_at).toLocaleString()}</td>
-                    <td>${r.status}</td>
-                    <td><button type="button" class="close-rental-btn" data-id="${r.id}">Закрыть</button></td>`;
+                    <td>${r.clients?.phone || 'Н/Д'}</td>
+                    <td>${r.bike_id || '—'}</td>
+                    <td>${start}</td>
+                    <td>${end}</td>
+                    <td>${typeof r.total_paid_rub === 'number' ? r.total_paid_rub : 0}</td>
+                    <td>${r.status || ''}</td>`;
                 tbody.appendChild(tr);
             });
         } catch (err) {
-            tbody.innerHTML = `<tr><td colspan="6">Ошибка загрузки аренд: ${err.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7">Ошибка загрузки аренд: ${err.message}</td></tr>`;
         }
     }
     
@@ -529,18 +532,22 @@ clientsTableBody.addEventListener('click', async (e) => {
         try {
             const { data, error } = await supabase
                 .from('payments')
-                .select('id, amount_rub, method, status, created_at, clients (name)')
+                .select('id, amount_rub, payment_method_title, payment_type, status, created_at, clients (name)')
                 .order('created_at', { ascending: false });
             if (error) throw error;
             tbody.innerHTML = '';
-            data.forEach(p => {
+            (data || []).forEach(p => {
+                const methodRuMap = { initial: 'Аренда', renewal: 'Продление', 'top-up': 'Пополнение', invoice: 'Списание по счёту' };
+                const statusRuMap = { succeeded: 'Успешно', pending: 'Ожидает', canceled: 'Отменён', failed: 'Ошибка' };
+                const method = p.payment_method_title || methodRuMap[p.payment_type] || '—';
+                const status = statusRuMap[p.status] || p.status || '';
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${p.clients?.name || 'Н/Д'}</td>
-                    <td>${p.amount_rub}</td>
-                    <td>${p.method}</td>
-                    <td>${p.status}</td>
-                    <td>${new Date(p.created_at).toLocaleString()}</td>`;
+                    <td>${p.amount_rub ?? 0}</td>
+                    <td>${method}</td>
+                    <td>${status}</td>
+                    <td>${p.created_at ? new Date(p.created_at).toLocaleString('ru-RU') : '—'}</td>`;
                 tbody.appendChild(tr);
             });
         } catch (err) {

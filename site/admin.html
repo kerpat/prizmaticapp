@@ -209,9 +209,36 @@
               <div id="photo-links" class="photo-grid"></div>
             </div>
             <div class="modal-footer">
+              <button type="button" id="invoice-create-btn" class="btn btn-primary">Выставить счет</button>
               <button type="button" id="client-info-edit-toggle" class="btn btn-secondary">Редактировать</button>
               <button type="button" id="client-info-save" class="btn btn-primary hidden">Сохранить</button>
               <button type="button" id="client-info-close-2" class="btn btn-secondary">Закрыть</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Модальное окно для выставления счета -->
+        <div id="invoice-modal" class="overlay hidden">
+          <div class="modal" style="max-width: 420px;">
+            <div class="modal-header">
+              <h3>Выставить счет</h3>
+              <button id="invoice-cancel-btn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+              <form id="invoice-form">
+                <input type="hidden" id="invoice-client-id">
+                <div class="form-group">
+                  <label for="invoice-amount">Сумма (₽)</label>
+                  <input type="number" id="invoice-amount" class="toolbar-input" style="width: 100%;" placeholder="Например: 500" required>
+                </div>
+                <div class="form-group">
+                  <label for="invoice-description">Описание счета</label>
+                  <textarea id="invoice-description" class="toolbar-input" style="width: 100%;" placeholder="Например: Штраф за повреждение" rows="3" required></textarea>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" id="invoice-submit-btn" class="btn btn-primary">Выставить и списать</button>
             </div>
           </div>
         </div>
