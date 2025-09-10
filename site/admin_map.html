@@ -6,7 +6,7 @@
     <title>Карта велосипедов | Bike App</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="admin.css">
-    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=ВАШ_API_КЛЮЧ_ЯНДЕКС_КАРТ"></script>
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=a32fae3e-06f9-4231-87a0-f225b5d7a04a"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
     <style>
         #admin-map-container {
@@ -35,6 +35,11 @@
       <section id="admin-map-section" class="admin-section">
         <div class="section-header">
           <h2>Карта велосипедов</h2>
+          <div class="section-toolbar">
+            <select id="courier-search-select" class="form-control" style="width: 250px;">
+              <option value="">Найти курьера...</option>
+            </select>
+          </div>
         </div>
         <div id="admin-map-container"></div>
       </section>
@@ -46,7 +51,6 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Basic navigation logic to redirect to the main admin page
     document.getElementById('admin-nav').addEventListener('click', (e) => {
         const btn = e.target.closest('button[data-section]');
         if (btn && btn.dataset.section !== 'admin-map') {
@@ -56,50 +60,98 @@
 
     ymaps.ready(init);
 
-    async function init() {
-        const myMap = new ymaps.Map("admin-map-container", {
-            center: [55.76, 37.64], // Default center Moscow
+    function init() {
+        let myMap = new ymaps.Map("admin-map-container", {
+            center: [55.76, 37.64], 
             zoom: 10
         });
 
-        try {
-            const { data: bikes, error } = await supabase.from('bikes').select('bike_code, model_name, status, location');
-            if (error) throw error;
+        const objectManager = new ymaps.ObjectManager({ clusterize: true, gridSize: 64 });
+        myMap.geoObjects.add(objectManager);
+        const courierSearchSelect = document.getElementById('courier-search-select');
 
-            const placemarks = bikes.filter(bike => bike.location).map(bike => {
-                const coords = bike.location.match(/POINT\(([-\d\.]+) ([-\d\.]+)\)/);
-                if (!coords) return null;
+        async function loadAndDrawData() {
+            try {
+                const [bikesRes, clientsRes] = await Promise.all([
+                    supabase.from('bikes').select('bike_code, model_name, status, location'),
+                    supabase.from('clients').select('id, name, last_location').not('last_location', 'is', null)
+                ]);
 
-                const placemark = new ymaps.Placemark([coords[2], coords[1]], {
-                    hintContent: `${bike.model_name} (${bike.bike_code})`,
-                    balloonContent: `<strong>${bike.model_name}</strong><br>Код: ${bike.bike_code}<br>Статус: ${bike.status}`
-                }, {
-                    preset: 'islands#dotIcon',
-                    iconColor: getIconColor(bike.status)
+                if (bikesRes.error) throw bikesRes.error;
+                if (clientsRes.error) throw clientsRes.error;
+
+                // Populate search dropdown
+                const currentSelection = courierSearchSelect.value;
+                courierSearchSelect.innerHTML = '<option value="">Найти курьера...</option>';
+                clientsRes.data.forEach(client => {
+                    const option = document.createElement('option');
+                    option.value = client.id;
+                    option.textContent = client.name;
+                    option.dataset.coords = client.last_location.match(/POINT\(([-\d\.]+) ([-\d\.]+)\)/).slice(1).reverse().join(',');
+                    courierSearchSelect.appendChild(option);
                 });
-                return placemark;
-            }).filter(Boolean);
+                courierSearchSelect.value = currentSelection;
 
-            if (placemarks.length > 0) {
-                myMap.geoObjects.add(placemarks[0]); // Add the first placemark to set the map center
-                myMap.setBounds(myMap.geoObjects.getBounds(), { checkZoomRange: true, zoomMargin: 35 });
-                placemarks.slice(1).forEach(pm => myMap.geoObjects.add(pm));
-            } else {
-                console.log("No bikes with location data found.");
+                const bikeFeatures = bikesRes.data.filter(bike => bike.location).map((bike, index) => {
+                    const coords = bike.location.match(/POINT\(([-\d\.]+) ([-\d\.]+)\)/);
+                    if (!coords) return null;
+                    return {
+                        type: 'Feature',
+                        id: `bike_${bike.id}`,
+                        geometry: { type: 'Point', coordinates: [parseFloat(coords[2]), parseFloat(coords[1])] },
+                        properties: {
+                            hintContent: `${bike.model_name || 'Велосипед'} (${bike.bike_code})`,
+                            balloonContent: `<strong>${bike.model_name}</strong><br>Код: ${bike.bike_code}<br>Статус: ${bike.status}`
+                        },
+                        options: { preset: 'islands#dotIcon', iconColor: getBikeIconColor(bike.status) }
+                    };
+                }).filter(Boolean);
+
+                const clientFeatures = clientsRes.data.map((client, index) => {
+                    const coords = client.last_location.match(/POINT\(([-\d\.]+) ([-\d\.]+)\)/);
+                    if (!coords) return null;
+                    return {
+                        type: 'Feature',
+                        id: `client_${client.id}`,
+                        geometry: { type: 'Point', coordinates: [parseFloat(coords[2]), parseFloat(coords[1])] },
+                        properties: {
+                            hintContent: `Курьер: ${client.name}`,
+                            balloonContent: `<strong>${client.name}</strong><br>ID: ${client.id}`
+                        },
+                        options: { preset: 'islands#userIcon', iconColor: '#ff0000' }
+                    };
+                }).filter(Boolean);
+
+                const allFeatures = [...bikeFeatures, ...clientFeatures];
+                
+                objectManager.removeAll();
+                objectManager.add({ type: 'FeatureCollection', features: allFeatures });
+
+            } catch (err) {
+                console.error("Error loading map data:", err);
             }
-
-        } catch (err) {
-            console.error("Error loading bike data:", err);
         }
-    }
 
-    function getIconColor(status) {
-        switch (status) {
-            case 'available': return '#26b999'; // Green
-            case 'rented': return '#1e98ff'; // Blue
-            case 'in_service': return '#f5a623'; // Orange
-            default: return '#777777'; // Grey
+        courierSearchSelect.addEventListener('change', (e) => {
+            const selectedOption = e.target.options[e.target.selectedIndex];
+            if (!selectedOption.value) return;
+            const coords = selectedOption.dataset.coords.split(',').map(Number);
+            myMap.panTo(coords, { flying: true, duration: 1500 }).then(() => {
+                myMap.setZoom(15, { duration: 500 });
+            });
+        });
+
+        function getBikeIconColor(status) {
+            switch (status) {
+                case 'available': return '#26b999';
+                case 'rented': return '#1e98ff';
+                case 'in_service': return '#f5a623';
+                default: return '#777777';
+            }
         }
+
+        loadAndDrawData();
+        setInterval(loadAndDrawData, 20000);
     }
 </script>
 
