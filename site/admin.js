@@ -1415,7 +1415,10 @@ if (clientsSection) {
                     <td>${assignment.clients.name || 'N/A'}</td>
                     <td>${assignment.tariffs.title || 'N/A'}</td>
                     <td>${new Date(assignment.created_at).toLocaleString('ru-RU')}</td>
-                    <td><button class="btn-primary assign-bike-btn" data-rental-id="${assignment.id}">Привязать велосипед</button></td>
+                    <td class="table-actions">
+                        <button class="btn btn-primary assign-bike-btn" data-rental-id="${assignment.id}">Привязать</button>
+                        <button class="btn btn-secondary reject-rental-btn" data-rental-id="${assignment.id}" style="background-color: #fff1f2; color: #e53e3e;">Отклонить</button>
+                    </td>
                 `;
                 assignmentsTableBody.appendChild(tr);
             });
@@ -1428,6 +1431,8 @@ if (clientsSection) {
     if (assignmentsTableBody) {
         assignmentsTableBody.addEventListener('click', async (e) => {
             const assignBtn = e.target.closest('.assign-bike-btn');
+            const rejectBtn = e.target.closest('.reject-rental-btn');
+
             if (assignBtn) {
                 const rentalId = assignBtn.dataset.rentalId;
                 assignRentalIdInput.value = rentalId;
@@ -1451,6 +1456,30 @@ if (clientsSection) {
                     assignBikeModal.classList.remove('hidden');
                 } catch (err) {
                     alert('Не удалось загрузить список свободных велосипедов: ' + err.message);
+                }
+            }
+
+            if (rejectBtn) {
+                const rentalId = rejectBtn.dataset.rentalId;
+                if (confirm(`Вы уверены, что хотите отклонить заявку #${rentalId} и вернуть средства клиенту?`)) {
+                    toggleButtonLoading(rejectBtn, true, 'Отклонить', '...');
+                    try {
+                        const response = await fetch('/.netlify/functions/reject-rental', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ rental_id: rentalId })
+                        });
+                        const result = await response.json();
+                        if (!response.ok) throw new Error(result.error || 'Ошибка сервера');
+                        
+                        alert(result.message);
+                        loadAssignments(); // Refresh the list
+
+                    } catch (err) {
+                        alert('Ошибка отклонения заявки: ' + err.message);
+                    } finally {
+                        toggleButtonLoading(rejectBtn, false, 'Отклонить', '...');
+                    }
                 }
             }
         });

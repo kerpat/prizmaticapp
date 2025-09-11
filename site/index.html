@@ -183,7 +183,7 @@
 </div>
 <div id="notification-toast" class="toast-container hidden"><p class="toast-message">На вашем счету недостаточно средств.</p></div>
 <div id="success-toast" class="toast-container toast-success hidden"><p class="toast-message">Баланс пополнен на <strong id="success-amount"></strong>!</p></div>
-<div id="rent-success-toast" class="toast-container toast-success hidden"><p class="toast-message">Аренда успешно оформлена!</p></div>
+<div id="rent-success-toast" class="toast-container toast-success hidden"><p class="toast-message">Аренда успешно оформлена! Подойдите к администратору для получения электровелосипеда.</p></div>
 <div id="booking-success-toast" class="toast-container toast-success hidden"><p class="toast-message">Велосипед забронирован на 1 час!</p></div>
         <div id="main-menu-overlay" class="menu-overlay hidden" role="dialog" aria-modal="true" style="display:none;">
             <div class="menu-container">
@@ -954,8 +954,8 @@ loadUserData();
 
                 // Показываем сообщение об успехе и обновляем интерфейс
                 showToast(rentSuccessToast);
-                // Можно добавить обновление баланса на UI, если он отображается
-                // loadUserData(); // Перезагрузка данных пользователя для обновления баланса
+                // Перезагружаем данные пользователя, чтобы обновить баланс на экране
+                loadUserData();
 
             } catch (err) {
                 alert(`Ошибка оформления аренды: ${err.message}`);
