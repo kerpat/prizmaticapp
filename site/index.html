@@ -454,6 +454,8 @@ async function initializeRentalSystem() {
     };
 
     const renderActiveRentalView = (rental, container) => {
+        document.querySelector('.app-header')?.classList.add('header-centered');
+
         const endsDate = new Date(rental.current_period_ends_at);
         const startDate = new Date(rental.starts_at);
         const durationDays = rental.tariffs?.duration_days || 7;
@@ -474,9 +476,9 @@ async function initializeRentalSystem() {
                 <div class="card"><div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div><div class="text-content"><span>Свободных</span><strong id="available-bikes-count">99</strong></div></div>
                 <div class="card" id="balance-card"><div class="icon-wrapper dollar"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div><div class="text-content"><span>Баланс</span><strong id="balance-amount">... ₽</strong></div></div>
             </div>
-            <div class="action-buttons" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
-                <button class="btn btn-secondary" id="return-bike-btn">Сдать велосипед</button>
+            <div class="action-buttons" style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
                 <button class="btn btn-primary" id="extend-rental-btn">Продлить аренду</button>
+                <button class="btn btn-secondary" id="return-bike-btn">Сдать велосипед</button>
             </div>
         `;
 
@@ -520,6 +522,7 @@ async function initializeRentalSystem() {
     };
 
     const renderDefaultView = (container) => {
+        document.querySelector('.app-header')?.classList.remove('header-centered');
         container.innerHTML = `
             <div class="bike-image-wrapper">
                 <img src="bike-delivery.png" alt="Electric bike" class="bike-image" id="main-bike-image">
