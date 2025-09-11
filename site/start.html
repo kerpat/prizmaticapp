@@ -40,18 +40,45 @@
 <body>
 <div class="loader"></div>
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // Этот скрипт остаётся без изменений, он нужен для APK
-        // и будет работать и для PWA.
-        if (localStorage.getItem('isRegistered') === 'true') {
-            if (localStorage.getItem('isInvestor') === 'true') {
-                window.location.replace('investor_home.html');
-            } else {
-                window.location.replace('index.html');
+    document.addEventListener('DOMContentLoaded', async () => {
+        const authToken = localStorage.getItem('authToken');
+
+        if (authToken) {
+            // Если токен есть, проверяем его на сервере
+            try {
+                const response = await fetch('/.netlify/functions/verify-token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: authToken })
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    // Токен валидный, сохраняем данные и переходим на главный экран
+                    localStorage.setItem("userId", userData.userId);
+                    localStorage.setItem("userName", userData.userName);
+                    
+                    // Определяем, инвестор это или нет (если такая логика нужна)
+                    if (localStorage.getItem('isInvestor') === 'true') {
+                        window.location.replace('investor_home.html');
+                    } else {
+                        window.location.replace('index.html');
+                    }
+                    return; // Выходим, чтобы не попасть в блок else
+                } else {
+                    // Токен невалидный, чистим localStorage
+                    localStorage.clear();
+                }
+            } catch (error) {
+                console.error('Token verification failed:', error);
+                // Ошибка сети, но токен есть. Можно попробовать перейти на главную в оффлайн режиме.
+                // Но для чистоты лучше перенаправить на регистрацию.
+                localStorage.clear();
             }
-        } else {
-            window.location.replace('registration.html');
         }
+        
+        // Если токена нет или он оказался невалидным
+        window.location.replace('registration.html');
     });
 </script>
 

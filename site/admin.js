@@ -1222,6 +1222,9 @@ if (clientsSection) {
     const balanceAmountInput = document.getElementById('balance-amount');
     const balanceReasonInput = document.getElementById('balance-reason');
 
+    // Token Generation Button
+    const generateTokenBtn = document.getElementById('generate-token-btn');
+
     if (balanceAdjustBtn) {
         balanceAdjustBtn.addEventListener('click', () => {
             if (currentEditingId && balanceModal) {
@@ -1283,6 +1286,41 @@ if (clientsSection) {
                 alert('Ошибка: ' + err.message);
             } finally {
                 toggleButtonLoading(balanceSubmitBtn, false, 'Применить', 'Применяем...');
+            }
+        });
+    }
+
+    // --- Token Generation Logic ---
+    if (generateTokenBtn) {
+        generateTokenBtn.addEventListener('click', async () => {
+            if (!currentEditingId) {
+                alert('Клиент не выбран.');
+                return;
+            }
+
+            if (!confirm(`Сгенерировать новый токен доступа для клиента ID: ${currentEditingId}? Старый токен перестанет работать.`)) {
+                return;
+            }
+
+            toggleButtonLoading(generateTokenBtn, true, 'Сгенерировать токен', 'Генерация...');
+
+            try {
+                const response = await fetch('/.netlify/functions/reset-auth-token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: currentEditingId })
+                });
+
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Ошибка сервера');
+
+                // Показываем токен администратору, чтобы он мог его скопировать и передать клиенту
+                prompt("Скопируйте этот токен и отправьте клиенту:", result.newToken);
+
+            } catch (err) {
+                alert('Ошибка генерации токена: ' + err.message);
+            } finally {
+                toggleButtonLoading(generateTokenBtn, false, 'Сгенерировать токен', 'Генерация...');
             }
         });
     }
