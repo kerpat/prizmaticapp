@@ -194,6 +194,13 @@
     const SUPABASE_URL = 'https://avamqfmuhiwtlumjkzmv.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    function toggleButtonLoading(btn, isLoading, textIdle, textBusy) {
+        if (!btn) return;
+        btn.disabled = !!isLoading;
+        btn.textContent = isLoading ? textBusy : textIdle;
+    }
+
 async function initializeRentalSystem() {
     const mainContent = document.querySelector('.app-main');
     const appHeader = document.querySelector('.app-header h1');
