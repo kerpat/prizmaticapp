@@ -915,91 +915,49 @@ loadUserData();
             console.warn('Failed to parse tariffMap', err);
         }
         // Обработчик аренды по выбранному тарифу Prizmatic
-        const processTariffRental = (tariffKey, selectedExt = null) => {
+        const processTariffRental = async (tariffKey, selectedExt = null) => {
             const tariff = tariffData[tariffKey];
-            // Выбираем длительность и стоимость: если передан вариант продления, используем его
-            const days = selectedExt ? selectedExt.days : tariff.days;
-            const cost = selectedExt ? selectedExt.cost : tariff.cost;
-            const currentBalance = parseFloat(balanceAmountElement.textContent);
-            // Обновляем подпись на багажнике в любом случае, чтобы отразить выбор
-            const labelMap = { bronze: 'Бронза', silver: 'Серебро', gold: 'Золото' };
-            updateBikeLabel(labelMap[tariffKey] || '');
-            if (currentBalance >= cost) {
-                balanceAmountElement.textContent = (currentBalance - cost).toFixed(0) + ' ₽';
-                availableBikesCount.textContent = '99';
-                changeBikeImage('bike00001.png');
-                // Сбрасываем прогресс бар и обновляем информацию о сроке
-                progressBarFill.style.width = '1%';
-                progressBarFill.style.backgroundColor = 'var(--dark-green)';
-                progressStartLabel.textContent = '0 дней';
-                progressEndLabel.textContent = `${days} дней`;
-                addTransactionToHistory({ type: 'Аренда', detail: `${days} дней (Prizmatic)`, amount: -cost, icon: 'rent' });
-                const stats = JSON.parse(localStorage.getItem('bikeStats')) || { distance: 0 };
-                stats.distance += 25.5 * (tariff.days / 7);
-                localStorage.setItem('bikeStats', JSON.stringify(stats));
-                // Отправляем данные аренды в локальный API, если ID пользователя (userId) и тариф известны.
-                // В любом случае сохраняем запись в localStorage, чтобы она отображалась в админ‑панели оффлайн.
-                const userId = localStorage.getItem('userId');
-                const tariffEntry = tariffData[tariffKey];
-                const tariffId = tariffEntry && tariffEntry.id;
-                const startIso = new Date().toISOString();
-                const endDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
-                const rentalObj = {
-                    id: `local-rental-${Date.now()}`,
-                    client_id: userId || '',
-                    tariff_id: tariffId || '',
-                    bike_id: '00001',
-                    starts_at: startIso,
-                    ends_at: endDate.toISOString(),
-                    status: 'active',
-                    total_rub: cost,
-                    days: days,
-                    tariffKey: tariffKey
-                };
-                // Пытаемся отправить на сервер. Даже если запрос не удастся, запись уже сохранена локально.
-                if (userId && tariffId && window.supabase && typeof supabase !== 'undefined') {
-                    try {
-                        supabase
-                          .from('rentals')
-                          .insert([{ 
-                              user_id: userId,
-                              tariff_id: tariffId,
-                              bike_id: '00001',
-                              starts_at: rentalObj.starts_at,
-                              ends_at: rentalObj.ends_at,
-                              status: 'active',
-                              total_rub: cost
-                          }])
-                          .select('id')
-                          .single()
-                          .then(({ data, error }) => {
-                              if (!error && data) {
-                                  rentalObj.id = data.id;
-                              }
-                          })
-                          .catch(err => console.warn('Failed to record tariff rental (Supabase)', err));
-                    } catch (err) {
-                        console.warn('Failed to record tariff rental (Supabase)', err);
-                    }
-                }
-                // Добавляем в localStorage массив аренд
-                try {
-                    const rentals = JSON.parse(localStorage.getItem('rentals') || '[]');
-                    rentals.unshift(rentalObj);
-                    localStorage.setItem('rentals', JSON.stringify(rentals));
-                } catch (e) {
-                    localStorage.setItem('rentals', JSON.stringify([rentalObj]));
-                }
-                // Запоминаем текущую активную аренду отдельно, чтобы показывать кнопку продления
-                try {
-                    localStorage.setItem('activeRental', JSON.stringify(rentalObj));
-                } catch (e) {}
-                updateExtendButton();
-                showToast(rentSuccessToast);
-            } else {
-                showToast(notificationToast, 4000);
+            if (!tariff || !tariff.id) {
+                alert('Ошибка: не удалось определить тариф.');
+                return;
             }
-            tariffModal.classList.add('hidden');
+
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                alert('Ошибка: не удалось определить пользователя.');
+                return;
+            }
+
+            // Показываем состояние загрузки
+            const rentBtn = document.getElementById('tariff-detail-select-btn');
+            if(rentBtn) toggleButtonLoading(rentBtn, true, 'Выбрать тариф', 'Обработка...');
+
+            try {
+                const response = await fetch('/.netlify/functions/charge-from-balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: userId, tariffId: tariff.id })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Произошла неизвестная ошибка');
+                }
+
+                // Показываем сообщение об успехе и обновляем интерфейс
+                showToast(rentSuccessToast);
+                // Можно добавить обновление баланса на UI, если он отображается
+                // loadUserData(); // Перезагрузка данных пользователя для обновления баланса
+
+            } catch (err) {
+                alert(`Ошибка оформления аренды: ${err.message}`);
+            } finally {
+                if(rentBtn) toggleButtonLoading(rentBtn, false, 'Выбрать тариф', 'Обработка...');
+                // Закрываем все модальные окна
+                document.getElementById('tariff-detail-modal').classList.add('hidden');
+                document.getElementById('tariff-modal').classList.add('hidden');
+            }
         };
 
         // Элементы и логика для подробного просмотра тарифов
