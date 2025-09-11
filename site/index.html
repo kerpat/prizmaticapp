@@ -480,6 +480,25 @@ async function initializeRentalSystem() {
                 <button class="btn btn-primary" id="extend-rental-btn">Продлить аренду</button>
                 <button class="btn btn-secondary" id="return-bike-btn">Сдать велосипед</button>
             </div>
+            <div class="profile-menu" style="margin-top: 30px; padding: 0; width: 100%;">
+                <hr class="menu-divider">
+                <div class="menu-item" id="report-issue-btn" style="cursor: pointer;">
+                    <div class="menu-item-left">
+                        <svg class="menu-item-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        <span class="menu-item-text">Сообщить о проблеме</span>
+                    </div>
+                    <svg class="menu-item-chevron" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </div>
+                <hr class="menu-divider">
+                <a href="map.html" class="menu-item">
+                    <div class="menu-item-left">
+                        <svg class="menu-item-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                        <span class="menu-item-text">Карта парковок</span>
+                    </div>
+                    <svg class="menu-item-chevron" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </a>
+                <hr class="menu-divider">
+            </div>
         `;
 
         // Re-attach event listeners for the new buttons
@@ -502,6 +521,15 @@ async function initializeRentalSystem() {
                 if (extendModal) extendModal.classList.remove('hidden');
             });
         }
+
+        document.getElementById('report-issue-btn')?.addEventListener('click', () => {
+            const supportModal = document.getElementById('support-modal');
+            if (supportModal) {
+                supportModal.classList.remove('hidden');
+            } else {
+                alert('Функция поддержки в разработке.');
+            }
+        });
     };
 
     const renderOverdueRentalView = (rental, container) => {
