@@ -19,6 +19,7 @@ body {
     margin: 0;
 }
 .app-screen {
+    position: relative; /* <-- ВОТ ИСПРАВЛЕНИЕ */
     width: 100%;
     max-width: 420px;
     background-color: var(--white);
@@ -28,7 +29,7 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border-radius: 40px; /* <-- ВОТ ИСПРАВЛЕНИЕ */
+    border-radius: 40px;
 }
 .app-content, .map-page-container { flex-grow: 1; display: flex; flex-direction: column; padding: 28px; gap: 20px; overflow-y: auto; }
 
