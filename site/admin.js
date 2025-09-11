@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rentalsSection = document.getElementById('rentals-section');
     const paymentsSection = document.getElementById('payments-section');
     const bikesSection = document.getElementById('bikes-section');
+    const assignmentsSection = document.getElementById('assignments-section');
     // duplicate removed: const templatesSection
 
     // Tariff elements
@@ -70,6 +71,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const bikeModelInput = document.getElementById('bike-model');
     const bikeStatusSelect = document.getElementById('bike-status');
     const bikeCancelBtn = document.getElementById('bike-cancel-btn');
+
+    // Assignment elements
+    const assignmentsTableBody = document.querySelector('#assignments-table tbody');
+    const assignBikeModal = document.getElementById('assign-bike-modal');
+    const assignRentalIdInput = document.getElementById('assign-rental-id');
+    const bikeSelect = document.getElementById('bike-select');
+    const assignBikeCancelBtn = document.getElementById('assign-bike-cancel-btn');
+    const assignBikeSubmitBtn = document.getElementById('assign-bike-submit-btn');
 
     // Invoice elements
     const invoiceCreateBtn = document.getElementById('invoice-create-btn');
@@ -311,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function selectSection(name) {
-        [dashboardMainSection, tariffsSection, clientsSection, rentalsSection, paymentsSection, bikesSection, templatesSection].forEach(sec => sec && sec.classList.add('hidden'));
+        [dashboardMainSection, tariffsSection, clientsSection, rentalsSection, paymentsSection, bikesSection, assignmentsSection, templatesSection].forEach(sec => sec && sec.classList.add('hidden'));
         const sectionMap = {
             'dashboard-main': { element: dashboardMainSection, loader: loadDashboardData },
             'tariffs': { element: tariffsSection, loader: loadTariffs },
@@ -319,6 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'rentals': { element: rentalsSection, loader: loadRentals },
             'payments': { element: paymentsSection, loader: loadPayments },
             'bikes': { element: bikesSection, loader: loadBikes },
+            'assignments': { element: assignmentsSection, loader: loadAssignments },
             'templates': { element: templatesSection, loader: loadTemplates },
         };
         if (sectionMap[name]) {
@@ -1376,6 +1386,110 @@ if (clientsSection) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 addTag();
+            }
+        });
+    }
+
+    // --- Assignments Logic ---
+    async function loadAssignments() {
+        if (!assignmentsTableBody) return;
+        assignmentsTableBody.innerHTML = '<tr><td colspan="4">Загрузка...</td></tr>';
+        try {
+            const { data, error } = await supabase
+                .from('rentals')
+                .select('id, created_at, clients(name), tariffs(title)')
+                .eq('status', 'pending_assignment')
+                .order('created_at', { ascending: true });
+
+            if (error) throw error;
+
+            if (!data || data.length === 0) {
+                assignmentsTableBody.innerHTML = '<tr><td colspan="4">Нет активных заявок на аренду.</td></tr>';
+                return;
+            }
+
+            assignmentsTableBody.innerHTML = '';
+            data.forEach(assignment => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${assignment.clients.name || 'N/A'}</td>
+                    <td>${assignment.tariffs.title || 'N/A'}</td>
+                    <td>${new Date(assignment.created_at).toLocaleString('ru-RU')}</td>
+                    <td><button class="btn-primary assign-bike-btn" data-rental-id="${assignment.id}">Привязать велосипед</button></td>
+                `;
+                assignmentsTableBody.appendChild(tr);
+            });
+        } catch (err) {
+            console.error('Ошибка загрузки заявок:', err);
+            assignmentsTableBody.innerHTML = `<tr><td colspan="4">Ошибка: ${err.message}</td></tr>`;
+        }
+    }
+
+    if (assignmentsTableBody) {
+        assignmentsTableBody.addEventListener('click', async (e) => {
+            const assignBtn = e.target.closest('.assign-bike-btn');
+            if (assignBtn) {
+                const rentalId = assignBtn.dataset.rentalId;
+                assignRentalIdInput.value = rentalId;
+
+                // Load available bikes
+                try {
+                    const { data, error } = await supabase
+                        .from('bikes')
+                        .select('id, bike_code, model_name')
+                        .eq('status', 'available');
+                    if (error) throw error;
+
+                    bikeSelect.innerHTML = '<option value="">-- Выберите велосипед --</option>';
+                    data.forEach(bike => {
+                        const option = document.createElement('option');
+                        option.value = bike.id;
+                        option.textContent = `${bike.model_name} (#${bike.bike_code})`;
+                        bikeSelect.appendChild(option);
+                    });
+
+                    assignBikeModal.classList.remove('hidden');
+                } catch (err) {
+                    alert('Не удалось загрузить список свободных велосипедов: ' + err.message);
+                }
+            }
+        });
+    }
+
+    if (assignBikeCancelBtn) {
+        assignBikeCancelBtn.addEventListener('click', () => assignBikeModal.classList.add('hidden'));
+    }
+
+    if (assignBikeSubmitBtn) {
+        assignBikeSubmitBtn.addEventListener('click', async () => {
+            const rentalId = assignRentalIdInput.value;
+            const bikeId = bikeSelect.value;
+
+            if (!rentalId || !bikeId) {
+                alert('Пожалуйста, выберите велосипед.');
+                return;
+            }
+
+            toggleButtonLoading(assignBikeSubmitBtn, true, 'Привязать и активировать', 'Активация...');
+
+            try {
+                const response = await fetch('/.netlify/functions/assign-bike', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rental_id: rentalId, bike_id: bikeId })
+                });
+
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Ошибка сервера');
+
+                alert('Аренда успешно активирована!');
+                assignBikeModal.classList.add('hidden');
+                loadAssignments();
+
+            } catch (err) {
+                alert('Ошибка активации аренды: ' + err.message);
+            } finally {
+                toggleButtonLoading(assignBikeSubmitBtn, false, 'Привязать и активировать', 'Активация...');
             }
         });
     }

@@ -45,6 +45,7 @@
     <div id="dashboard-section" class="hidden">
       <nav id="admin-nav">
         <button type="button" data-section="dashboard-main" class="active">Dashboard</button>
+        <button type="button" data-section="assignments">Заявки</button>
         <button type="button" data-section="tariffs">Тарифы</button>
         <button type="button" data-section="clients">Клиенты</button>
         <button type="button" data-section="rentals">Аренды</button>
@@ -70,6 +71,46 @@
         </div>
         <h3 style="margin-top: 30px;">История платежей</h3>
       </section>
+
+      <!-- Assignments -->
+      <section id="assignments-section" class="admin-section hidden">
+        <div class="section-header">
+          <h2>Заявки на аренду</h2>
+        </div>
+        <table id="assignments-table" class="admin-table">
+          <thead>
+            <tr>
+              <th>Клиент</th>
+              <th>Тариф</th>
+              <th>Дата заявки</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <!-- Модальное окно для выбора велосипеда -->
+      <div id="assign-bike-modal" class="overlay hidden">
+        <div class="modal" style="max-width: 500px;">
+          <div class="modal-header">
+            <h3>Привязать велосипед к аренде</h3>
+            <button id="assign-bike-cancel-btn" class="close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <form id="assign-bike-form">
+              <input type="hidden" id="assign-rental-id">
+              <div class="form-group">
+                <label for="bike-select">Выберите свободный велосипед:</label>
+                <select id="bike-select" class="form-control" required></select>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="assign-bike-submit-btn" class="btn btn-primary">Привязать и активировать</button>
+          </div>
+        </div>
+      </div>
 
       <!-- Тарифы -->
       <section id="tariffs-section" class="admin-section hidden">

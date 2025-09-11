@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Build map to update sessionStorage for index.html
                     const map = {};
                     data.forEach((t) => {
-                        const key = t.slug || t.title.toLowerCase();
+                        const key = t.slug ? t.slug.toLowerCase().replace(/[^a-z0-9]/g, '-') : (t.title ? t.title.toLowerCase().replace(/[^a-z0-9]/g, '-') : '');
                         const item = document.createElement('div');
                         item.className = 'bike-list-item tariff-option';
                         item.dataset.tariff = key;

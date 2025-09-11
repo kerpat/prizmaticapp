@@ -58,16 +58,16 @@ exports.handler = async function(event, context) {
             const endDate = new Date();
             endDate.setDate(startDate.getDate() + rentalDurationDays);
 
-            // 2.2 Создаем новую запись об аренде
+            // 2.2 Создаем новую запись об аренде со статусом pending_assignment
             const { data: newRental, error: rentalError } = await supabaseAdmin
                 .from('rentals')
                 .insert({
                     user_id: userId,
-                    bike_id: bikeId,
+                    bike_id: null, // Bike is not assigned yet
                     tariff_id: tariffId,
                     starts_at: startDate.toISOString(),
                     current_period_ends_at: endDate.toISOString(),
-                    status: 'active',
+                    status: 'pending_assignment', // New status
                     total_paid_rub: paymentAmount
                 })
                 .select('id') // Возвращаем ID созданной аренды
