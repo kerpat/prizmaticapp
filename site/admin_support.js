@@ -30,25 +30,71 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     async function loadAllData() {
         try {
-            // 1. Загружаем всех клиентов
-            const { data: clients, error: clientError } = await supabase
-                .from('clients')
-                .select('id, name, phone')
-                .order('created_at', { ascending: false });
-            if (clientError) throw clientError;
-            allClients = clients || [];
+            const [clientsRes, anonChatsRes] = await Promise.all([
+                supabase.from('clients').select('id, name, phone').order('created_at', { ascending: false }),
+                supabase.rpc('get_anonymous_chats')
+            ]);
 
-            // 2. Загружаем ID и последнее сообщение для каждого анонимного чата
-            const { data: anonChats, error: anonError } = await supabase.rpc('get_anonymous_chats');
-            if (anonError) throw anonError;
-            allAnonymousChats = anonChats || [];
+            if (clientsRes.error) throw clientsRes.error;
+            if (anonChatsRes.error) throw anonChatsRes.error;
 
-            // 3. Рендерим оба списка
+            allClients = clientsRes.data || [];
+            allAnonymousChats = anonChatsRes.data || [];
+            
             renderChatList();
         } catch (err) {
             console.error('Ошибка загрузки данных:', err);
-            chatListContainer.innerHTML = '<p style="padding: 10px; color: red;">Ошибка загрузки чатов</p>';
+            chatListContainer.innerHTML = `<p style="padding: 10px; color: red;">Ошибка: ${err.message}</p>`;
         }
+    }
+
+    /**
+     * Отрисовывает список чатов (клиентов и анонимов)
+     */
+    function renderChatList(filter = '') {
+        chatListContainer.innerHTML = '';
+        const lowerFilter = filter.toLowerCase();
+
+        const filteredClients = filter ? allClients.filter(c => c.name.toLowerCase().includes(lowerFilter) || (c.phone && c.phone.includes(lowerFilter))) : allClients;
+        const filteredAnonymous = filter ? allAnonymousChats.filter(c => (c.last_message_text && c.last_message_text.toLowerCase().includes(lowerFilter)) || c.anonymous_chat_id.includes(lowerFilter)) : allAnonymousChats;
+
+        if (filteredClients.length === 0 && filteredAnonymous.length === 0) {
+            chatListContainer.innerHTML = '<p style="padding: 10px; text-align: center;">Чаты не найдены</p>';
+            return;
+        }
+
+        // Сначала рендерим анонимные чаты
+        filteredAnonymous.forEach(chat => {
+            const item = document.createElement('div');
+            item.className = 'chat-list-item';
+            item.dataset.anonymousId = chat.anonymous_chat_id;
+            item.innerHTML = `
+                <div class="chat-avatar" style="background-color: #718096;">?</div>
+                <div class="chat-info">
+                    <div class="chat-name">Анонимный чат #${chat.anonymous_chat_id.slice(5, 10)}</div>
+                    <div class="last-message">${chat.last_message_text || '...'}</div>
+                </div>
+            `;
+            item.addEventListener('click', () => openChat(null, null, chat.anonymous_chat_id));
+            chatListContainer.appendChild(item);
+        });
+
+        // Затем рендерим чаты клиентов
+        filteredClients.forEach(client => {
+            const initial = client.name ? client.name.charAt(0).toUpperCase() : '?';
+            const item = document.createElement('div');
+            item.className = 'chat-list-item';
+            item.dataset.clientId = client.id;
+            item.innerHTML = `
+                <div class="chat-avatar">${initial}</div>
+                <div class="chat-info">
+                    <div class="chat-name">${client.name}</div>
+                    <div class="last-message">${client.phone || 'Нет номера'}</div>
+                </div>
+            `;
+            item.addEventListener('click', () => openChat(client.id, client.name, null));
+            chatListContainer.appendChild(item);
+        });
     }
 
     /**
