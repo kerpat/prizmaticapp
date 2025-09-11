@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     async function loadAllData() {
         try {
+            // 1. Загружаем всех клиентов
             const { data: clients, error: clientError } = await supabase
                 .from('clients')
                 .select('id, name, phone')
@@ -37,28 +38,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (clientError) throw clientError;
             allClients = clients || [];
 
-            const { data: anonChats, error: anonError } = await supabase
-                .from('support_messages')
-                .select('anonymous_chat_id, created_at, message_text')
-                .is('client_id', null)
-                .not('anonymous_chat_id', 'is', null)
-                .order('created_at', { ascending: false });
-            
+            // 2. Загружаем ID и последнее сообщение для каждого анонимного чата
+            const { data: anonChats, error: anonError } = await supabase.rpc('get_anonymous_chats');
             if (anonError) throw anonError;
+            allAnonymousChats = anonChats || [];
 
-            // Группируем анонимные чаты
-            const anonMap = new Map();
-            (anonChats || []).forEach(chat => {
-                if (!anonMap.has(chat.anonymous_chat_id)) {
-                    anonMap.set(chat.anonymous_chat_id, chat);
-                }
-            });
-            allAnonymousChats = Array.from(anonMap.values());
-
+            // 3. Рендерим оба списка
             renderChatList();
         } catch (err) {
             console.error('Ошибка загрузки данных:', err);
-            chatListContainer.innerHTML = '<p style="padding: 10px; color: red;">Ошибка загрузки</p>';
+            chatListContainer.innerHTML = '<p style="padding: 10px; color: red;">Ошибка загрузки чатов</p>';
         }
     }
 
