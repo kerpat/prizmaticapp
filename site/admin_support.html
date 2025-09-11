@@ -172,6 +172,9 @@
             </div>
             <div class="chat-window-panel">
                 <div class="chat-window-header" id="chat-window-header">Выберите чат</div>
+                <div id="link-chat-bar" class="hidden" style="padding: 10px; text-align: center; background-color: var(--light-green-bg); border-bottom: 1px solid var(--border);">
+                    <button id="link-chat-btn" class="btn btn-secondary" style="height: auto; padding: 8px 12px;">Привязать чат к клиенту</button>
+                </div>
                 <div class="chat-history-admin" id="chat-history-container">
                     <!-- Сюда JS будет загружать историю сообщений -->
                 </div>
@@ -187,5 +190,22 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
   <script src="admin_support.js"></script>
+
+  <!-- Модальное окно для выбора клиента -->
+  <div id="link-client-modal" class="overlay hidden">
+    <div class="modal" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3>Привязать чат к клиенту</h3>
+        <button id="link-client-cancel-btn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="search" id="link-client-search" class="toolbar-input" placeholder="Поиск по имени или телефону..." style="width: 100%; margin-bottom: 15px;">
+        <div id="link-client-list" style="max-height: 40vh; overflow-y: auto;">
+            <!-- Сюда будет загружен список клиентов -->
+        </div>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>

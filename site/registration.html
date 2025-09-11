@@ -304,6 +304,7 @@
   const sendChatBtn = document.getElementById('send-chat-btn');
 
   let pendingRegistrationData = null;
+  let anonymousChatId = null;
 
   // ===== УТИЛИТЫ =====
   const requiredError = (id, msg) => { const el = document.getElementById(id); if (!el) return; el.textContent = msg || "Пожалуйста, заполните все обязательные поля."; el.style.display = "block"; };
@@ -509,38 +510,75 @@
       recoveryOptionsModal.classList.add('hidden');
       supportModal.classList.remove('hidden');
       
-      // Отправляем автоматические сообщения
-      if (chatHistory.children.length === 0) { // Отправляем только если чат пуст
-        addChatMessage('Здравствуйте! Я хочу восстановить доступ к своему аккаунту.', 'user', true); // Отправляем от имени юзера
-        setTimeout(() => {
-            addChatMessage('Пожалуйста, введите номер телефона, который вы указывали при регистрации.', 'support');
-        }, 500);
+      // Генерируем или получаем ID для анонимного чата
+      if (!localStorage.getItem('anonymousChatId')) {
+          localStorage.setItem('anonymousChatId', `anon_${crypto.randomUUID()}`);
       }
+      anonymousChatId = localStorage.getItem('anonymousChatId');
+
+      // Загружаем историю этого анонимного чата
+      loadAnonymousChatHistory();
   });
 
-  function addChatMessage(text, sender, isSilent = false) {
+  async function loadAnonymousChatHistory() {
+      if (!anonymousChatId) return;
+      chatHistory.innerHTML = '<p style="text-align:center;">Загрузка истории...</p>';
+
+      const { data, error } = await supabase
+          .from('support_messages')
+          .select('*')
+          .eq('anonymous_chat_id', anonymousChatId)
+          .order('created_at', { ascending: true });
+
+      chatHistory.innerHTML = ''; // Очищаем
+
+      if (error) {
+          console.error('Error loading anonymous chat:', error);
+          chatHistory.innerHTML = '<p style="text-align:center; color:red;">Ошибка загрузки чата.</p>';
+          return;
+      }
+
+      if (data.length > 0) {
+          data.forEach(msg => addChatMessage(msg.message_text, msg.sender, true));
+      } else {
+          // Если истории нет, отправляем приветственные сообщения
+          addChatMessage('Здравствуйте! Я хочу восстановить доступ к своему аккаунту.', 'user', true);
+          setTimeout(() => {
+              addChatMessage('Пожалуйста, введите номер телефона, который вы указывали при регистрации.', 'support', true);
+          }, 500);
+      }
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+  }
+
+  async function addChatMessage(text, sender, isSilent = false) {
       const messageEl = document.createElement('div');
       messageEl.classList.add('chat-message', `${sender}-message`);
       messageEl.textContent = text;
       chatHistory.appendChild(messageEl);
       chatHistory.scrollTop = chatHistory.scrollHeight;
       
-      // Если сообщение не "тихое", отправляем его в базу
       if (!isSilent) {
-          // Здесь нужна логика отправки в Supabase, но для страницы регистрации это не нужно,
-          // так как у нас еще нет ID клиента. Первое сообщение будет "ненастоящим".
+          try {
+              const { error } = await supabase.from('support_messages').insert({
+                  anonymous_chat_id: anonymousChatId,
+                  sender: sender,
+                  message_text: text
+              });
+              if (error) throw error;
+          } catch (err) {
+              console.error('Failed to send message:', err);
+              // Можно показать ошибку пользователю
+              messageEl.style.opacity = '0.5';
+              messageEl.title = 'Не удалось отправить сообщение';
+          }
       }
   }
 
   sendChatBtn.addEventListener('click', () => {
       const text = chatInput.value.trim();
       if (text) {
-          addChatMessage(text, 'user');
+          addChatMessage(text, 'user'); // Отправляем сообщение в базу
           chatInput.value = '';
-          // Имитация ответа поддержки
-          setTimeout(() => {
-              addChatMessage('Мы получили ваше сообщение и скоро ответим.', 'support');
-          }, 1000);
       }
   });
 

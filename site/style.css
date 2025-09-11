@@ -720,33 +720,7 @@ body {
 .info-cards {
     margin-top: 15px; /* Добавляет отступ сверху */
 }
-/* === НОВЫЕ СТИЛИ: ПЛАВНЫЕ ПЕРЕХОДЫ МЕЖДУ СТРАНИЦАМИ === */
-.app-screen {
-    /* Добавляем transition для всех свойств, чтобы анимация была плавной */
-    transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
-}
 
-/* Состояние при входе на страницу */
-.app-screen.page-enter {
-    opacity: 0;
-    transform: translateY(20px); /* Можно изменить на translateX или scale */
-}
-
-.app-screen.page-enter-active {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-/* Состояние при выходе со страницы */
-.app-screen.page-exit {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.app-screen.page-exit-active {
-    opacity: 0;
-    transform: translateY(20px); /* Должно совпадать с enter, но в обратную сторону */
-}
 
 @media (min-height: 850px) and (min-width: 420px) {
     .app-screen {
