@@ -7,3 +7,6 @@
   # Cron-выражение: "в 3 часа ночи по UTC каждый день"
   # Можете поменять на "0 * * * *" для теста (каждый час)
   schedule = "0 3 * * *"
+
+[[plugins]]
+  package = "@netlify/plugin-functions-install-core"
