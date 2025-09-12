@@ -666,16 +666,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const verificationButtons = status === 'pending'
-                ? `<button type="button" class="approve-btn" data-id="${client.id}">Одобрить</button>\n<button type="button" class="reject-btn" data-id="${client.id}">Отклонить</button>`
-                : '';
-
+    ? `<button type="button" class="approve-btn" data-id="${client.id}">Одобрить</button> <button type="button" class="reject-btn" data-id="${client.id}">Отклонить</button>`
+    : '';
             const tagsHtml = tags.map(tag => `<span class="chip" style="background-color: #eef7ff; border-color: #cfe6ff; color: #004a80; margin: 2px;">${tag}</span>`).join('');
 
             tr.innerHTML = `
                 <td>${client.name}</td>
                 <td>${client.phone || ''}</td>
                 <td>${statusBadge}</td>
-                <td>${tagsHtml}</td>
+                <td><div class="chips">${tagsHtml}</div></td>
                 <td>${date}</td>
                 <td><button type="button" class="view-client-btn" data-id="${client.id}">Инфо/Фото</button></td>
                 <td><button type="button" class="edit-client-btn" data-id="${client.id}">Ред. данных</button></td>
