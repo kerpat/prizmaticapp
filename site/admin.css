@@ -334,9 +334,3 @@ input:focus, textarea:focus, select:focus, .form-control:focus {
 #clients-table td:nth-child(9) {
   text-align: center;
 }
-
-/* Responsive table wrapper */
-.table-wrapper {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
