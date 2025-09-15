@@ -155,11 +155,12 @@ body {
 
 /* Tables */
 .admin-table {
-  width: 100%; border-collapse: separate; border-spacing: 0; 
+  width: 100%; border-collapse: separate; border-spacing: 0;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px; overflow: hidden;
   margin-bottom: 20px; /* Add this line */
+  table-layout: fixed;
 }
 .admin-table th, .admin-table td { text-align: left; padding: 12px 14px; font-size: .95rem; }
 .admin-table thead th { background: #f7faf7; font-weight: 800; color: var(--text); }
