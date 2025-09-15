@@ -1,0 +1,12 @@
+[functions]
+  # Указываем, где лежат наши функции
+  directory = "netlify/functions/"
+
+# Добавляем блок для задач по расписанию
+[functions."process-renewals"]
+  # Cron-выражение: "в 3 часа ночи по UTC каждый день"
+  # Можете поменять на "0 * * * *" для теста (каждый час)
+  schedule = "0 3 * * *"
+
+[[plugins]]
+  package = "@netlify/plugin-functions-install-core"
