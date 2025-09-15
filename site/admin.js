@@ -115,86 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggleButtonLoading(btn, isLoading, textIdle, textBusy) {
         if (!btn) return;
         btn.disabled = !!isLoading;
-        if (isLoading) {
-            btn.classList.add('loading');
-            btn.setAttribute('data-original-text', btn.textContent);
-            btn.textContent = textBusy || 'Загрузка...';
-        } else {
-            btn.classList.remove('loading');
-            const originalText = btn.getAttribute('data-original-text');
-            if (originalText) {
-                btn.textContent = originalText;
-                btn.removeAttribute('data-original-text');
-            } else {
-                btn.textContent = textIdle || btn.textContent;
-            }
-        }
-    }
-
-    // Toast Notification System
-    function showToast(message, type = 'info', duration = 5000) {
-        const toastContainer = document.getElementById('toast-container');
-        if (!toastContainer) return;
-
-        const toast = document.createElement('div');
-        toast.className = `toast ${type} fade-in`;
-
-        toast.innerHTML = `
-            <div class="toast-content">${message}</div>
-            <button class="toast-close" aria-label="Закрыть">&times;</button>
-        `;
-
-        toastContainer.appendChild(toast);
-
-        // Auto remove after duration
-        const timeoutId = setTimeout(() => {
-            removeToast(toast);
-        }, duration);
-
-        // Manual close
-        const closeBtn = toast.querySelector('.toast-close');
-        closeBtn.addEventListener('click', () => {
-            clearTimeout(timeoutId);
-            removeToast(toast);
-        });
-
-        function removeToast(toastElement) {
-            toastElement.style.animation = 'fadeOut 0.3s ease-out';
-            setTimeout(() => {
-                if (toastElement.parentNode) {
-                    toastElement.parentNode.removeChild(toastElement);
-                }
-            }, 300);
-        }
-    }
-
-    // Enhanced loading overlay
-    function showLoadingOverlay(element, message = 'Загрузка...') {
-        if (!element) return;
-
-        const existing = element.querySelector('.loading-overlay');
-        if (existing) return existing;
-
-        const overlay = document.createElement('div');
-        overlay.className = 'loading-overlay';
-        overlay.innerHTML = `
-            <div style="text-align: center;">
-                <div class="loading-spinner"></div>
-                <p style="margin-top: var(--admin-space-sm); color: var(--admin-text-secondary);">${message}</p>
-            </div>
-        `;
-
-        element.style.position = 'relative';
-        element.appendChild(overlay);
-        return overlay;
-    }
-
-    function hideLoadingOverlay(element) {
-        const overlay = element?.querySelector('.loading-overlay');
-        if (overlay) {
-            overlay.style.animation = 'fadeOut 0.3s ease-out';
-            setTimeout(() => overlay.remove(), 300);
-        }
+        btn.textContent = isLoading ? textBusy : textIdle;
     }
 
     // --- Tariff Extensions Logic ---
@@ -379,24 +300,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const submitBtn = loginForm.querySelector('button[type="submit"]');
         const email = loginEmail.value;
         const password = loginPassword.value;
-
-        toggleButtonLoading(submitBtn, true, 'Войти', 'Вход...');
-
-        try {
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) {
-                showToast('Ошибка входа: ' + error.message, 'error');
-            } else if (data.user) {
-                showToast('Успешный вход в систему', 'success');
-                showDashboard();
-            }
-        } catch (err) {
-            showToast('Произошла ошибка при входе', 'error');
-        } finally {
-            toggleButtonLoading(submitBtn, false, 'Войти');
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+            alert('Ошибка входа: ' + error.message);
+        } else if (data.user) {
+            showDashboard();
         }
     });
 
@@ -467,10 +377,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tariffForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const submitBtn = tariffForm.querySelector('button[type="submit"]');
         const id = tariffIdInput.value;
         const extArr = getExtensionsFromForm();
-
         const newTariffData = {
             title: tariffTitleInput.value,
             description: tariffDescriptionInput.value,
@@ -480,22 +388,15 @@ document.addEventListener('DOMContentLoaded', () => {
             slug: tariffTitleInput.value.trim().toLowerCase().replace(/\s+/g, '-'),
             extensions: extArr
         };
-
-        toggleButtonLoading(submitBtn, true, 'Сохранить', 'Сохранение...');
-
         try {
             const { error } = id
                 ? await supabase.from('tariffs').update(newTariffData).eq('id', id)
                 : await supabase.from('tariffs').insert([newTariffData]);
             if (error) throw error;
-
             await loadTariffs();
             resetTariffForm();
-            showToast(id ? 'Тариф успешно обновлен' : 'Тариф успешно создан', 'success');
         } catch (err) {
-            showToast('Ошибка сохранения тарифа: ' + err.message, 'error');
-        } finally {
-            toggleButtonLoading(submitBtn, false, 'Сохранить');
+            alert('Ошибка сохранения тарифа: ' + err.message);
         }
     });
 
@@ -510,16 +411,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (deleteBtn) {
             const id = deleteBtn.dataset.id;
             if (confirm(`Вы уверены, что хотите удалить тариф с ID ${id}? Это действие необратимо.`)) {
-                toggleButtonLoading(deleteBtn, true, 'Удалить', 'Удаление...');
                 try {
                     const { error } = await supabase.from('tariffs').delete().eq('id', id);
                     if (error) throw error;
-                    await loadTariffs();
-                    showToast('Тариф успешно удален', 'success');
+                    alert('Тариф успешно удален.');
+                    loadTariffs();
                 } catch (err) {
-                    showToast('Ошибка удаления: ' + err.message, 'error');
-                } finally {
-                    toggleButtonLoading(deleteBtn, false, 'Удалить');
+                    alert('Ошибка удаления: ' + err.message);
                 }
             }
         }
@@ -999,7 +897,7 @@ clientsTableBody.addEventListener('click', async (e) => {
         // 1. Load Bike Stats
         const metricsContainer = document.getElementById('dashboard-metrics');
         if (metricsContainer) {
-            const loadingOverlay = showLoadingOverlay(metricsContainer, 'Загрузка метрик...');
+            metricsContainer.innerHTML = '<p>Загрузка метрик...</p>';
             try {
                 const { data, error } = await supabase.from('bikes').select('status');
                 if (error) throw error;
@@ -1015,56 +913,26 @@ clientsTableBody.addEventListener('click', async (e) => {
                 const in_service = stats.in_service || 0;
 
                 metricsContainer.innerHTML = `
-                    <div class="card fade-in">
-                        <div class="text-content">
-                            <strong class="text-xl">${total}</strong>
-                            <span>Всего велосипедов</span>
-                        </div>
-                    </div>
-                    <div class="card success fade-in">
-                        <div class="text-content">
-                            <strong class="text-xl">${available}</strong>
-                            <span>Свободно</span>
-                        </div>
-                    </div>
-                    <div class="card warning fade-in">
-                        <div class="text-content">
-                            <strong class="text-xl">${rented}</strong>
-                            <span>В аренде</span>
-                        </div>
-                    </div>
-                    <div class="card error fade-in">
-                        <div class="text-content">
-                            <strong class="text-xl">${in_service}</strong>
-                            <span>В ремонте</span>
-                        </div>
-                    </div>
+                    <div class="card"><div class="text-content"><span>Всего велосипедов</span><strong>${total}</strong></div></div>
+                    <div class="card"><div class="text-content"><span>Свободно</span><strong>${available}</strong></div></div>
+                    <div class="card"><div class="text-content"><span>В аренде</span><strong>${rented}</strong></div></div>
+                    <div class="card"><div class="text-content"><span>В ремонте</span><strong>${in_service}</strong></div></div>
                 `;
-                hideLoadingOverlay(metricsContainer);
             } catch (err) {
-                hideLoadingOverlay(metricsContainer);
-                metricsContainer.innerHTML = `<div class="card error"><div class="text-content"><strong>Ошибка загрузки</strong><span>Не удалось загрузить статистику</span></div></div>`;
-                showToast('Ошибка загрузки статистики велосипедов', 'error');
+                metricsContainer.innerHTML = `<p>Ошибка загрузки статистики велосипедов: ${err.message}</p>`;
             }
         }
 
         // 2. Load Payments for Chart
-        const chartContainer = document.querySelector('.chart-container');
-        if (chartContainer) {
-            const chartLoading = showLoadingOverlay(chartContainer, 'Загрузка графика...');
-            try {
-                const { data, error } = await supabase
-                    .from('payments')
-                    .select('created_at, amount_rub, status')
-                    .order('created_at', { ascending: false });
-                if (error) throw error;
-                renderPaymentsChart(data);
-                hideLoadingOverlay(chartContainer);
-            } catch (err) {
-                hideLoadingOverlay(chartContainer);
-                console.error('Ошибка загрузки данных для графика платежей:', err);
-                showToast('Ошибка загрузки данных графика', 'error');
-            }
+        try {
+            const { data, error } = await supabase
+                .from('payments')
+                .select('created_at, amount_rub, status')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            renderPaymentsChart(data);
+        } catch (err) {
+            console.error('Ошибка загрузки данных для графика платежей:', err);
         }
     }
 
