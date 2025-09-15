@@ -1,0 +1,34 @@
+:root {
+  /* Height of the bottom area that visually blends into the bottom nav */
+  --bg-bleed-height: calc(180px + var(--safe-bottom, 0px));
+}
+
+/* Blend page background with bottom nav color near the bottom of the viewport */
+body {
+  /* Keep existing background-color from your base styles; layer a gradient on top */
+  /* Smooth blend across the last --bg-bleed-height pixels */
+  background-image: linear-gradient(
+    to bottom,
+    var(--tg-theme-bg-color, #ffffff) 0%,
+    var(--tg-theme-bg-color, #ffffff) calc(100% - var(--bg-bleed-height)),
+    var(--light-green-nav, #d4f7eb) 100%
+  );
+  /* Remove horizontal body padding to avoid side gutters */
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Remove outer card/frame so background blends seamlessly */
+.app-screen {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  max-width: 100% !important; /* full width on desktop too */
+}
+
+/* Keep original bottom nav styling from style.css (no overrides here) */
+
+@media (max-width: 380px) {
+  :root { --bg-bleed-height: calc(90px + var(--safe-bottom, 0px)); }
+}

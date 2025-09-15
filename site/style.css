@@ -21,7 +21,7 @@
 
 body {
   font-family: 'Inter', sans-serif;
-  background-color: var(--tg-theme-bg-color, var(--primary-green)); /* Синхронизация с Telegram-темой */
+  background-color: var(--tg-theme-bg-color, #ffffff); /* Синхронизация с Telegram-темой */
   display: flex;
   justify-content: center;
   align-items: stretch; /* Растягиваем по вертикали, чтобы приложение могло упираться в низ */
@@ -1513,6 +1513,7 @@ select.form-control:focus {
 
   body {
     padding: 20px 0; /* Возвращаем отступы для красивого вида на ПК */
+    align-items: center; /* Возвращаем центрирование для десктопа */
   }
 }
 
