@@ -152,45 +152,19 @@ body {
   border-radius: var(--admin-radius-sm);
 }
 
-/* Navigation Icons */
-#admin-nav button[data-section="dashboard-main"]::before {
-  content: '📊';
-  font-size: 1.1rem;
+/* Navigation Icons - Using geometric symbols instead of emojis */
+.nav-icon {
+  font-weight: bold;
+  color: var(--admin-text-secondary);
+  transition: var(--admin-transition-fast);
 }
 
-#admin-nav button[data-section="assignments"]::before {
-  content: '📋';
-  font-size: 1.1rem;
+#admin-nav button.active .nav-icon {
+  color: white;
 }
 
-#admin-nav button[data-section="tariffs"]::before {
-  content: '💰';
-  font-size: 1.1rem;
-}
-
-#admin-nav button[data-section="clients"]::before {
-  content: '👥';
-  font-size: 1.1rem;
-}
-
-#admin-nav button[data-section="rentals"]::before {
-  content: '🚲';
-  font-size: 1.1rem;
-}
-
-#admin-nav button[data-section="payments"]::before {
-  content: '💳';
-  font-size: 1.1rem;
-}
-
-#admin-nav button[data-section="bikes"]::before {
-  content: '🔧';
-  font-size: 1.1rem;
-}
-
-#admin-nav button[data-section="templates"]::before {
-  content: '📄';
-  font-size: 1.1rem;
+#admin-nav button:hover .nav-icon {
+  color: var(--admin-text);
 }
 
 /* Navigation with structured icons */
@@ -1185,7 +1159,8 @@ select:invalid + .form-error {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: bold;
 }
 
 .toast.success .toast-icon { background: var(--admin-success); color: white; }

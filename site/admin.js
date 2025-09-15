@@ -139,15 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const toast = document.createElement('div');
         toast.className = `toast ${type} fade-in`;
 
-        const icons = {
-            success: '✓',
-            error: '✕',
-            warning: '⚠',
-            info: 'ℹ'
-        };
-
         toast.innerHTML = `
-            <div class="toast-icon">${icons[type] || icons.info}</div>
             <div class="toast-content">${message}</div>
             <button class="toast-close" aria-label="Закрыть">&times;</button>
         `;
@@ -1024,28 +1016,24 @@ clientsTableBody.addEventListener('click', async (e) => {
 
                 metricsContainer.innerHTML = `
                     <div class="card fade-in">
-                        <div class="icon-wrapper">🚲</div>
                         <div class="text-content">
                             <strong class="text-xl">${total}</strong>
                             <span>Всего велосипедов</span>
                         </div>
                     </div>
                     <div class="card success fade-in">
-                        <div class="icon-wrapper">✅</div>
                         <div class="text-content">
                             <strong class="text-xl">${available}</strong>
                             <span>Свободно</span>
                         </div>
                     </div>
                     <div class="card warning fade-in">
-                        <div class="icon-wrapper">🔄</div>
                         <div class="text-content">
                             <strong class="text-xl">${rented}</strong>
                             <span>В аренде</span>
                         </div>
                     </div>
                     <div class="card error fade-in">
-                        <div class="icon-wrapper">🔧</div>
                         <div class="text-content">
                             <strong class="text-xl">${in_service}</strong>
                             <span>В ремонте</span>
