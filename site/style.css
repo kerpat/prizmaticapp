@@ -28,17 +28,16 @@ body {
 }
 
 .app-screen {
-  width: 100%; /* ПО БОКАМ: Полный размер экрана, без max-width для заполнения */
-  max-width: 420px; /* Ограничение только для больших экранов, но в Telegram — полный */
+  width: 100%;
+  max-width: 420px;
   background-color: var(--tg-theme-secondary-bg-color, var(--white));
-  border-radius: 25px; /* Скругление для стиля, но не мешает */
+  border-radius: 25px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-  height: 80vh; /* ТОП И НИЗ: Не на весь экран, отступы сверху/снизу */
-  max-height: 700px; /* Ограничение высоты */
+  height: 100vh; /* Полная высота экрана */
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  margin: auto; /* Центрирование */
+  margin: auto;
 }
 
 .app-content, .map-page-container {
