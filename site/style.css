@@ -1473,11 +1473,11 @@ select.form-control:focus {
   body {
     min-height: auto; /* Убираем центрирование по вертикали на мобильных */
     height: 100vh; /* Занимаем всю высоту экрана */
-    padding: 0px 5px 0px 5px; /* Убираем верхний и нижний отступы */
+    padding: var(--tg-content-safe-area-inset-top, 0px) 5px 0px 5px; /* Используем content safe area для верха, убираем нижний */
   }
   .app-screen {
     border-radius: 0px; /* Убираем скругление для полного экрана */
-    height: 100vh; /* Полная высота экрана */
+    height: var(--tg-viewport-stable-height, 100vh); /* Стабильная высота viewport из Telegram */
     max-height: none; /* Убираем ограничение высоты */
   }
   .app-content {
