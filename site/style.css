@@ -8,7 +8,8 @@
   --white: #ffffff;
   --progress-bar-bg: #eaf0f0;
   /* Layout helpers */
-  --app-top-offset: calc(25px + var(--tg-safe-area-inset-top, 0px));
+  /* Используем content-safe inset от Telegram, чтобы контент начинался под кнопками Close/⋯ */
+  --app-top-offset: calc(10px + var(--tg-content-safe-area-inset-top, var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px))));
   --safe-bottom: var(--tg-content-safe-area-inset-bottom, var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
 }
 
@@ -1479,7 +1480,7 @@ select.form-control:focus {
   body {
     min-height: auto; /* Убираем центрирование по вертикали на мобильных */
     height: 100vh; /* Занимаем всю высоту экрана */
-    padding: var(--tg-content-safe-area-inset-top, 0px) 5px 0px 5px; /* Используем content safe area для верха, убираем нижний */
+    padding: var(--app-top-offset) 5px 0px 5px; /* Стартуем ниже TG‑хедера, без нижнего отступа */
   }
   .app-screen {
     border-radius: 0px; /* Убираем скругление для полного экрана */
