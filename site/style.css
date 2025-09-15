@@ -1034,6 +1034,7 @@ body.tg-webapp .app-main h2,
   color: var(--dark-green);
   font-family: 'Inter', sans-serif;
   transition: all 0.2s ease;
+  appearance: textfield;
   -moz-appearance: textfield;
 }
 
@@ -1511,21 +1512,20 @@ select.form-control:focus {
     margin-left: -14%; /* Сдвигаем влево на половину от добавленной ширины (28% / 2 = 14%) */
   }
 }
-  .app-screen {
-    border-radius: 0px; /* Убираем скругление для полного экрана */
-    height: var(--tg-viewport-stable-height, 100vh); /* Стабильная высота viewport из Telegram */
-    max-height: none; /* Убираем ограничение высоты */
-    max-width: 100%; /* Занимаем всю ширину на мобильных */
-  }
-  .app-content {
-    padding: 20px;
-  }
-  .bottom-nav {
-    margin: 0; /* Убираем отступы у нижнего меню, чтобы приклеить к низу */
-    margin-bottom: 0;
-    padding: 6px; /* Минимальный внутренний отступ */
-    padding-bottom: calc(6px + var(--safe-bottom));
-  }
+.app-screen {
+  border-radius: 0px; /* Убираем скругление для полного экрана */
+  height: var(--tg-viewport-stable-height, 100vh); /* Стабильная высота viewport из Telegram */
+  max-height: none; /* Убираем ограничение высоты */
+  max-width: 100%; /* Занимаем всю ширину на мобильных */
+}
+.app-content {
+  padding: 20px;
+}
+.bottom-nav {
+  margin: 0; /* Убираем отступы у нижнего меню, чтобы приклеить к низу */
+  margin-bottom: 0;
+  padding: 6px; /* Минимальный внутренний отступ */
+  padding-bottom: calc(6px + var(--safe-bottom));
 }
 
 @media (min-height: 850px) and (min-width: 420px) {
