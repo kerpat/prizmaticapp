@@ -1472,7 +1472,7 @@ select.form-control:focus {
 @media (max-width: 380px) {
   .app-screen {
     border-radius: 20px;
-    height: 100vh; /* Занимаем весь экран по высоте на мобильных */
+    height: var(--tg-viewport-height, 100vh); /* Используем viewport height из Telegram для точного размера */
   }
   body {
     padding: calc(20px + var(--tg-safe-area-inset-top, 0px)) 5px 0px 5px; /* Сохраняем верхний отступ для Telegram элементов, убираем нижний */
@@ -1483,7 +1483,7 @@ select.form-control:focus {
   .bottom-nav {
     margin: 0; /* Убираем отступы у нижнего меню, чтобы приклеить к низу */
     margin-bottom: 0;
-    padding: 8px; /* Уменьшаем внутренний отступ для меньшего пространства */
+    padding: 6px; /* Минимальный внутренний отступ */
   }
 }
 
