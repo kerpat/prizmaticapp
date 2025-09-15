@@ -1073,3 +1073,35 @@ select.form-control:focus {
 .action-card .icon-wrapper {
     background-color: var(--icon-green);
 }
+body {
+    /* Добавляем эти переменные, чтобы CSS знал о безопасных зонах */
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.app-screen {
+    /* Главный экран приложения теперь будет учитывать отступы */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    
+    /* ИСПРАВЛЕНИЕ ВЫСОТЫ! Это решит проблему с обрезанием на коротких экранах */
+    height: 100%; /* Занимает 100% высоты body */
+    max-height: 100vh; /* Ограничиваем максимальную высоту экраном */
+    border-radius: 0; /* На мобильных устройствах скруглять не нужно, они и так скруглены */
+}
+
+@media (min-width: 421px) {
+  /* Возвращаем скругление и отступы для экранов больше мобильных (планшеты, десктоп) */
+  .app-screen {
+    border-radius: 40px;
+    height: 100vh;
+    max-height: 850px;
+  }
+}
+
+.bottom-nav {
+    /* Добавляем отступ снизу для навигации, чтобы она не прилипала к краю */
+    margin-bottom: env(safe-area-inset-bottom);
+}
