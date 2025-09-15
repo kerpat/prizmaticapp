@@ -3,19 +3,14 @@
   --bg-bleed-height: calc(180px + var(--safe-bottom, 0px));
 }
 
-/* Blend page background with bottom nav color near the bottom of the viewport */
+/* No global gradient — keep base background as in style.css */
 body {
-  /* Keep existing background-color from your base styles; layer a gradient on top */
-  /* Smooth blend across the last --bg-bleed-height pixels */
-  background-image: linear-gradient(
-    to bottom,
-    var(--tg-theme-bg-color, #ffffff) 0%,
-    var(--tg-theme-bg-color, #ffffff) calc(100% - var(--bg-bleed-height)),
-    var(--light-green-nav, #d4f7eb) 100%
-  );
-  /* Remove horizontal body padding to avoid side gutters */
-  padding-left: 0 !important;
-  padding-right: 0 !important;
+  background-image: none !important;
+}
+
+/* Hide header title until branding script sets final text */
+html:not(.brand-ready) .app-header h1 {
+  visibility: hidden;
 }
 
 /* Remove outer card/frame so background blends seamlessly */
