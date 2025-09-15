@@ -17,7 +17,8 @@
       const header = document.querySelector('.app-header');
       const h1 = document.querySelector('.app-header h1');
       if (header) header.classList.add('header-centered');
-      if (h1) h1.textContent = 'Привет!';
+      // Brand-only title in Telegram mode
+      if (h1) h1.textContent = 'PRIZMATIC';
 
       const h2 = document.querySelector('.app-main h2');
       if (h2) {
@@ -35,4 +36,3 @@
     }
   });
 })();
-
