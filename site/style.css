@@ -18,25 +18,18 @@ body {
     height: 100vh;
     margin: 0;
 }
-/* --- НОВЫЙ, ПРАВИЛЬНЫЙ КОД ДЛЯ TELEGRAM WEB APP --- */
 .app-screen {
     position: relative;
     width: 100%;
+    max-width: 420px;
     background-color: var(--white);
+    height: var(--tg-viewport-stable-height, 100vh);
+    max-height: 850px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    
-    /* --- ГЛАВНОЕ ИЗМЕНЕНИЕ --- */
-    /* Используем переменную из Telegram Web App API. 
-       Она автоматически подставит правильную высоту, 
-       учитывая верхние и нижние панели Telegram. */
-    height: var(--tg-viewport-stable-height, 100vh);
-    
-    /* Убираем старые ограничения, они больше не нужны */
-    min-height: auto;
-    max-height: none;
-    border-radius: 0; /* В TWA скругления по краям не нужны */
+    border-radius: 40px;
 }
 .app-content, .map-page-container { flex-grow: 1; display: flex; flex-direction: column; padding: 28px; gap: 20px; overflow-y: auto; }
 
