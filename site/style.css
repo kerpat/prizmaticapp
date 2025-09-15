@@ -83,6 +83,18 @@ body.tg-webapp .app-main h2,
   transition: opacity 0.3s ease-in-out; /* Добавлено */
 }
 
+/* Make the main hero bike photo larger on the home screen */
+#main-bike-image {
+  max-width: none;
+  width: 120%;
+  margin-left: -10%; /* keep image centered while overflowing a bit */
+}
+
+@media (max-width: 360px) {
+#main-bike-image { width: 112%; margin-left: -6%; }
+}
+
+
 /* Контейнер для изображения велосипеда и динамической подписи. Делаем его позиционированным, чтобы можно было располагать текст поверх картинки. */
 .bike-image-wrapper {
   position: relative;
