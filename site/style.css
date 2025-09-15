@@ -20,24 +20,25 @@ body {
   background-color: var(--tg-theme-bg-color, var(--primary-green)); /* Синхронизация с Telegram-темой */
   display: flex;
   justify-content: center;
-  align-items: center; /* Центрирование по вертикали, чтобы отступы сверху/снизу были равными */
+  align-items: flex-start; /* Изменено с center на flex-start, чтобы верхний отступ работал корректно */
   min-height: 100vh;
   margin: 0;
-  padding: calc(25px + var(--tg-safe-area-inset-top, 0px)) 10px calc(25px + var(--tg-safe-area-inset-bottom, 0px)); /* ТОП И НИЗ: Отступы сверху/снизу, ПО БОКАМ: Маленький padding, чтобы не прилипало, но полный размер */
-  overflow-x: hidden; /* ЗАПРЕТ ГОРИЗОНТАЛЬНОГО СКРОЛЛА: Нет мота влево-вправо, всё ровненько */
+  padding: calc(25px + var(--tg-safe-area-inset-top, 0px)) 10px calc(25px + var(--tg-safe-area-inset-bottom, 0px)); /* Сохранение идеального верхнего отступа */
+  overflow-x: hidden; /* ЗАПРЕТ ГОРИЗОНТАЛЬНОГО СКРОЛЛА */
 }
 
 .app-screen {
-  width: 100%;
-  max-width: 420px;
+  width: 100%; /* Полный размер экрана по ширине */
+  max-width: 420px; /* Ограничение для больших экранов */
   background-color: var(--tg-theme-secondary-bg-color, var(--white));
-  border-radius: 25px;
+  border-radius: 25px; /* Сохранение скруглений */
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-  height: 100vh; /* Полная высота экрана */
+  min-height: 0; /* Убираем фиксированную высоту, чтобы адаптировался */
+  flex: 1 1 auto; /* Позволяет растягиваться и сжиматься */
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  margin: auto;
+  margin: 0 auto; /* Центрирование */
 }
 
 .app-content, .map-page-container {
@@ -47,7 +48,7 @@ body {
   padding: 28px;
   gap: 20px;
   overflow-y: auto;
-  overflow-x: hidden; /* Дополнительно: Нет горизонтального скролла внутри */
+  overflow-x: hidden; /* Нет горизонтального скролла внутри */
 }
 
 /* Общие стили */
@@ -70,15 +71,14 @@ body {
   transition: opacity 0.3s ease-in-out; /* Добавлено */
 }
 
-/* Контейнер для изображения велосипеда и динамической подписи. Делаем его позиционированным, чтобы можно было располагать текст поверх картинки. */
+/* Контейнер для изображения велосипеда и динамической подписи */
 .bike-image-wrapper {
   position: relative;
 }
 
-/* Стилизуем подпись на багажнике велосипеда. Этот блок отображает либо номер велосипеда, либо выбранный тариф (Бронза, Серебро, Золото). */
+/* Стилизуем подпись на багажнике велосипеда */
 .bike-label {
   position: absolute;
-  /* Располагаем текст примерно в левом верхнем углу багажника */
   top: 12px;
   left: 20px;
   padding: 2px 8px;
@@ -88,7 +88,7 @@ body {
   font-size: 0.85rem;
   font-weight: 700;
   line-height: 1.2;
-  pointer-events: none; /* чтобы клики проходили сквозь */
+  pointer-events: none;
 }
 
 .progress-section {
@@ -107,7 +107,7 @@ body {
   height: 100%;
   background-color: var(--dark-green);
   border-radius: 10px;
-  transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* Добавлено для плавности */
+  transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .progress-labels {
@@ -130,7 +130,7 @@ body {
 .info-cards {
   display: flex;
   gap: 15px;
-  margin-top: 15px; /* Добавлено */
+  margin-top: 15px;
 }
 
 .card {
@@ -141,7 +141,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease; /* Добавлено */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .card:hover {
@@ -201,7 +201,7 @@ body {
   font-weight: 600;
   cursor: pointer;
   border: none;
-  transition: transform 0.2s ease, opacity 0.2s ease; /* Добавлено */
+  transition: transform 0.2s ease, opacity 0.2s ease;
   padding: 20px 10px;
 }
 
@@ -210,7 +210,7 @@ body {
 }
 
 .btn:active {
-  transform: scale(0.97); /* Легкое нажатие */
+  transform: scale(0.97);
 }
 
 .btn-primary {
@@ -327,7 +327,7 @@ body {
 }
 
 .history-icon-wrapper.topup {
-  background-color: #23a2f5; /* Синий цвет для пополнений */
+  background-color: #23a2f5;
 }
 
 .history-icon-wrapper svg {
@@ -835,7 +835,7 @@ body {
   padding: 25px;
   border-radius: 24px;
   width: 90%;
-  max-width: 380px; /* Вернули ближе к оригиналу, но с отступами */
+  max-width: 380px;
   text-align: center;
   position: relative;
   transform: scale(1);
@@ -926,7 +926,7 @@ body {
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
-  max-width: 400px; /* Вернули оригинал, полный размер */
+  max-width: 400px;
   background-color: var(--dark-green);
   color: var(--white);
   display: flex;
@@ -947,7 +947,7 @@ body {
 }
 
 .toast-container.toast-success {
-  background-color: var(--icon-green); /* Используем фирменный зеленый цвет */
+  background-color: var(--icon-green);
 }
 
 .toast-message {
@@ -1026,7 +1026,7 @@ body {
 }
 
 .btn-sbp svg {
-  width: 85px; /* Размер логотипа */
+  width: 85px;
   height: auto;
 }
 
@@ -1038,8 +1038,8 @@ body {
 /* === СТИЛИ ДЛЯ ТЕКСТА-ДИСКЛЕЙМЕРА В МОДАЛКЕ === */
 .disclaimer-text {
   font-size: 0.8rem;
-  color: #889996; /* Слегка приглушенный цвет */
-  margin-top: -5px; /* Чуть ближе к блоку "Цена/Срок" */
+  color: #889996;
+  margin-top: -5px;
   margin-bottom: 20px;
   text-align: center;
   line-height: 1.4;
@@ -1111,16 +1111,14 @@ body {
 
 /* Специальный отступ для списка тарифов Prizmatic */
 #tariff-modal .bike-list {
-  margin-bottom: 40px; /* Увеличиваем нижний отступ списка тарифов */
+  margin-bottom: 40px;
 }
 
 #tariff-modal .disclaimer-text {
-  margin-top: 0; /* Убираем верхний отступ для текста с условиями */
+  margin-top: 0;
 }
 
 /* ===== СТИЛИ ДЛЯ ЭКРАНА ВЕРИФИКАЦИИ ===== */
-
-/* Добавляем класс для центрирования заголовка */
 .header-centered {
   text-align: center;
 }
@@ -1173,10 +1171,9 @@ body {
   color: #556f6b;
 }
 
-/* Ключевое изменение: сетка действий */
 .actions-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr; /* Всегда 2 колонки */
+  grid-template-columns: 1fr 1fr;
   gap: 15px;
   width: 100%;
 }
@@ -1184,17 +1181,17 @@ body {
 .action-card {
   background-color: var(--card-bg);
   border-radius: 20px;
-  padding: 15px; /* Уменьшаем паддинг для компактности */
+  padding: 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center; /* Центрируем контент */
+  justify-content: center;
   gap: 10px;
   font-weight: 600;
   color: var(--dark-green);
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  aspect-ratio: 1 / 0.8; /* Делаем карточки пропорциональными */
+  aspect-ratio: 1 / 0.8;
 }
 
 .action-card:hover {
@@ -1207,8 +1204,6 @@ body {
 }
 
 /* ===== НОВЫЕ СТИЛИ ДЛЯ КРАСИВОЙ ФОРМЫ РЕГИСТРАЦИИ ===== */
-
-/* 1. Стилизация выпадающих списков (select) */
 select.form-control {
   width: 100%;
   padding: 16px;
@@ -1219,10 +1214,9 @@ select.form-control {
   color: var(--dark-green);
   font-family: 'Inter', sans-serif;
   transition: all 0.2s ease;
-  -webkit-appearance: none; /* Убираем стандартную стрелку в Chrome/Safari */
-  -moz-appearance: none;    /* Убираем стандартную стрелку в Firefox */
-  appearance: none;         /* Убираем стандартную стрелку в современных браузерах */
-  /* Добавляем свою кастомную стрелку */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23083830' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 16px center;
@@ -1236,7 +1230,6 @@ select.form-control:focus {
   background-color: var(--white);
 }
 
-/* 2. Стилизация кнопок выбора файла (input[type="file"]) */
 .file-upload-wrapper {
   position: relative;
   display: flex;
@@ -1261,7 +1254,6 @@ select.form-control:focus {
 }
 
 .file-upload-input {
-  /* Полностью прячем стандартный инпут */
   display: none;
 }
 
@@ -1274,7 +1266,6 @@ select.form-control:focus {
   text-overflow: ellipsis;
 }
 
-/* 3. Стилизация чекбокса */
 .custom-checkbox {
   display: flex;
   align-items: center;
@@ -1283,7 +1274,7 @@ select.form-control:focus {
 }
 
 .custom-checkbox input[type="checkbox"] {
-  display: none; /* Прячем стандартный чекбокс */
+  display: none;
 }
 
 .custom-checkbox .checkbox-visual {
@@ -1299,7 +1290,6 @@ select.form-control:focus {
   flex-shrink: 0;
 }
 
-/* Галочка внутри чекбокса (появляется при выборе) */
 .custom-checkbox .checkbox-visual::after {
   content: '';
   position: absolute;
@@ -1314,7 +1304,6 @@ select.form-control:focus {
   transition: opacity 0.2s ease;
 }
 
-/* Стили для выбранного состояния */
 .custom-checkbox input[type="checkbox"]:checked + .checkbox-visual {
   background-color: var(--icon-green);
   border-color: var(--icon-green);
@@ -1324,7 +1313,6 @@ select.form-control:focus {
   opacity: 1;
 }
 
-/* 4. Более красивый разделитель */
 .form-separator {
   text-align: center;
   color: #a0b5b1;
@@ -1341,7 +1329,7 @@ select.form-control:focus {
   display: inline-block;
 }
 
-/* ------------------------------------------------------------------ Prizmatic Main Menu Overlay При выборе провайдера Prizmatic отображается полноэкранное меню‑оверлей. Оно фиксируется поверх всего контента, затемняет фон и размывает его, а само меню выезжает снизу. Используются существующие переменные для цветов, чтобы сохранить фирменный стиль. Кнопки имеют два состояния: primary (главная — «Тарифы Prizmatic») и secondary для остальных действий. Активное нажатие смещает элемент на пару пикселей вниз, создавая ощущение нажатия. */
+/* ------------------------------------------------------------------ Prizmatic Main Menu Overlay */
 .menu-overlay {
   position: fixed;
   top: 0;
@@ -1363,7 +1351,7 @@ select.form-control:focus {
 
 .menu-container {
   width: 100%;
-  max-width: 420px; /* Вернули полный размер */
+  max-width: 420px;
   background: var(--white);
   border-radius: 30px 30px 0 0;
   padding: 24px;
@@ -1454,7 +1442,7 @@ select.form-control:focus {
 
 /* Плавное исчезновение/появление главного изображения */
 .bike-image.fade-out {
-  opacity: 0; /* Вспомогательный класс для JS */
+  opacity: 0;
 }
 
 /* Текст-соглашение в модальном окне аренды */
@@ -1467,13 +1455,13 @@ select.form-control:focus {
   line-height: 1.4;
 }
 
-/* Media для компактных экранов (Telegram на маленьких девайсах) */
+/* Media для компактных экранов */
 @media (max-width: 380px) {
   .app-screen {
     border-radius: 20px;
   }
   body {
-    padding: 20px 5px; /* Ещё меньше боковых отступов на маленьких экранах */
+    padding: 20px 5px;
   }
   .app-content {
     padding: 20px;
@@ -1482,16 +1470,14 @@ select.form-control:focus {
 
 @media (min-height: 850px) and (min-width: 420px) {
   .app-screen {
-    height: 850px; /* Фиксированная высота для больших экранов */
+    height: 850px;
   }
-
   body {
-    padding: 20px 0; /* Возвращаем отступы для красивого вида на ПК */
+    padding: 20px 0;
   }
 }
 
 @media (min-width: 421px) {
-  /* Для экранов больше мобильных (планшеты, десктоп) — возвращаем оригинал */
   .app-screen {
     height: 100vh;
     max-height: 850px;
