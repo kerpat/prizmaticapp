@@ -1468,14 +1468,17 @@ select.form-control:focus {
   line-height: 1.4;
 }
 
-/* Media для компактных экранов (Telegram на маленьких девайсах) */
+/* Media для компактных экранов (мобильные браузеры) */
 @media (max-width: 380px) {
-  .app-screen {
-    border-radius: 20px;
-    height: var(--tg-viewport-height, 100vh); /* Используем viewport height из Telegram для точного размера */
-  }
   body {
-    padding: calc(20px + var(--tg-safe-area-inset-top, 0px)) 5px 0px 5px; /* Сохраняем верхний отступ для Telegram элементов, убираем нижний */
+    min-height: auto; /* Убираем центрирование по вертикали на мобильных */
+    height: 100vh; /* Занимаем всю высоту экрана */
+    padding: 0px 5px 0px 5px; /* Убираем верхний и нижний отступы */
+  }
+  .app-screen {
+    border-radius: 0px; /* Убираем скругление для полного экрана */
+    height: 100vh; /* Полная высота экрана */
+    max-height: none; /* Убираем ограничение высоты */
   }
   .app-content {
     padding: 20px;
