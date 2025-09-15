@@ -607,6 +607,7 @@ body.tg-webapp .app-main h2,
 }
 
 /* Общая навигация */
+/* Общая навигация */
 .bottom-nav {
   background-color: var(--light-green-nav);
   border-radius: 25px;
@@ -614,17 +615,24 @@ body.tg-webapp .app-main h2,
   display: flex;
   justify-content: space-around;
   align-items: center;
-  margin: 20px;
   flex-shrink: 0;
   position: fixed;
-  bottom: 0;
-  left: 50%;
-  right: auto;
-  transform: translateX(-50%);
-  width: calc(100% - 40px);
-  max-width: calc(420px - 40px);
   z-index: 12;
-  /* Внутренне учитываем безопасную зону, чтобы элемент был внизу без внешнего зазора */
+
+  /* === ИСПРАВЛЕНИЕ: Надёжное центрирование === */
+  /* Привязываем к краям экрана с отступом в 20px */
+  left: 20px;
+  right: 20px;
+  bottom: 20px;
+  /* Ширина определяется автоматически на основе привязки к краям */
+  width: auto; 
+  /* Задаем максимальную ширину для больших экранов */
+  max-width: calc(420px - 40px);
+  /* Автоматические отступы слева и справа центрируют элемент */
+  margin-left: auto;
+  margin-right: auto;
+  
+  /* Сохраняем исходный отступ для безопасной зоны снизу */
   padding-bottom: calc(12px + var(--safe-bottom));
 }
 
