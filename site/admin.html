@@ -68,14 +68,15 @@
         </div>
         
         <div class="info-cards" id="dashboard-metrics">
-          <!-- Bike stats will be loaded here by JS -->
+           <!-- Bike stats will be loaded here by JS -->
         </div>
 
-        <h3>Доход по дням, ₽</h3>
-        <div class="chart-container">
+        <h3 style="margin-top: 30px;">Доход по дням, ₽</h3>
+        <div class="chart-container" style="margin-top: 20px;">
             <canvas id="payments-chart"></canvas>
         </div>
-        <h3 style="margin-top: 30px;">История платежей</h3>
+        <h3 style="margin-top: 30px;">Доход за неделю</h3>
+        <div id="weekly-income" style="margin-top: 20px; font-size: 1.2rem; font-weight: 600;">Загрузка...</div>
       </section>
 
       <!-- Assignments -->
@@ -265,7 +266,6 @@
             <th>Теги</th>
             <th>Создан</th>
             <th>Просмотр</th>
-            <th>Ред.</th>
             <th>Вер.</th>
             <th>Дейст.</th>
           </tr>

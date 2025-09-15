@@ -233,6 +233,17 @@ input:focus, textarea:focus, select:focus, .form-control:focus {
 #client-info-content .info-row { margin-bottom: 10px; font-size: .95rem; color: var(--text); display: flex; flex-wrap: wrap; gap: 6px; }
 #client-info-content .info-row strong { font-weight: 700; }
 
+#recognized-data-container {
+  background: var(--surface-2);
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+#client-info-content h4 {
+  margin-bottom: 12px;
+}
+
 /* Recognized data editor */
 #recognized-data-container { margin-bottom: 14px; }
 #recognized-display .info-row { margin-bottom: 8px; display: grid; grid-template-columns: 220px 1fr; gap: 8px; }

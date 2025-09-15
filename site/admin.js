@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const paymentsSection = document.getElementById('payments-section');
     const bikesSection = document.getElementById('bikes-section');
     const assignmentsSection = document.getElementById('assignments-section');
-    // duplicate removed: const templatesSection
+    const templatesSection = document.getElementById('templates-section');
 
     // Tariff elements
     const tariffTableBody = document.querySelector('#tariffs-table tbody');
@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tariffCancelBtn = document.getElementById('tariff-cancel-btn');
     const extensionsList = document.getElementById('extensions-list');
     const addExtensionBtn = document.getElementById('add-extension-btn');
+    const contractTemplateSelect = document.getElementById('contract-template-select');
 
     // Client elements
     const clientsTableBody = document.querySelector('#clients-table tbody');
@@ -59,7 +60,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // keep last caret position inside template editor
     let lastSelRange = null;
     const exportBtn = document.getElementById('export-clients-btn');
-    const contractTemplateSelect = document.getElementById('contract-template-select');
 
     // Bike elements
     const bikesTableBody = document.querySelector('#bikes-table tbody');
@@ -90,17 +90,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const invoiceDescriptionInput = document.getElementById('invoice-description');
 
     // Templates elements
-    // duplicate removed: const templatesTableBody
-    // duplicate removed: const templateNewBtn
-    // duplicate removed: const templateSaveBtn
-    // duplicate removed: const templateIdInput
-    // duplicate removed: const templateNameInput
-    // duplicate removed: const templateActiveCheckbox
-    // duplicate removed: const templateEditor
+    const templatesTableBody = document.querySelector('#templates-table tbody');
+    const templateNewBtn = document.getElementById('template-new-btn');
+    const templateSaveBtn = document.getElementById('template-save-btn');
+    const templateIdInput = document.getElementById('template-id');
+    const templateNameInput = document.getElementById('template-name');
+    const templateActiveCheckbox = document.getElementById('template-active');
+    const templateEditor = document.getElementById('template-editor');
     const chipsClient = document.getElementById('chips-client');
     const chipsTariff = document.getElementById('chips-tariff');
     const chipsRental = document.getElementById('chips-rental');
     const chipsAux = document.getElementById('chips-aux');
+    const editorToolbar = document.querySelector('.editor-toolbar');
 
     // --- State Variables ---
     let clientsData = []; // Кэш данных клиентов для просмотра/редактирования
@@ -191,22 +192,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Toggle edit/view
             currentEditingId = client.id;
             currentEditingExtra = client.extra || {};
-            if (clientInfoEditToggle) {
-                clientInfoEditToggle.onclick = () => {
-                    const editing = !recognizedEditForm.classList.contains('hidden');
-                    if (editing) {
-                        recognizedEditForm.classList.add('hidden');
-                        recognizedDisplay.classList.remove('hidden');
-                        clientInfoEditToggle.textContent = 'Редактировать';
-                        if (clientInfoSaveBtn) clientInfoSaveBtn.classList.add('hidden');
-                    } else {
-                        recognizedEditForm.classList.remove('hidden');
-                        recognizedDisplay.classList.add('hidden');
-                        clientInfoEditToggle.textContent = 'Просмотр';
-                        if (clientInfoSaveBtn) clientInfoSaveBtn.classList.remove('hidden');
-                    }
-                };
-            }
             if (clientInfoSaveBtn) {
                 clientInfoSaveBtn.onclick = async () => {
                     const formData = new FormData(recognizedEditForm);
@@ -226,6 +211,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     currentEditingExtra = extraObj;
                     clientInfoEditToggle.click();
+                };
+            }
+
+            // Toggle edit/view functionality
+            if (clientInfoEditToggle) {
+                clientInfoEditToggle.onclick = () => {
+                    const editing = !recognizedEditForm.classList.contains('hidden');
+                    if (editing) {
+                        recognizedEditForm.classList.add('hidden');
+                        recognizedDisplay.classList.remove('hidden');
+                        clientInfoEditToggle.textContent = 'Редактировать';
+                        if (clientInfoSaveBtn) clientInfoSaveBtn.classList.add('hidden');
+                    } else {
+                        recognizedEditForm.classList.remove('hidden');
+                        recognizedDisplay.classList.add('hidden');
+                        clientInfoEditToggle.textContent = 'Просмотр';
+                        if (clientInfoSaveBtn) clientInfoSaveBtn.classList.remove('hidden');
+                    }
                 };
             }
 
@@ -635,7 +638,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Clients Logic ---
 
     async function loadClients() {
-    clientsTableBody.innerHTML = '<tr><td colspan="9">Загрузка клиентов...</td></tr>'; // Increased colspan
+    clientsTableBody.innerHTML = '<tr><td colspan="8">Загрузка клиентов...</td></tr>';
     try {
         const { data, error } = await supabase
             .from('clients')
@@ -647,7 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clientsTableBody.innerHTML = '';
 
         if (clientsData.length === 0) {
-            clientsTableBody.innerHTML = '<tr><td colspan="9">Клиенты не найдены.</td></tr>';
+            clientsTableBody.innerHTML = '<tr><td colspan="8">Клиенты не найдены.</td></tr>';
             return;
         }
 
@@ -677,7 +680,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><div class="chips">${tagsHtml}</div></td>
                 <td>${date}</td>
                 <td><button type="button" class="view-client-btn" data-id="${client.id}">Инфо/Фото</button></td>
-                <td><button type="button" class="edit-client-btn" data-id="${client.id}">Ред. данных</button></td>
                 <td>${verificationButtons}</td>
                 <td><button type="button" class="delete-client-btn btn-danger" data-id="${client.id}" style="background-color:#e53e3e;color:white;">Удалить</button></td>`;
             clientsTableBody.appendChild(tr);
@@ -934,95 +936,45 @@ clientsTableBody.addEventListener('click', async (e) => {
         } catch (err) {
             console.error('Ошибка загрузки данных для графика платежей:', err);
         }
+
+        // 3. Load Weekly Income
+        try {
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            const { data, error } = await supabase
+                .from('payments')
+                .select('amount_rub, status')
+                .gte('created_at', weekAgo.toISOString())
+                .eq('status', 'succeeded');
+            if (error) throw error;
+            const total = (data || []).reduce((sum, p) => sum + (p.amount_rub || 0), 0);
+            const weeklyIncomeDiv = document.getElementById('weekly-income');
+            if (weeklyIncomeDiv) {
+                weeklyIncomeDiv.textContent = `Общий доход: ${total} ₽`;
+            }
+        } catch (err) {
+            console.error('Ошибка загрузки недельного дохода:', err);
+            const weeklyIncomeDiv = document.getElementById('weekly-income');
+            if (weeklyIncomeDiv) {
+                weeklyIncomeDiv.textContent = 'Ошибка загрузки';
+            }
+        }
     }
 
     // --- Client Info/Edit Modals Logic ---
     // --- Client Info/Edit Modals Logic ---
 // --- Client Info/Edit Modals Logic ---
-// --- Client Info/Edit Modals Logic ---
-if (clientsSection) {
-    clientsSection.addEventListener('click', async (e) => {
-        const viewBtn = e.target.closest('.view-client-btn');
-        const editBtn = e.target.closest('.edit-client-btn');
-        if (!viewBtn && !editBtn) return;
 
-        const clientId = viewBtn ? viewBtn.dataset.id : editBtn.dataset.id;
-        const client = clientsData.find(c => c.id == clientId);
-        if (!client) return;
-
-        const recognizedData = client.extra?.recognized_data || {};
-
-        // --- ЛОГИКА ДЛЯ ПРОСМОТРА ИНФОРМАЦИИ И ФОТО ---
-        if (viewBtn) {
-            currentEditingId = client.id; // Set the current client ID
-            const recognizedContainer = document.getElementById('recognized-data-container');
-            const photoLinksDiv = document.getElementById('photo-links');
-
-            if (!clientInfoOverlay || !recognizedContainer || !photoLinksDiv) {
-                console.error('Ошибка: один или несколько элементов модального окна не найдены в HTML.');
-                alert('Ошибка интерфейса: не найдены элементы для отображения информации. Проверьте HTML-структуру.');
-                return;
+    if (clientsSection) {
+        clientsSection.addEventListener('click', async (e) => {
+            const viewBtn = e.target.closest('.view-client-btn');
+            if (viewBtn) {
+                const clientId = viewBtn.dataset.id;
+                await renderClientInfo(clientId);
+                clientInfoOverlay.classList.remove('hidden');
             }
-
-            // Заполняем текстовые данные
-            recognizedContainer.innerHTML = '';
-            if (Object.keys(recognizedData).length > 0) {
-                for (const key in recognizedData) {
-                    recognizedContainer.innerHTML += `<div><strong>${key}:</strong> ${recognizedData[key] || 'Н/Д'}</div>`;
-                }
-            } else {
-                recognizedContainer.innerHTML = '<p>Распознанные данные отсутствуют.</p>';
-            }
-
-            // Показываем оверлей и начинаем загрузку фото
-            photoLinksDiv.innerHTML = 'Загрузка...';
-            clientInfoOverlay.classList.remove('hidden');
-
-            // Запрашиваем и отображаем ссылки на фото
-            try {
-                const { data: files, error } = await supabase.storage.from('passports').list(client.id.toString());
-                if (error) throw error;
-
-                if (!files || files.length === 0) {
-                    photoLinksDiv.innerHTML = '<p>Фото не найдены.</p>';
-                } else {
-                    // ===== ИЗМЕНЕНИЕ ЗДЕСЬ =====
-                    // Вместо текстовой ссылки создаем тег <img>, обернутый в ссылку
-                    const links = files.map(file => {
-                        const { data } = supabase.storage.from('passports').getPublicUrl(`${client.id}/${file.name}`);
-                        return `
-                            <a href="${data.publicUrl}" target="_blank" rel="noopener noreferrer" title="Нажмите, чтобы открыть в полном размере">
-                                <img src="${data.publicUrl}" alt="${file.name}" style="max-width: 100%; height: auto; display: block; margin-bottom: 10px; border-radius: 8px; border: 1px solid #eee;">
-                            </a>
-                        `;
-                    });
-                    photoLinksDiv.innerHTML = links.join('');
-                }
-            } catch (err) {
-                console.error('Ошибка загрузки фото:', err);
-                photoLinksDiv.innerHTML = `<p style="color: red;">Ошибка загрузки фото: ${err.message}</p>`;
-            }
-        }
-
-        // --- ЛОГИКА ДЛЯ РЕДАКТИРОВАНИЯ ---
-        if (editBtn) {
-            clientEditForm.innerHTML = '';
-            for (const key in recognizedData) {
-                const longFieldKeys = ['Кем выдан', 'Адрес регистрации', 'Адрес регистрации в РФ'];
-                let inputEl;
-                if (longFieldKeys.includes(key)) {
-                    inputEl = `<textarea name="${key}" rows="2">${recognizedData[key] || ''}</textarea>`;
-                } else {
-                    inputEl = `<input type="text" name="${key}" value="${recognizedData[key] || ''}">`;
-                }
-                clientEditForm.innerHTML += `<div class="form-group"><label>${key}</label>${inputEl}</div>`;
-            }
-            currentEditingId = client.id;
-            currentEditingExtra = client.extra;
-            clientEditOverlay.classList.remove('hidden');
-        }
-    });
-}
+        });
+    }
 
     if (clientInfoCloseBtn) {
         clientInfoCloseBtn.addEventListener('click', () => clientInfoOverlay.classList.add('hidden'));
@@ -1752,20 +1704,6 @@ if (clientsSection) {
     checkSession();
 
     // ==== Templates Manager (Шаблоны договоров) ====
-    const templatesSection = document.getElementById('templates-section');
-    const templatesTableBody = document.querySelector('#templates-table tbody');
-    const templateNewBtn = document.getElementById('template-new-btn');
-    const templateSaveBtn = document.getElementById('template-save-btn');
-    const templateIdInput = document.getElementById('template-id');
-    const templateNameInput = document.getElementById('template-name');
-    const templateActiveCheckbox = document.getElementById('template-active');
-    const templateEditor = document.getElementById('template-editor');
-    // duplicate removed: const contractTemplateSelect
-    // duplicate removed: const chipsClient
-    // duplicate removed: const chipsTariff
-    // duplicate removed: const chipsRental
-    // duplicate removed: const chipsAux
-    // duplicate removed: const editorToolbar
 
     const PLACEHOLDERS = {
       client: [
