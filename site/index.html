@@ -1659,5 +1659,19 @@ loadUserData();
         });
     </script>
     <script defer src="../../../assets/enhance.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Проверяем, что API Telegram доступен
+        if (window.Telegram && window.Telegram.WebApp) {
+            const tg = window.Telegram.WebApp;
+            
+            // Эта команда растягивает приложение на весь видимый экран
+            tg.expand();
+
+            // Эта команда говорит Telegram, что цвет шапки должен совпадать с фоном нашего приложения
+            tg.setHeaderColor('bg_color'); 
+        }
+    });
+</script>
 </body>
 </html>
