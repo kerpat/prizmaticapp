@@ -21,6 +21,11 @@ html:not(.brand-ready) .app-header h1 {
   margin-right: auto;
 }
 
+/* Hide the brand title completely when requested */
+body.no-brand .app-header h1 {
+  display: none !important;
+}
+
 /* Remove outer card/frame so background blends seamlessly */
 .app-screen {
   background-color: transparent !important;
