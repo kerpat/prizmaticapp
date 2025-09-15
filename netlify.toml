@@ -10,3 +10,14 @@
 
 [[plugins]]
   package = "@netlify/plugin-functions-install-core"
+
+# Cache static assets aggressively on the CDN
+[[headers]]
+  for = "/*.(png|jpg|jpeg|gif|webp|avif|svg)"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.(css|js)"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"

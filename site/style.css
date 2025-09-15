@@ -83,15 +83,14 @@ body.tg-webapp .app-main h2,
   transition: opacity 0.3s ease-in-out; /* Добавлено */
 }
 
-/* Make the main hero bike photo larger on the home screen */
+/* Hero bike photo: keep original clean sizing */
 #main-bike-image {
-  max-width: none;
-  width: 120%;
-  margin-left: -10%; /* keep image centered while overflowing a bit */
-}
-
-@media (max-width: 360px) {
-#main-bike-image { width: 112%; margin-left: -6%; }
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  margin-left: 0 !important;
+  object-fit: contain;
+  display: block;
 }
 
 
