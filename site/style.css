@@ -20,10 +20,10 @@ body {
   background-color: var(--tg-theme-bg-color, var(--primary-green));
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center; /* Восстанавливаем center, чтобы не ломать вертикальное центрирование */
   min-height: 100vh;
   margin: 0;
-  padding: calc(25px + var(--tg-safe-area-inset-top, 0px)) 10px 0;
+  padding: calc(25px + var(--tg-safe-area-inset-top, 0px)) 10px 0; /* Убрано padding-bottom */
   overflow-x: hidden;
 }
 
@@ -33,12 +33,12 @@ body {
   background-color: var(--tg-theme-secondary-bg-color, var(--white));
   border-radius: 25px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-  height: calc(100vh - calc(25px + var(--tg-safe-area-inset-top, 0px)));
-  max-height: 700px;
+  height: calc(100vh - calc(25px + var(--tg-safe-area-inset-top, 0px))); /* Высота до нижнего края */
+  max-height: none; /* Убираем ограничение max-height для полного прилегания */
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  margin: 0 auto;
+  margin: 0 auto; /* Центрирование по горизонтали */
 }
 
 .app-content, .map-page-container {
@@ -71,12 +71,10 @@ body {
   transition: opacity 0.3s ease-in-out;
 }
 
-/* Контейнер для изображения велосипеда и динамической подписи */
 .bike-image-wrapper {
   position: relative;
 }
 
-/* Стилизуем подпись на багажнике велосипеда */
 .bike-label {
   position: absolute;
   top: 12px;
@@ -578,7 +576,7 @@ body {
   justify-content: space-around;
   align-items: center;
   margin: 20px;
-  margin-bottom: 0;
+  margin-bottom: 0; /* Убираем нижний отступ для прилегания */
   flex-shrink: 0;
   position: relative;
   z-index: 12;
@@ -780,7 +778,6 @@ body {
   line-height: 1;
 }
 
-/* Фирменные стили для каждой кнопки SSO */
 .sso-btn--gosuslugi {
   background-color: #0d4cd3;
   color: white;
@@ -1461,8 +1458,7 @@ select.form-control:focus {
 
 @media (min-height: 850px) and (min-width: 420px) {
   .app-screen {
-    height: calc(850px - calc(20px + var(--tg-safe-area-inset-top, 0px)));
-    max-height: 850px;
+    height: calc(100vh - calc(20px + var(--tg-safe-area-inset-top, 0px)));
     border-radius: 40px;
   }
   body {
@@ -1473,7 +1469,6 @@ select.form-control:focus {
 @media (min-width: 421px) {
   .app-screen {
     height: calc(100vh - calc(20px + var(--tg-safe-area-inset-top, 0px)));
-    max-height: 850px;
     border-radius: 40px;
   }
 }

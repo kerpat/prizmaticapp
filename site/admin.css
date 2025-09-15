@@ -1116,6 +1116,11 @@ select:invalid + .form-error {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes fadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-10px); }
+}
+
 .slide-in {
   animation: slideIn 0.3s ease-out;
 }
@@ -1207,6 +1212,21 @@ select:invalid + .form-error {
 .toast-close:hover {
   background: var(--admin-surface-2);
   color: var(--admin-text);
+}
+
+#toast-container {
+  position: fixed;
+  top: var(--admin-space-xl);
+  right: var(--admin-space-xl);
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-space-md);
+  pointer-events: none;
+}
+
+#toast-container .toast {
+  pointer-events: auto;
 }
 
 /* Enhanced Responsive Design */
