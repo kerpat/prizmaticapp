@@ -1,7 +1,7 @@
 // Обновляем версию кэша, чтобы старые кэши были автоматически
 // заменены при развертывании новой версии приложения. При
 // добавлении новых ассетов нужно увеличивать номер.
-const CACHE_NAME = 'bike-app-cache-v2';
+const CACHE_NAME = 'bike-app-cache-v3';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -35,6 +35,16 @@ self.addEventListener('install', event => {
         console.log('Opened cache');
         return cache.addAll(urlsToCache);
       })
+  );
+});
+
+// Clean up old caches when a new service worker activates
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys => Promise.all(
+      keys.filter(k => k.startsWith('bike-app-cache-') && k !== CACHE_NAME)
+          .map(k => caches.delete(k))
+    ))
   );
 });
 
