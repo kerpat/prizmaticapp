@@ -164,6 +164,43 @@
                 totalDistanceEl.textContent = '0.0 км';
                 return;
             }
+
+            // --- Logic for Graph Bars ---
+            const weeklySpending = Array(7).fill(0); // 0=Monday, ..., 6=Sunday
+            const today = new Date();
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1)); // Set to last Monday
+            startOfWeek.setHours(0, 0, 0, 0);
+
+            if (rentals) {
+                rentals.forEach(rental => {
+                    const rentalDate = new Date(rental.created_at);
+                    if (rentalDate >= startOfWeek) {
+                        let dayIndex = rentalDate.getDay(); // Sunday is 0
+                        dayIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Monday is 0, Sunday is 6
+                        const amount = rental.total_rub || 0;
+                        if (amount > 0) {
+                            weeklySpending[dayIndex] += amount;
+                        }
+                    }
+                });
+            }
+
+            const maxSpending = Math.max(...weeklySpending, 1); // Avoid division by zero
+
+            weeklySpending.forEach((amount, index) => {
+                const bar = document.getElementById(`day-${index}`);
+                if (bar) {
+                    const heightPercentage = (amount / maxSpending) * 100;
+                    bar.style.height = `${heightPercentage}%`;
+                    // Clear previous active state
+                    bar.classList.remove('active');
+                    if (index === (today.getDay() === 0 ? 6 : today.getDay() - 1)) {
+                        bar.classList.add('active');
+                    }
+                }
+            });
+            // --- End of Graph Logic ---
             if (!rentals || rentals.length === 0) {
                 historyContainer.innerHTML = '<p class="empty-history">История поездок и операций пуста.</p>';
                 totalDaysEl.textContent = '0';
