@@ -69,6 +69,12 @@ body {
   text-align: center;
 }
 
+/* Center the secondary title on Telegram WebApp */
+body.tg-webapp .app-main h2,
+.app-main h2.tg-centered-title {
+  text-align: center;
+}
+
 /* Стили для главной */
 .bike-image {
   width: 100%;
