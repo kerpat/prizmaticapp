@@ -1,0 +1,4 @@
+ound-color: var(--tg-theme-secondary-bg-color, var(--white));
+  border-radius: 25px; /* Скругление для стиля, но не мешает */
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  /* Высота = высота окна

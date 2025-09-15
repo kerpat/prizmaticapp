@@ -1,0 +1,12 @@
+ 20px;
+  flex-shrink: 0;
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: calc(100% - 40px);
+  max-width: calc(420px - 40px);
+  z-index: 12;
+  /* Внутренне учитываем безопасную зону, чтобы элемент был внизу без внешнего зазора */
+  padding-bottom

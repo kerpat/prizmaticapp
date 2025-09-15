@@ -1,0 +1,21 @@
+olor: #e53e3e;
+  cursor: pointer;
+  width: 100%;
+}
+
+/* Общая навигация */
+.bottom-nav {
+  background-color: var(--light-green-nav);
+  border-radius: 25px;
+  padding: 12px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  margin: 20px;
+  flex-shrink: 0;
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: calc(1
