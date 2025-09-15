@@ -30,7 +30,7 @@ body {
   min-height: 100vh;
   margin: 0;
   /* Сверху оставляем безопасную зону, снизу убираем, чтобы нижняя навигация доходила до края */
-  padding: var(--app-top-offset) 10px 0; /* top | sides | bottom */
+  padding: 0 10px; /* top | sides | bottom */
   overflow-x: hidden; /* ЗАПРЕТ ГОРИЗОНТАЛЬНОГО СКРОЛЛА: Нет мота влево-вправо, всё ровненько */
 }
 
@@ -40,8 +40,9 @@ body {
   background-color: var(--tg-theme-secondary-bg-color, var(--white));
   border-radius: 25px; /* Скругление для стиля, но не мешает */
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-  /* Высота = высота окна минус верхний отступ/инсет, чтобы низ упирался в край */
-  height: calc(var(--tg-viewport-stable-height, 100vh) - var(--app-top-offset));
+  /* Высота = высота окна, с верхним отступом для безопасной зоны */
+  height: var(--tg-viewport-stable-height, 100vh);
+  padding-top: var(--app-top-offset);
   max-height: none; /* Без искусственного ограничения */
   display: flex;
   flex-direction: column;
@@ -1521,6 +1522,7 @@ select.form-control:focus {
   height: var(--tg-viewport-stable-height, 100vh); /* Стабильная высота viewport из Telegram */
   max-height: none; /* Убираем ограничение высоты */
   max-width: 100%; /* Занимаем всю ширину на мобильных */
+  padding-top: var(--app-top-offset);
 }
 .app-content {
   padding: 20px;
@@ -1541,7 +1543,7 @@ select.form-control:focus {
   }
 
   body {
-    padding: 20px 0; /* Возвращаем отступы для красивого вида на ПК */
+    padding: 0; /* Убираем отступы, так как теперь в app-screen */
     align-items: center; /* Возвращаем центрирование для десктопа */
   }
 }
@@ -1552,5 +1554,6 @@ select.form-control:focus {
     height: 100vh;
     max-height: 850px;
     border-radius: 40px;
+    padding-top: var(--app-top-offset);
   }
 }
