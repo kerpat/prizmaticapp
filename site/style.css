@@ -20,24 +20,25 @@ body {
   background-color: var(--tg-theme-bg-color, var(--primary-green)); /* Синхронизация с Telegram-темой */
   display: flex;
   justify-content: center;
-  align-items: center; /* ИЗМЕНЕНО: Центрирование по вертикали, чтобы отступы сверху/снизу были равными */
+  align-items: center; /* Центрирование по вертикали, чтобы отступы сверху/снизу были равными */
   min-height: 100vh;
   margin: 0;
-  padding: calc(25px + var(--tg-safe-area-inset-top, 0px)) 25px calc(25px + var(--tg-safe-area-inset-bottom, 0px)); /* УМЕНЬШЕНО ДЛЯ ОТОСТУПОВ: Больше padding по всем сторонам, чтобы app-screen не прилипал к краям */
+  padding: calc(25px + var(--tg-safe-area-inset-top, 0px)) 10px calc(25px + var(--tg-safe-area-inset-bottom, 0px)); /* ТОП И НИЗ: Отступы сверху/снизу, ПО БОКАМ: Маленький padding, чтобы не прилипало, но полный размер */
+  overflow-x: hidden; /* ЗАПРЕТ ГОРИЗОНТАЛЬНОГО СКРОЛЛА: Нет мота влево-вправо, всё ровненько */
 }
 
 .app-screen {
-  width: 100%;
-  max-width: 340px; /* УМЕНЬШЕНО ДЛЯ ОТОСТУПОВ: Компактная ширина, с зазором по бокам от Telegram-фрейма */
+  width: 100%; /* ПО БОКАМ: Полный размер экрана, без max-width для заполнения */
+  max-width: 420px; /* Ограничение только для больших экранов, но в Telegram — полный */
   background-color: var(--tg-theme-secondary-bg-color, var(--white));
-  border-radius: 25px; /* УМЕНЬШЕНО: Меньше скругление, чтобы не "выпирать" */
+  border-radius: 25px; /* Скругление для стиля, но не мешает */
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-  height: 80vh; /* УМЕНЬШЕНО ДЛЯ ОТОСТУПОВ: Не на весь экран, оставляем место снизу для Telegram-бара */
-  max-height: 700px; /* Ограничение высоты, чтобы на больших экранах не растягивалось */
+  height: 80vh; /* ТОП И НИЗ: Не на весь экран, отступы сверху/снизу */
+  max-height: 700px; /* Ограничение высоты */
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  margin: auto; /* Центрирование, если padding body не хватит */
+  margin: auto; /* Центрирование */
 }
 
 .app-content, .map-page-container {
@@ -47,6 +48,7 @@ body {
   padding: 28px;
   gap: 20px;
   overflow-y: auto;
+  overflow-x: hidden; /* Дополнительно: Нет горизонтального скролла внутри */
 }
 
 /* Общие стили */
@@ -834,7 +836,7 @@ body {
   padding: 25px;
   border-radius: 24px;
   width: 90%;
-  max-width: 300px; /* УМЕНЬШЕНО ДЛЯ ОТОСТУПОВ: Модалки компактнее */
+  max-width: 380px; /* Вернули ближе к оригиналу, но с отступами */
   text-align: center;
   position: relative;
   transform: scale(1);
@@ -925,7 +927,7 @@ body {
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
-  max-width: 320px; /* УМЕНЬШЕНО ДЛЯ ОТОСТУПОВ: Тосты под новую компактность */
+  max-width: 400px; /* Вернули оригинал, полный размер */
   background-color: var(--dark-green);
   color: var(--white);
   display: flex;
@@ -1362,7 +1364,7 @@ select.form-control:focus {
 
 .menu-container {
   width: 100%;
-  max-width: 320px; /* УМЕНЬШЕНО ДЛЯ ОТОСТУПОВ: Меню под компактный размер */
+  max-width: 420px; /* Вернули полный размер */
   background: var(--white);
   border-radius: 30px 30px 0 0;
   padding: 24px;
@@ -1466,21 +1468,16 @@ select.form-control:focus {
   line-height: 1.4;
 }
 
-/* УМЕНЬШЕНО ДЛЯ ОТОСТУПОВ: Media для компактных экранов (Telegram на маленьких девайсах) */
+/* Media для компактных экранов (Telegram на маленьких девайсах) */
 @media (max-width: 380px) {
   .app-screen {
-    max-width: 300px; /* Ещё меньше для сверхузких */
-    height: 75vh; /* Уменьшенная высота */
     border-radius: 20px;
   }
   body {
-    padding: 20px 20px; /* Сжатый padding на маленьких экранах */
+    padding: 20px 5px; /* Ещё меньше боковых отступов на маленьких экранах */
   }
   .app-content {
-    padding: 20px; /* Внутренние отступы меньше */
-  }
-  .modal-content {
-    max-width: 280px;
+    padding: 20px;
   }
 }
 
@@ -1497,7 +1494,6 @@ select.form-control:focus {
 @media (min-width: 421px) {
   /* Для экранов больше мобильных (планшеты, десктоп) — возвращаем оригинал */
   .app-screen {
-    max-width: 420px;
     height: 100vh;
     max-height: 850px;
     border-radius: 40px;
