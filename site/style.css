@@ -1082,7 +1082,6 @@ body {
 
 .app-screen {
     /* Главный экран приложения теперь будет учитывать отступы */
-    padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
     
     /* ИСПРАВЛЕНИЕ ВЫСОТЫ! Это решит проблему с обрезанием на коротких экранах */
