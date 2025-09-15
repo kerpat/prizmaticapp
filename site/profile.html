@@ -778,9 +778,6 @@ if (addCardBtn) addCardBtn.addEventListener('click', async () => {
         if (window.Telegram && window.Telegram.WebApp) {
             const tg = window.Telegram.WebApp;
             
-            // Эта команда растягивает приложение на весь видимый экран
-            tg.expand();
-
             // Эта команда говорит Telegram, что цвет шапки должен совпадать с фоном нашего приложения
             tg.setHeaderColor('bg_color'); 
         }
