@@ -93,6 +93,21 @@ body.tg-webapp .app-main h2,
   display: block;
 }
 
+/* Slightly enlarge hero image on phones while keeping it centered */
+@media (max-width: 480px) {
+  #main-bike-image {
+    width: 110% !important;
+    margin-left: -5% !important;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  #main-bike-image {
+    width: 105% !important;
+    margin-left: -2.5% !important;
+  }
+}
+
 
 /* Контейнер для изображения велосипеда и динамической подписи. Делаем его позиционированным, чтобы можно было располагать текст поверх картинки. */
 .bike-image-wrapper {
