@@ -19,17 +19,15 @@ body {
     margin: 0;
 }
 .app-screen {
-    position: relative;
     width: 100%;
     max-width: 420px;
     background-color: var(--white);
-    height: var(--tg-viewport-stable-height, 100vh);
-    max-height: 850px;
+    border-radius: 40px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    min-height: 850px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border-radius: 40px;
 }
 .app-content, .map-page-container { flex-grow: 1; display: flex; flex-direction: column; padding: 28px; gap: 20px; overflow-y: auto; }
 
