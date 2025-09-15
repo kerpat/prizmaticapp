@@ -1480,6 +1480,10 @@ select.form-control:focus {
   .app-content {
     padding: 20px;
   }
+  .bottom-nav {
+    margin: 0; /* Убираем отступы у нижнего меню, чтобы приклеить к низу */
+    margin-bottom: 0;
+  }
 }
 
 @media (min-height: 850px) and (min-width: 420px) {
