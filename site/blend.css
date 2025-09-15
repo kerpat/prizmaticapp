@@ -1,6 +1,8 @@
 :root {
   /* Height of the bottom area that visually blends into the bottom nav */
   --bg-bleed-height: calc(180px + var(--safe-bottom, 0px));
+  /* Reserve space for header when brand title is hidden */
+  --no-brand-header-space: 56px;
 }
 
 /* No global gradient — keep base background as in style.css */
@@ -24,6 +26,12 @@ html:not(.brand-ready) .app-header h1 {
 /* Hide the brand title completely when requested */
 body.no-brand .app-header h1 {
   display: none !important;
+}
+
+/* Keep the same visual top spacing even without the title */
+body.no-brand .app-header {
+  flex: 0 0 var(--no-brand-header-space);
+  min-height: var(--no-brand-header-space);
 }
 
 /* Remove outer card/frame so background blends seamlessly */
