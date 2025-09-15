@@ -587,11 +587,12 @@ async function initializeRentalSystem() {
         const userName = client.name ? client.name.split(' ')[0] : 'Пользователь';
         const mainContent = document.querySelector('.app-main');
         const status = client.verification_status;
-        
+
         appHeader.classList.remove('header-centered');
 
         if (status === 'approved') {
-            appHeader.querySelector('h1').textContent = `Привет, ${userName}!`;
+            appHeader.classList.add('header-centered');
+            appHeader.querySelector('h1').textContent = 'PRIZMATIC';
             
             const { data: rental, error: rentalError } = await supabase
                 .from('rentals')
@@ -663,7 +664,7 @@ async function initializeRentalSystem() {
             }
         } else {
             appHeader.classList.add('header-centered');
-            appHeader.querySelector('h1').textContent = `Привет, ${userName}!`;
+            appHeader.querySelector('h1').textContent = userName;
             
             let headerText = 'Ваш аккаунт на проверке';
             let statusTitle = 'На проверке';
