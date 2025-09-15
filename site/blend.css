@@ -10,7 +10,15 @@ body {
 
 /* Hide header title until branding script sets final text */
 html:not(.brand-ready) .app-header h1 {
-  visibility: hidden;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Force centered brand title on the main screen */
+.app-header h1 {
+  text-align: center !important;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Remove outer card/frame so background blends seamlessly */
