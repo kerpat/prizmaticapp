@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Статистика Инвестора - Bike App</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+</head>
+<body>
+<div class="app-screen">
+    <div class="app-content">
+        <header class="app-header header-centered">
+            <h1>Статистика</h1>
+            <div class="stats-graph">
+                <div class="graph-bar-item"><div class="bar" style="height: 30%;"></div><span class="day">Пн</span></div>
+                <div class="graph-bar-item"><div class="bar" style="height: 50%;"></div><span class="day">Вт</span></div>
+                <div class="graph-bar-item"><div class="bar" style="height: 20%;"></div><span class="day">Ср</span></div>
+                <div class="graph-bar-item"><div class="bar active" style="height: 80%;"></div><span class="day">Чт</span></div>
+                <div class="graph-bar-item"><div class="bar" style="height: 60%;"></div><span class="day">Пт</span></div>
+                <div class="graph-bar-item"><div class="bar" style="height: 40%;"></div><span class="day">Сб</span></div>
+                <div class="graph-bar-item"><div class="bar" style="height: 70%;"></div><span class="day">Вс</span></div>
+            </div>
+        </header>
+        <main class="app-main">
+            <div class="info-cards">
+                <div class="card">
+                    <div class="text-content" style="gap: 5px;">
+                        <span>Общий доход</span>
+                        <strong id="total-income" style="color: var(--icon-green);">0 ₽</strong>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="text-content" style="gap: 5px;">
+                        <span>Общий расход</span>
+                        <strong id="total-expense" style="color: #e53e3e;">0 ₽</strong>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="color: var(--dark-green); margin-top: 25px; margin-bottom: -10px;">История операций</h3>
+            <div class="history-list" id="history-list-container">
+                <!-- Сюда будут добавляться записи из истории -->
+                <p class="empty-history">История операций пуста.</p>
+            </div>
+        </main>
+    </div>
+    <!-- Навигационная панель инвестора -->
+    <nav class="bottom-nav">
+        <a href="investor_home.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></a>
+        <div class="nav-item active"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></div>
+        <a href="investor_map.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></a>
+        <a href="profile.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></a>
+    </nav>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- ПРОВЕРКА, ЧТО ЭТО ИНВЕСТОР ---
+        if (localStorage.getItem('isInvestor') !== 'true') {
+            window.location.replace('start.html');
+            return;
+        }
+
+        // --- ОБЩАЯ ЛОГИКА АНИМАЦИИ ПЕРЕХОДОВ ---
+        const appScreen = document.querySelector('.app-screen');
+        const navLinks = document.querySelectorAll('.bottom-nav a.nav-item');
+        const animationDuration = 400;
+
+        appScreen.classList.add('page-enter');
+        requestAnimationFrame(() => {
+            appScreen.classList.remove('page-enter');
+            appScreen.classList.add('page-enter-active');
+        });
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                if (link.parentElement.classList.contains('active')) {
+                    e.preventDefault();
+                    return;
+                }
+                e.preventDefault();
+                const destination = e.currentTarget.href;
+                appScreen.classList.remove('page-enter-active');
+                appScreen.classList.add('page-exit-active');
+                setTimeout(() => { window.location.href = destination; }, animationDuration);
+            });
+        });
+
+        // --- ЛОГИКА СТРАНИЦЫ СТАТИСТИКИ ИНВЕСТОРА ---
+        const historyContainer = document.getElementById('history-list-container');
+        const totalIncomeEl = document.getElementById('total-income');
+        const totalExpenseEl = document.getElementById('total-expense');
+
+        const icons = {
+            income: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`,
+            expense: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 12H2.5"/><path d="M14.5 5.5l-12 12"/><path d="M14.5 18.5l-12-12"/></svg>`
+        };
+
+        const history = JSON.parse(localStorage.getItem('investorHistory')) || [];
+
+        let totalIncome = 0;
+        let totalExpense = 0;
+
+        if (history.length > 0) {
+            historyContainer.innerHTML = ''; // Очищаем сообщение "история пуста"
+            history.slice().reverse().forEach(item => {
+                const isIncome = item.amount >= 0;
+                if (isIncome) {
+                    totalIncome += item.amount;
+                } else {
+                    totalExpense += item.amount;
+                }
+
+                const itemClass = isIncome ? 'topup' : 'trip';
+                const costClass = isIncome ? 'positive' : '';
+                const amountPrefix = isIncome ? '+' : '';
+                const iconSVG = isIncome ? icons.income : icons.expense;
+
+                const historyItemHTML = `
+                    <div class="history-item">
+                        <div class="history-item-left">
+                            <div class="history-icon-wrapper ${itemClass}" style="background-color: ${isIncome ? 'var(--icon-green)' : '#f5a623'};">
+                                ${iconSVG}
+                            </div>
+                            <div class="history-details">
+                                <span class="history-title">${item.type}</span>
+                                <span class="history-subtitle">${item.detail}</span>
+                            </div>
+                        </div>
+                        <div class="history-cost ${costClass}">${amountPrefix}${item.amount.toLocaleString('ru-RU')} ₽</div>
+                    </div>
+                `;
+                historyContainer.insertAdjacentHTML('beforeend', historyItemHTML);
+            });
+        }
+
+        totalIncomeEl.textContent = `${totalIncome.toLocaleString('ru-RU')} ₽`;
+        totalExpenseEl.textContent = `${totalExpense.toLocaleString('ru-RU')} ₽`;
+    });
+</script>
+
+  </body>
+</html>

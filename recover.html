@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Восстановление доступа - Bike App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* --- Улучшенные и исправленные стили для чата --- */
+
+    /* Контейнер для истории чата */
+    #chat-history {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 10px;
+        flex-grow: 1;
+        overflow-y: auto;
+    }
+
+    .chat-message {
+        display: flex;
+        flex-direction: column;
+        max-width: 80%;
+    }
+
+    .message-text {
+        padding: 10px 15px;
+        border-radius: 18px;
+        line-height: 1.4;
+        word-wrap: break-word;
+        color: var(--text-primary);
+        background-color: var(--light-green-bg);
+    }
+
+    .user-message {
+        align-self: flex-end;
+        align-items: flex-end;
+    }
+    .user-message .message-text {
+        background-color: var(--dark-green);
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    .support-message, .admin-message {
+        align-self: flex-start;
+        align-items: flex-start;
+    }
+    .support-message .message-text, 
+    .admin-message .message-text {
+        border-bottom-left-radius: 4px; 
+    }
+
+    .message-timestamp {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        padding: 0 5px;
+        margin-top: 4px;
+    }
+
+    .date-separator {
+        align-self: center;
+        background-color: var(--card-bg);
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 4px 12px;
+        border-radius: 999px;
+        margin: 10px 0;
+    }
+    
+    .modal-content {
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* --- НОВЫЕ СТИЛИ ДЛЯ ПОЛЯ ВВОДА --- */
+    .chat-input-area {
+        padding: 10px;
+        border-top: 1px solid var(--card-bg);
+        background-color: var(--body-bg);
+    }
+
+    #chat-input-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    #chat-input {
+        flex-grow: 1; /* Занимает все доступное место */
+        border: none;
+        outline: none;
+        background-color: var(--light-green-bg); /* Светлый фон, как у сообщений поддержки */
+        padding: 12px 18px;
+        border-radius: 999px; /* Делаем поле полностью скругленным */
+        font-size: 1rem;
+        color: var(--text-primary);
+    }
+
+    #chat-input::placeholder {
+        color: var(--text-secondary);
+        opacity: 0.8;
+    }
+
+    #send-chat-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0; /* Не сжиматься */
+    }
+    
+    #send-chat-btn svg {
+      width: 22px;
+      height: 22px;
+    }
+    /* --- КОНЕЦ НОВЫХ СТИЛЕЙ --- */
+
+  </style>
+</head>
+<body>
+<div class="app-screen">
+  <div class="app-content">
+    <header class="app-header header-centered">
+      <h1>Восстановление доступа</h1>
+    </header>
+
+    <main class="app-main" style="display: flex; flex-direction: column; justify-content: center; text-align: center;">
+        <div id="recovery-initial-view">
+            <p style="color: var(--text-secondary); margin-bottom: 25px;">Если вы потеряли доступ к своему аккаунту, выберите удобный способ связи с поддержкой.</p>
+            <div class="action-buttons" style="flex-direction: column; gap: 15px;">
+                <button id="recover-via-support" class="btn btn-primary">Написать в поддержку</button>
+                <a href="https://t.me/bansh333" target="_blank" class="btn btn-secondary" style="text-decoration: none; padding: 18px 10px;">Восстановить через Telegram</a>
+            </div>
+        </div>
+        <div style="margin-top: auto; padding-top: 30px;">
+             <a href="registration.html" class="btn" style="text-decoration: none; width: 100%; background-color: var(--light-green-bg); color: var(--dark-green); border: none;">Назад к регистрации</a>
+        </div>
+    </main>
+  </div>
+</div>
+
+<!-- Модальное окно чата поддержки -->
+<div id="support-modal" class="modal-overlay hidden chat-modal">
+    <div class="modal-content">
+        <button class="modal-close">&times;</button>
+        <h2>Поддержка</h2>
+        <div class="chat-history" id="chat-history"></div>
+        <div class="chat-input-area">
+            <div id="chat-input-wrapper">
+                <input type="text" id="chat-input" placeholder="Сообщение...">
+                <button class="btn btn-primary" id="send-chat-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const SUPABASE_URL = "https://avamqfmuhiwtlumjkzmv.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const recoverViaSupportBtn = document.getElementById('recover-via-support');
+    const supportModal = document.getElementById('support-modal');
+    const chatHistory = document.getElementById('chat-history');
+    const chatInput = document.getElementById('chat-input');
+    const sendChatBtn = document.getElementById('send-chat-btn');
+
+    let anonymousChatId = null;
+    let supportChatSubscription = null;
+
+    // --- Логика чата ---
+    recoverViaSupportBtn.addEventListener('click', () => {
+        supportModal.classList.remove('hidden');
+        if (!localStorage.getItem('anonymousChatId')) {
+            localStorage.setItem('anonymousChatId', `anon_${crypto.randomUUID()}`);
+        }
+        anonymousChatId = localStorage.getItem('anonymousChatId');
+        loadAnonymousChatHistory();
+    });
+
+    supportModal.querySelector('.modal-close').addEventListener('click', () => {
+        supportModal.classList.add('hidden');
+        if (supportChatSubscription) {
+            supabase.removeChannel(supportChatSubscription);
+            supportChatSubscription = null;
+        }
+    });
+
+    async function loadAnonymousChatHistory() {
+        if (!anonymousChatId) return;
+        chatHistory.innerHTML = '<p style="text-align:center;">Загрузка истории...</p>';
+        const { data, error } = await supabase.from('support_messages').select('*').eq('anonymous_chat_id', anonymousChatId).order('created_at', { ascending: true });
+        chatHistory.innerHTML = '';
+        if (error) {
+            console.error('Error loading chat:', error);
+            chatHistory.innerHTML = '<p style="text-align:center; color:red;">Ошибка загрузки.</p>';
+            return;
+        }
+
+        let lastDate = null;
+        if (data.length > 0) {
+            data.forEach(msg => {
+                const messageDate = new Date(msg.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+                if (messageDate !== lastDate) {
+                    addDateSeparator(messageDate);
+                    lastDate = messageDate;
+                }
+                addChatMessage(msg.message_text, msg.sender, new Date(msg.created_at), true);
+            });
+        } else {
+            addChatMessage('Здравствуйте! Я хочу восстановить доступ к своему аккаунту.', 'user', new Date(), false);
+            setTimeout(() => addChatMessage('Пожалуйста, введите номер телефона, который вы указывали при регистрации.', 'support', new Date(), true), 500);
+        }
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+
+        if (supportChatSubscription) supabase.removeChannel(supportChatSubscription);
+        supportChatSubscription = supabase.channel(`support-anon-${anonymousChatId}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages', filter: `anonymous_chat_id=eq.${anonymousChatId}` }, payload => {
+                if (payload.new.sender !== 'user') {
+                    addChatMessage(payload.new.message_text, payload.new.sender, new Date(payload.new.created_at), true);
+                }
+            }).subscribe();
+    }
+
+    function addDateSeparator(dateText) {
+        const separatorEl = document.createElement('div');
+        separatorEl.className = 'date-separator';
+        separatorEl.textContent = dateText;
+        chatHistory.appendChild(separatorEl);
+    }
+
+    async function addChatMessage(text, sender, timestamp, isSilent = false) {
+        const time = timestamp ? timestamp.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
+        const messageEl = document.createElement('div');
+        
+        const senderClass = (sender === 'admin' || sender === 'support') ? 'support' : 'user';
+        messageEl.className = `chat-message ${senderClass}-message`;
+        
+        messageEl.innerHTML = `
+            <div class="message-text">${text}</div>
+            <div class="message-timestamp">${time}</div>
+        `;
+        chatHistory.appendChild(messageEl);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+
+        if (!isSilent) {
+            try {
+                const { error } = await supabase.from('support_messages').insert({ anonymous_chat_id: anonymousChatId, sender: 'user', message_text: text });
+                if (error) throw error;
+            } catch (err) {
+                console.error('Failed to send message:', err);
+                messageEl.style.opacity = '0.5';
+                messageEl.title = 'Не удалось отправить';
+            }
+        }
+    }
+
+    sendChatBtn.addEventListener('click', () => {
+        const text = chatInput.value.trim();
+        if (text) {
+            addChatMessage(text, 'user', new Date(), false);
+            chatInput.value = '';
+        }
+    });
+    chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); sendChatBtn.click(); } });
+</script>
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Карта Инвестора - Bike App</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Стили для карты, чтобы не менять style.css -->
+    <style>
+        .bottom-nav {
+            background-color: var(--light-green-nav);
+            margin: 20px;
+        }
+        .map-page-container { position: relative; padding: 0; overflow: hidden; }
+        #map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        [class*="copyrights-pane"], [class*="gotoymaps"] { display: none !important; }
+
+        .info-card { position: absolute; bottom: -100%; left: 0; right: 0; background-color: var(--white); padding: 20px; padding-top: 35px; border-top-left-radius: 30px; border-top-right-radius: 30px; box-shadow: 0 -5px 30px rgba(0,0,0,0.15); z-index: 11; transition: bottom 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); display: flex; flex-direction: column; gap: 15px; }
+        .info-card.visible { bottom: 0; }
+        .card-handle { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 40px; height: 5px; background-color: var(--progress-bar-bg); border-radius: 3px; }
+        .info-card h3 { font-size: 1.2rem; font-weight: 700; color: var(--dark-green); text-align: center; }
+        .card-stats { display: flex; justify-content: space-around; gap: 15px; }
+        .stat-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 0.95rem; color: #556f6b; }
+        .stat-item strong { color: var(--dark-green); font-weight: 600; font-size: 1.1rem; }
+    </style>
+
+</head>
+<body>
+<div class="app-screen">
+    <div class="map-page-container">
+        <div id="map"></div>
+        <div class="info-card" id="bike-info-card">
+            <div class="card-handle"></div>
+            <h3 id="card-bike-id">Выберите велосипед на карте</h3>
+            <div class="card-stats">
+                <div class="stat-item">
+                    <span>Статус</span>
+                    <strong id="card-status"></strong>
+                </div>
+                <div class="stat-item">
+                    <span>Арендатор</span>
+                    <strong id="card-renter"></strong>
+                </div>
+                <div class="stat-item">
+                    <span>Пробег</span>
+                    <strong id="card-mileage"></strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Навигационная панель инвестора -->
+    <nav class="bottom-nav">
+        <a href="investor_home.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></a>
+        <a href="investor_stats.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></a>
+        <div class="nav-item active"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></a>
+            <a href="profile.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></a>
+    </nav>
+</div>
+
+<script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=a32fae3e-06f9-4231-87a0-f225b5d7a04a" type="text/javascript"></script>
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- ПРОВЕРКА, ЧТО ЭТО ИНВЕСТОР ---
+        if (localStorage.getItem('isInvestor') !== 'true') {
+            window.location.replace('start.html');
+            return;
+        }
+
+        // --- ОБЩАЯ ЛОГИКА АНИМАЦИИ ПЕРЕХОДОВ ---
+        const appScreen = document.querySelector('.app-screen');
+        const navLinks = document.querySelectorAll('.bottom-nav a.nav-item');
+        const animationDuration = 400;
+
+        appScreen.classList.add('page-enter');
+        requestAnimationFrame(() => {
+            appScreen.classList.remove('page-enter');
+            appScreen.classList.add('page-enter-active');
+        });
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                if (link.parentElement.classList.contains('active')) {
+                    e.preventDefault();
+                    return;
+                }
+                e.preventDefault();
+                const destination = e.currentTarget.href;
+                appScreen.classList.remove('page-enter-active');
+                appScreen.classList.add('page-exit-active');
+                setTimeout(() => { window.location.href = destination; }, animationDuration);
+            });
+        });
+    });
+
+    // --- ЛОГИКА КАРТЫ ---
+    ymaps.ready(initMap);
+
+    function initMap() {
+        const investorBikes = JSON.parse(localStorage.getItem('investorBikes')) || [];
+        const mapCenter = investorBikes.length > 0 ? investorBikes[0].location : [55.7522, 37.6156]; // Центр - Москва или первый велик
+
+        let myMap = new ymaps.Map('map', { center: mapCenter, zoom: 12, controls: [] });
+
+        const infoCard = document.getElementById('bike-info-card');
+        const cardBikeId = document.getElementById('card-bike-id');
+        const cardStatus = document.getElementById('card-status');
+        const cardRenter = document.getElementById('card-renter');
+        const cardMileage = document.getElementById('card-mileage');
+
+        const placemarkColors = {
+            'В аренде': '#1e98ff',
+            'Свободен': '#26b999',
+            'На обслуживании': '#f5a623'
+        };
+
+        investorBikes.forEach(bike => {
+            const placemark = new ymaps.Placemark(bike.location, {
+                hintContent: `Велосипед #${bike.id}`,
+                balloonContent: `<strong>${bike.model}</strong><br>Статус: ${bike.status}`
+            }, {
+                preset: 'islands#dotIcon',
+                iconColor: placemarkColors[bike.status] || '#777777'
+            });
+
+            placemark.events.add('click', () => {
+                cardBikeId.textContent = `Велосипед #${bike.id} (${bike.model})`;
+                cardStatus.textContent = bike.status;
+                cardRenter.textContent = bike.renter;
+                cardMileage.textContent = `${bike.mileage.toFixed(1)} км`;
+                infoCard.classList.add('visible');
+            });
+
+            myMap.geoObjects.add(placemark);
+        });
+
+        // Скрывать карточку при клике на карту
+        myMap.events.add('click', () => {
+            infoCard.classList.remove('visible');
+        });
+    }
+</script>
+
+  </body>
+</html>

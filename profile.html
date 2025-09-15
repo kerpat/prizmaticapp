@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль - Bike App</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Стили для модальных окон профиля */
+        .modal-content .modal-form-group { text-align: left; margin-bottom: 20px; }
+        .modal-content .modal-form-group label { display: block; font-size: 0.9rem; font-weight: 600; color: var(--dark-green); margin-bottom: 8px; }
+        .modal-content input.form-input { width: 100%; padding: 16px; background-color: var(--card-bg); border: 2px solid var(--card-bg); border-radius: 16px; font-size: 1rem; color: var(--dark-green); font-family: 'Inter', sans-serif; transition: all 0.2s ease; }
+        .modal-content input.form-input:focus { outline: none; border-color: var(--icon-green); background-color: var(--white); }
+        .input-group-row { display: flex; gap: 15px; }
+        .modal-content #add-card-form { margin-top: 20px; }
+
+        .card-preview { background: linear-gradient(45deg, var(--dark-green), #0a5046); color: white; padding: 20px; border-radius: 12px; margin-top: 20px; }
+        .card-number { font-family: monospace; font-size: 1.2rem; letter-spacing: 2px; margin-bottom: 15px; }
+        .card-details { display: flex; justify-content: space-between; font-size: 0.9rem; opacity: 0.8; }
+        .delete-card-btn { background-color: #fcebeb; color: #e53e3e; width: 100%; font-weight: 600; padding: 14px; margin-top: 20px; }
+
+        .error-message { color: #e53e3e; font-size: 0.9rem; text-align: center; margin-top: -10px; margin-bottom: 15px; display: none; }
+        .error-message.visible { display: block; }
+
+        .notifications-content { text-align: center; padding: 20px 0; }
+        .notifications-content .icon-wrapper { margin: 0 auto 20px auto; background-color: var(--icon-green); }
+        .notifications-content p { color: #556f6b; font-size: 1rem; }
+
+        /* === НОВЫЕ И УЛУЧШЕННЫЕ СТИЛИ ДЛЯ ЧАТА ПОДДЕРЖКИ === */
+        .chat-modal .modal-content {
+            height: 80vh; /* Увеличиваем высоту */
+            max-height: 700px;
+            display: flex;
+            flex-direction: column;
+            padding: 0; /* Убираем внутренние отступы, чтобы элементы прилегали к краям */
+        }
+        .chat-modal h2 {
+            padding: 25px 25px 15px 25px; /* Возвращаем отступы для заголовка */
+            flex-shrink: 0;
+        }
+        .chat-modal .modal-close {
+            top: 15px; right: 20px; /* Позиционируем крестик */
+        }
+        .chat-history {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 0 20px 20px 20px; /* Отступы для сообщений */
+        }
+        .chat-message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.4;
+            word-wrap: break-word; /* Перенос длинных слов */
+        }
+        .user-message {
+            align-self: flex-end;
+            background-color: var(--dark-green);
+            color: var(--white);
+            border-bottom-right-radius: 4px;
+        }
+        .support-message {
+            align-self: flex-start;
+            background-color: var(--card-bg);
+            color: var(--dark-green);
+            border-bottom-left-radius: 4px;
+        }
+        .chat-input-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 15px;
+            border-top: 1px solid var(--progress-bar-bg);
+            background-color: var(--white);
+            flex-shrink: 0;
+            position: relative; /* <-- ДОБАВЛЕНО для позиционирования меню */
+        }
+        .chat-attach-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            background-color: var(--card-bg);
+            color: var(--dark-green);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: background-color 0.2s ease;
+        }
+        .chat-attach-btn:hover {
+            background-color: var(--progress-bar-bg);
+        }
+        .chat-attach-btn svg {
+            fill: currentColor;
+        }
+        #chat-input-wrapper {
+            flex-grow: 1;
+            background-color: var(--card-bg);
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            padding: 0 5px 0 20px;
+        }
+        #chat-input {
+            flex-grow: 1;
+            border: none;
+            background: transparent;
+            padding: 12px 0;
+            font-size: 1rem;
+            color: var(--dark-green);
+            outline: none;
+        }
+        #send-chat-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* === НОВЫЕ СТИЛИ ДЛЯ МЕНЮ ПРИКРЕПЛЕНИЯ ФАЙЛОВ === */
+        #chat-attach-menu {
+            position: absolute;
+            bottom: 65px; /* Позиция над кнопкой */
+            left: 15px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            z-index: 10;
+            transform: translateY(10px); /* Начальное положение для анимации */
+            opacity: 0;
+            visibility: hidden;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+        #chat-attach-menu.visible {
+            transform: translateY(0);
+            opacity: 1;
+            visibility: visible;
+        }
+        .attach-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--dark-green);
+            font-weight: 500;
+            text-decoration: none;
+            transition: background-color 0.2s ease;
+        }
+        .attach-menu-item:hover {
+            background-color: var(--card-bg);
+        }
+        .attach-menu-item svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--dark-green);
+        }
+
+        /* === ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ДЛЯ ФОРМЫ НАСТРОЕК ОПЛАТЫ === */
+        /* Селект и радио в настройках оплаты используют те же отступы, что и поля ввода карты */
+        .modal-content select.form-input {
+            width: 100%;
+            padding: 16px;
+            background-color: var(--card-bg);
+            border: 2px solid var(--card-bg);
+            border-radius: 16px;
+            font-size: 1rem;
+            color: var(--dark-green);
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+        }
+        .modal-content select.form-input:focus {
+            outline: none;
+            border-color: var(--icon-green);
+            background-color: var(--white);
+        }
+        /* Контейнер для тарифов Prizmatic в настройках отображается или скрывается */
+        #prizmatic-tariff-options.hidden {
+            display: none;
+        }
+        /* Радиогруппы для выбора провайдера и тарифов */
+        .payment-radio-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+        .payment-radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--dark-green);
+        }
+        .prizmatic-tariff-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .prizmatic-tariff-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--dark-green);
+        }
+    </style>
+
+</head>
+<body>
+
+<div class="app-screen">
+    <div class="app-content">
+        <header class="app-header header-centered">
+            <h1>Профиль</h1>
+        </header>
+        <main class="app-main profile-main">
+            <div class="profile-header">
+                <img src="avatar.png" alt="Аватар пользователя" class="avatar">
+                <h2 class="user-name" id="user-name-placeholder">Имя пользователя</h2>
+                <p class="user-id">ID: 11071998</p>
+            </div>
+
+            <div class="profile-menu">
+                <div class="menu-item" data-modal-target="card-modal" style="cursor: pointer;">
+                    <div class="menu-item-left">
+                        <svg class="menu-item-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                        <span class="menu-item-text">Привязанная карта</span>
+                    </div>
+                    <svg class="menu-item-chevron" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </div>
+                <hr class="menu-divider">
+                <div class="menu-item" data-modal-target="notifications-modal" style="cursor: pointer;">
+                    <div class="menu-item-left">
+                        <svg class="menu-item-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                        <span class="menu-item-text">Уведомления</span>
+                    </div>
+                    <svg class="menu-item-chevron" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </div>
+                <hr class="menu-divider">
+                <div class="menu-item" data-modal-target="support-modal" style="cursor: pointer;">
+                    <div class="menu-item-left">
+                        <svg class="menu-item-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                        <span class="menu-item-text">Поддержка</span>
+                    </div>
+                    <svg class="menu-item-chevron" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </div>
+                <hr class="menu-divider">
+                <!-- Новый пункт меню для настроек оплаты -->
+                <div class="menu-item" data-modal-target="payment-settings-modal" style="cursor: pointer;">
+                    <div class="menu-item-left">
+                        <!-- Иконка настроек оплаты -->
+                        <svg class="menu-item-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v4"></path><path d="M12 19v4"></path><path d="M4.22 4.22l2.83 2.83"></path><path d="M16.95 16.95l2.83 2.83"></path><path d="M1 12h4"></path><path d="M19 12h4"></path><path d="M4.22 19.78l2.83-2.83"></path><path d="M16.95 7.05l2.83-2.83"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <span class="menu-item-text">Настройки оплаты</span>
+                    </div>
+                    <svg class="menu-item-chevron" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </div>
+                <hr class="menu-divider">
+                <a href="https://t.me/bansh333" target="_blank" class="menu-item">
+                    <div class="menu-item-left">
+                        <svg class="menu-item-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        <span class="menu-item-text">Написать в Telegram</span>
+                    </div>
+                    <svg class="menu-item-chevron" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </a>
+            </div>
+            <button class="logout-button" id="logout-btn">Выйти из аккаунта</button>
+        </main>
+    </div>
+    <nav class="bottom-nav">
+        <a href="index.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </a>
+        <a href="stats.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+        </a>
+        <a href="map.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </a>
+        <div class="nav-item active">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+    </nav>
+</div>
+<!-- Модальные окна -->
+<div id="card-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <button class="modal-close">&times;</button>
+        <h2 id="card-modal-title">Способ оплаты</h2>
+
+        <!-- Этот блок для показа привязанной карты -->
+        <div id="card-display-view" class="hidden">
+            <div class="card-preview">
+                <div class="card-number">**** **** **** ****</div>
+                <div class="card-details">
+                    <span>Карта для автосписаний</span>
+                    <span>Привязана</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Этот блок для тех, у кого карты нет -->
+        <div id="card-form-view" class="hidden">
+            <p style="margin-bottom: 20px; color: var(--dark-green);">
+                У вас еще нет привязанной карты. Она будет автоматически сохранена после первой успешной оплаты аренды или пополнения баланса.
+            </p>
+        </div>
+    </div>
+</div>
+<div id="notifications-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <button class="modal-close">&times;</button>
+        <h2>Уведомления</h2>
+        <div class="notifications-content">
+            <div class="icon-wrapper">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            </div>
+            <p>У вас 0 новых уведомлений.</p>
+        </div>
+    </div>
+</div>
+<!-- ОБНОВЛЕННЫЙ HTML ДЛЯ ЧАТА ПОДДЕРЖКИ -->
+<div id="support-modal" class="modal-overlay hidden chat-modal">
+    <div class="modal-content">
+        <button class="modal-close">&times;</button>
+        <h2>Поддержка</h2>
+        <div class="chat-history" id="chat-history">
+            <div class="chat-message support-message">Здравствуйте! Чем можем помочь?</div>
+        </div>
+        <div class="chat-input-area">
+            <!-- НОВЫЙ HTML ДЛЯ МЕНЮ -->
+            <div id="chat-attach-menu">
+                <a href="#" class="attach-menu-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                    <span>Фото или видео</span>
+                </a>
+                <a href="#" class="attach-menu-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+                    <span>Файл</span>
+                </a>
+            </div>
+
+            <button class="chat-attach-btn" id="chat-attach-btn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Заменим иконку на более подходящий "плюсик" или "скрепку" -->
+                    <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <div id="chat-input-wrapper">
+                <input type="text" id="chat-input" placeholder="Сообщение...">
+                <button class="btn btn-primary" id="send-chat-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Модальное окно для настроек оплаты -->
+    <div id="payment-settings-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <h2>Настройки оплаты</h2>
+            <form id="payment-settings-form">
+                <div class="modal-form-group">
+                    <label for="city-select">Город</label>
+                    <select id="city-select" class="form-input">
+                        <option value="Москва">Москва</option>
+                        <option value="Санкт-Петербург">Санкт-Петербург</option>
+                        <option value="Казань">Казань</option>
+                        <option value="Новосибирск">Новосибирск</option>
+                        <option value="Екатеринбург">Екатеринбург</option>
+                    </select>
+                </div>
+                <div class="modal-form-group">
+                    <label>Способ оплаты</label>
+                    <div class="payment-radio-group">
+                        <label><input type="radio" name="provider" value="qr"> QR</label>
+                        <label><input type="radio" name="provider" value="prizmatic"> Prizmatic</label>
+                    </div>
+                </div>
+                <!--
+                    Тарифы Prizmatic удалены из формы настроек оплаты по требованию: 
+                    пользователь выбирает провайдера (QR или Prizmatic) без выбора тарифа. 
+                    Выбор конкретного тарифа происходит непосредственно при аренде на главном экране.
+                -->
+                <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Сохранить</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Главное меню Prizmatic -->
+    <div id="main-menu-overlay" class="menu-overlay hidden" role="dialog" aria-modal="true">
+        <div class="menu-container">
+            <button id="main-menu-close-btn" class="menu-close-btn" aria-label="Закрыть меню">&times;</button>
+            <div class="menu-items">
+                <button class="menu-item-btn primary" id="menu-tariffs-btn">Тарифы Prizmatic</button>
+                <button class="menu-item-btn secondary" id="menu-my-rentals-btn">Мои аренды</button>
+                <button class="menu-item-btn secondary" id="menu-topup-btn">Пополнить баланс</button>
+                <button class="menu-item-btn secondary" id="menu-map-btn">Карта</button>
+                <button class="menu-item-btn secondary" id="menu-stats-btn">Статистика</button>
+                <button class="menu-item-btn secondary" id="menu-profile-btn">Профиль</button>
+                <button class="menu-item-btn secondary" id="menu-support-btn">Поддержка/FAQ</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+    const SUPABASE_URL = 'https://avamqfmuhiwtlumjkzmv.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const cardModal = document.getElementById('card-modal');
+    const cardDisplayView = document.getElementById('card-display-view');
+    const cardFormView = document.getElementById('card-form-view');
+    const addCardBtn = document.getElementById('add-card-btn');
+    // Elements for the legacy "add card" flow may be absent in markup.
+    // Query them defensively so missing nodes don't break the page logic.
+    const addCardForm = document.getElementById('add-card-form');
+    const cardErrorMessage = document.getElementById('card-error-message');
+    const cardNumberInput = document.getElementById('card-number-input');
+    const cardExpiryInput = document.getElementById('card-expiry-input');
+    const cardCvcInput = document.getElementById('card-cvc-input');
+    const deleteCardBtn = document.getElementById('delete-card-btn');
+
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('card_saved') === 'true') {
+    alert('Карта успешно привязана!');
+    window.history.replaceState({}, document.title, window.location.pathname);
+}
+        
+        if (localStorage.getItem('isRegistered') !== 'true') {
+            window.location.replace('start.html');
+            return;
+        }
+
+        // --- ОБНОВЛЕНИЕ ИМЕНИ В ПРОФИЛЕ ---
+        const userName = localStorage.getItem('userName');
+        if (userName) {
+            document.getElementById('user-name-placeholder').textContent = userName;
+        }
+        // --- ОБЩАЯ ЛОГИКА АНИМАЦИИ ПЕРЕХОДОВ ---
+        const appScreen = document.querySelector('.app-screen');
+        const navLinks = document.querySelectorAll('.bottom-nav a.nav-item');
+        const animationDuration = 400;
+
+        appScreen.classList.add('page-enter');
+        requestAnimationFrame(() => {
+            appScreen.classList.remove('page-enter');
+            appScreen.classList.add('page-enter-active');
+        });
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                if (link.parentElement.classList.contains('active') || link.classList.contains('active')) {
+                    e.preventDefault(); return;
+                }
+                e.preventDefault();
+                const destination = e.currentTarget.href;
+                appScreen.classList.remove('page-enter-active');
+                appScreen.classList.add('page-exit-active');
+                setTimeout(() => { window.location.href = destination; }, animationDuration);
+            });
+        });
+
+        // --- УНИВЕРСАЛЬНАЯ ЛОГИКА ДЛЯ МОДАЛЬНЫХ ОКОН ---
+        const modalTriggers = document.querySelectorAll('[data-modal-target]');
+        const modals = document.querySelectorAll('.modal-overlay');
+        const modalCloses = document.querySelectorAll('.modal-close');
+
+        const openModal = (modalId) => {
+            const modal = document.getElementById(modalId);
+            if(modalId === 'card-modal') updateCardView();
+            // При открытии окна настроек оплаты загружаем сохраненные значения
+            if(modalId === 'payment-settings-modal') {
+                updatePaymentSettingsView();
+            }
+            if (modal) modal.classList.remove('hidden');
+        };
+
+        const closeModal = (modal) => {
+            modal.classList.add('hidden');
+            // Дополнительно: скрываем меню аттачей при закрытии модалки чата
+            if (modal.id === 'support-modal') {
+                document.getElementById('chat-attach-menu').classList.remove('visible');
+            }
+        };
+
+        modalTriggers.forEach(trigger => {
+            trigger.addEventListener('click', (e) => {
+                e.preventDefault();
+                const id = trigger.dataset.modalTarget;
+                if (id) openModal(id);
+            });
+        });
+
+        modalCloses.forEach(button => {
+            button.addEventListener('click', () => {
+                closeModal(button.closest('.modal-overlay'));
+            });
+        });
+
+        modals.forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal(modal);
+            });
+        });
+
+        const updateCardView = async () => {
+    const userId = localStorage.getItem('userId');
+    if (!userId) return;
+
+    // Запрашиваем у Supabase, есть ли у пользователя сохраненная карта
+    const { data, error } = await supabase
+        .from('clients')
+        .select('yookassa_payment_method_id')
+        .eq('id', userId)
+        .single();
+
+    if (error || !data || !data.yookassa_payment_method_id) {
+        // Если карты нет, показываем текст-объяснение
+        document.getElementById('card-display-view').classList.add('hidden');
+        document.getElementById('card-form-view').classList.remove('hidden');
+    } else {
+        // Если карта есть, показываем ее макет
+        document.getElementById('card-form-view').classList.add('hidden');
+        document.getElementById('card-display-view').classList.remove('hidden');
+    }
+};
+
+if (addCardBtn) addCardBtn.addEventListener('click', async () => {
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        alert('Ошибка: не удалось определить пользователя.');
+        return;
+    }
+
+    addCardBtn.disabled = true;
+    addCardBtn.textContent = 'Создаем ссылку...';
+    
+    try {
+        const response = await fetch('/.netlify/functions/save-payment-method', {
+            method: 'POST',
+            body: JSON.stringify({ userId: userId })
+        });
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.error);
+
+        if (data.confirmation_url) {
+            window.location.href = data.confirmation_url;
+        } else {
+            throw new Error('Не получена ссылка для привязки карты.');
+        }
+
+    } catch (error) {
+        alert('Ошибка: ' + error.message);
+        addCardBtn.disabled = false;
+        addCardBtn.textContent = 'Привязать карту';
+    }
+});
+
+    
+
+        if (addCardForm) addCardForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    cardErrorMessage.classList.remove('visible');
+
+    if (cardNumberInput.value.length < 19 || cardExpiryInput.value.length < 5 || cardCvcInput.value.length < 3) {
+        cardErrorMessage.textContent = 'Пожалуйста, заполните все поля корректно.';
+        cardErrorMessage.classList.add('visible');
+        return;
+    }
+
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        alert('Ошибка: не удалось определить пользователя.');
+        return;
+    }
+
+    const submitBtn = addCardForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Создаем ссылку...';
+    
+    try {
+        const response = await fetch('/.netlify/functions/save-payment-method', {
+            method: 'POST',
+            body: JSON.stringify({ userId: userId })
+        });
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.error);
+
+        if (data.confirmation_url) {
+            window.location.href = data.confirmation_url;
+        } else {
+            throw new Error('Не получена ссылка для привязки карты.');
+        }
+
+    } catch (error) {
+        cardErrorMessage.textContent = 'Ошибка: ' + error.message;
+        cardErrorMessage.classList.add('visible');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Привязать';
+    }
+});
+        
+
+        if (deleteCardBtn) {
+            deleteCardBtn.addEventListener('click', () => {
+                localStorage.removeItem('userCard');
+                updateCardView();
+            });
+        }
+
+        if (cardNumberInput) cardNumberInput.addEventListener('input', (e) => { e.target.value = e.target.value.replace(/[^\d]/g, '').replace(/(.{4})/g, '$1 ').trim().slice(0, 19); });
+        if (cardExpiryInput) cardExpiryInput.addEventListener('input', (e) => { e.target.value = e.target.value.replace(/[^\d]/g, '').replace(/(.{2})/, '$1/').slice(0, 5); });
+        if (cardCvcInput) cardCvcInput.addEventListener('input', (e) => { e.target.value = e.target.value.replace(/[^\d]/g, '').slice(0, 3); });
+
+
+        // --- ОБНОВЛЕННАЯ ЛОГИКА ДЛЯ ЧАТА ПОДДЕРЖКИ ---
+        const chatHistory = document.getElementById('chat-history');
+        const chatInput = document.getElementById('chat-input');
+        const sendChatBtn = document.getElementById('send-chat-btn');
+        const chatAttachBtn = document.getElementById('chat-attach-btn');
+        const chatAttachMenu = document.getElementById('chat-attach-menu'); // <-- Находим меню
+
+        const addChatMessage = (message, sender) => {
+            const messageEl = document.createElement('div');
+            messageEl.classList.add('chat-message', `${sender}-message`);
+            messageEl.textContent = message;
+            chatHistory.appendChild(messageEl);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        };
+
+        const handleSend = () => {
+            const messageText = chatInput.value.trim();
+            if (messageText) {
+                addChatMessage(messageText, 'user');
+                chatInput.value = '';
+                setTimeout(() => {
+                    addChatMessage('Приняли ваше сообщение. Оператор скоро подключится к диалогу.', 'support');
+                }, 1000);
+            }
+        }
+
+        sendChatBtn.addEventListener('click', handleSend);
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSend();
+            }
+        });
+
+        // --- ЛОГИКА ДЛЯ МЕНЮ ПРИКРЕПЛЕНИЯ ---
+        chatAttachBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // <-- Останавливаем "всплытие" события
+            chatAttachMenu.classList.toggle('visible');
+        });
+
+        // Закрываем меню, если кликнули в любом другом месте документа
+        document.addEventListener('click', (e) => {
+            // Проверяем, что клик был не по кнопке и не по самому меню
+            if (!chatAttachBtn.contains(e.target) && !chatAttachMenu.contains(e.target)) {
+                 chatAttachMenu.classList.remove('visible');
+            }
+        });
+
+        // Для примера, на пункты меню тоже повесим alert'ы
+        chatAttachMenu.querySelectorAll('.attach-menu-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const type = item.querySelector('span').textContent;
+                alert(`Выбран пункт: ${type}. Функционал в разработке.`);
+                chatAttachMenu.classList.remove('visible');
+            });
+        });
+
+        // === ЛОГИКА ДЛЯ НАСТРОЕК ОПЛАТЫ ===
+        const citySelect = document.getElementById('city-select');
+        const providerRadios = document.querySelectorAll('input[name="provider"]');
+        // Элемент с тарифами может отсутствовать, поэтому ищем его по id и проверяем на null
+        const prizmaticOptionsDiv = document.getElementById('prizmatic-tariff-options');
+        const paymentSettingsForm = document.getElementById('payment-settings-form');
+
+        // Функция обновления формы в модалке настроек оплаты перед открытием
+        function updatePaymentSettingsView() {
+            // Загружаем сохранённый город
+            const savedCity = localStorage.getItem('selectedCity');
+            if (savedCity) {
+                citySelect.value = savedCity;
+            }
+            // Загружаем выбранный способ оплаты (QR или Prizmatic)
+            const savedProvider = localStorage.getItem('paymentProvider') || 'qr';
+            providerRadios.forEach(r => {
+                r.checked = (r.value === savedProvider);
+            });
+            // В интерфейсе настроек оплаты больше нет выбора тарифа для Prizmatic.
+            // Если элемент с тарифами присутствует в DOM, всегда скрываем его.
+            if (prizmaticOptionsDiv) {
+                prizmaticOptionsDiv.classList.add('hidden');
+            }
+        }
+
+        // Слушатель для переключения провайдера
+        providerRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                // При переключении на Prizmatic тарифов больше нет — 
+                // всегда скрываем возможный блок с тарифами если он существует.
+                if (prizmaticOptionsDiv) {
+                    prizmaticOptionsDiv.classList.add('hidden');
+                }
+            });
+        });
+
+        // Safe redefinition (queries elements inside) to avoid TDZ issues
+        function updatePaymentSettingsView() {
+            const citySelectEl = document.getElementById('city-select');
+            const providerRadiosEls = document.querySelectorAll('input[name="provider"]');
+            const prizmaticOpts = document.getElementById('prizmatic-tariff-options');
+            const savedCity = localStorage.getItem('selectedCity');
+            if (savedCity && citySelectEl) citySelectEl.value = savedCity;
+            const savedProvider = localStorage.getItem('paymentProvider') || 'qr';
+            providerRadiosEls.forEach(r => { r.checked = (r.value === savedProvider); });
+            if (prizmaticOpts) prizmaticOpts.classList.add('hidden');
+        }
+
+        // Сохранение настроек оплаты
+        paymentSettingsForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const selectedCity = citySelect.value;
+            const provider = document.querySelector('input[name="provider"]:checked').value;
+            // Сохраняем выбранный город и провайдера.
+            localStorage.setItem('selectedCity', selectedCity);
+            localStorage.setItem('paymentProvider', provider);
+            // При выборе Prizmatic более не требуется заранее указывать тариф, 
+            // поэтому удаляем ранее сохранённый тариф, если он был.
+            localStorage.removeItem('prizmaticTariff');
+            // Закрываем модальное окно после сохранения
+            document.getElementById('payment-settings-modal').classList.add('hidden');
+        });
+
+        const logoutBtn = document.getElementById('logout-btn');
+        logoutBtn.addEventListener('click', async () => {
+            try { await supabase.auth.signOut(); } catch (_) {}
+            localStorage.clear();
+            window.location.replace('start.html');
+        });
+
+    });
+</script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
+    <script src="menu.js" defer></script>
+
+    </body>
+</html>

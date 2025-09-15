@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1280">
+    <title>Карта велосипедов | Bike App</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="admin.css">
+    <!-- ВАШ API-КЛЮЧ ЯНДЕКС.КАРТ -->
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=a32fae3e-06f9-4231-87a0-f225b5d7a04a"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
+    <style>
+        #admin-map-container {
+            width: 100%;
+            height: 70vh; /* 70% of the viewport height */
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body>
+  <div id="admin-app">
+    <div id="dashboard-section">
+      <nav id="admin-nav">
+        <button type="button" data-section="dashboard-main">Dashboard</button>
+        <button type="button" data-section="tariffs">Тарифы</button>
+        <button type="button" data-section="clients">Клиенты</button>
+        <button type="button" data-section="rentals">Аренды</button>
+        <button type="button" data-section="payments">Платежи</button>
+        <button type="button" data-section="bikes">Велосипеды</button>
+        <button type="button" data-section="templates">Шаблоны</button>
+        <button type="button" data-section="admin-map" class="active">Карта велосипедов</button>
+      </nav>
+
+      <section id="admin-map-section" class="admin-section">
+        <div class="section-header">
+          <h2>Карта велосипедов</h2>
+          <div class="section-toolbar">
+            <select id="courier-search-select" class="form-control" style="width: 250px;">
+              <option value="">Найти курьера...</option>
+            </select>
+          </div>
+        </div>
+        <div id="admin-map-container"></div>
+      </section>
+    </div>
+  </div>
+
+<script>
+    const SUPABASE_URL = 'https://avamqfmuhiwtlumjkzmv.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    document.getElementById('admin-nav').addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-section]');
+        if (btn && btn.dataset.section !== 'admin-map') {
+            window.location.href = `admin.html?section=${btn.dataset.section}`;
+        }
+    });
+
+    ymaps.ready(init);
+
+    function init() {
+        let myMap = new ymaps.Map("admin-map-container", {
+            center: [55.76, 37.64], 
+            zoom: 10
+        });
+
+        const objectManager = new ymaps.ObjectManager({ clusterize: true, gridSize: 64 });
+        myMap.geoObjects.add(objectManager);
+        const courierSearchSelect = document.getElementById('courier-search-select');
+
+        async function loadAndDrawData() {
+            try {
+                const [bikesRes, clientsRes] = await Promise.all([
+                    supabase.rpc('get_bikes_with_locations'),
+                    supabase.rpc('get_clients_with_locations')
+                ]);
+
+                console.log('Bikes data:', bikesRes.data);
+                console.log('Clients data:', clientsRes.data);
+
+                if (bikesRes.error) {
+                    console.error('Error fetching bikes:', bikesRes.error);
+                    throw bikesRes.error;
+                }
+                if (clientsRes.error) {
+                    console.error('Error fetching clients:', clientsRes.error);
+                    throw clientsRes.error;
+                }
+
+                // Populate search dropdown
+                const currentSelection = courierSearchSelect.value;
+                courierSearchSelect.innerHTML = '<option value="">Найти курьера...</option>';
+                console.log('Populating courier search dropdown...');
+                clientsRes.data.forEach(client => {
+                    if (client.location_geojson && client.location_geojson.coordinates) {
+                        const option = document.createElement('option');
+                        option.value = client.id;
+                        option.textContent = client.name;
+                        option.dataset.coords = `${client.location_geojson.coordinates[1]},${client.location_geojson.coordinates[0]}`;
+                        courierSearchSelect.appendChild(option);
+                        console.log(`Added courier to dropdown: ${client.name} (${client.id})`);
+                    } else {
+                        console.warn(`Courier ${client.name} (${client.id}) has no valid location_geojson.`);
+                    }
+                });
+                courierSearchSelect.value = currentSelection;
+
+                const bikeFeatures = bikesRes.data.filter(bike => bike.location_geojson).map((bike, index) => {
+                    const coords = bike.location_geojson.coordinates; // [longitude, latitude]
+                    return {
+                        type: 'Feature',
+                        id: `bike_${bike.id}`,
+                        geometry: { type: 'Point', coordinates: [coords[1], coords[0]] }, // Corrected order: [latitude, longitude]
+                        properties: {
+                            hintContent: `${bike.model_name || 'Велосипед'} (${bike.bike_code})`,
+                            balloonContent: `<strong>${bike.model_name}</strong><br>Код: ${bike.bike_code}<br>Статус: ${bike.status}`
+                        },
+                        options: { preset: 'islands#dotIcon', iconColor: getBikeIconColor(bike.status) }
+                    };
+                }).filter(Boolean);
+                console.log('Bike features:', bikeFeatures);
+
+                const clientFeatures = clientsRes.data.map((client, index) => {
+                    if (!client.location_geojson || !client.location_geojson.coordinates) return null;
+                    const coords = client.location_geojson.coordinates; // [longitude, latitude]
+                    return {
+                        type: 'Feature',
+                        id: `client_${client.id}`,
+                        geometry: { type: 'Point', coordinates: [coords[1], coords[0]] }, // Corrected order: [latitude, longitude]
+                        properties: {
+                            hintContent: `Курьер: ${client.name}`,
+                            balloonContent: `<strong>${client.name}</strong><br>ID: ${client.id}`
+                        },
+                        options: { preset: 'islands#userIcon', iconColor: '#ff0000' }
+                    };
+                }).filter(Boolean);
+                console.log('Client features:', clientFeatures);
+
+                const allFeatures = [...bikeFeatures, ...clientFeatures];
+                console.log('All features to add to map:', allFeatures);
+                
+                objectManager.removeAll();
+                objectManager.add({ type: 'FeatureCollection', features: allFeatures });
+
+            } catch (err) {
+                console.error("Error loading map data:", err);
+            }
+        }
+
+        courierSearchSelect.addEventListener('change', (e) => {
+            const selectedOption = e.target.options[e.target.selectedIndex];
+            if (!selectedOption.value) return;
+            const coords = selectedOption.dataset.coords.split(',').map(Number);
+            myMap.panTo(coords, { flying: true, duration: 1500 }).then(() => {
+                myMap.setZoom(15, { duration: 500 });
+            });
+        });
+
+        function getBikeIconColor(status) {
+            switch (status) {
+                case 'available': return '#26b999';
+                case 'rented': return '#1e98ff';
+                case 'in_service': return '#f5a623';
+                default: return '#777777';
+            }
+        }
+
+        loadAndDrawData();
+        setInterval(loadAndDrawData, 20000);
+    }
+</script>

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ЛК Инвестора - Bike App</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Стили для нового списка -->
+    <style>
+        .park-item {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            border: 2px solid transparent;
+        }
+        .park-item:hover {
+            border-color: var(--icon-green);
+            transform: translateY(-2px);
+        }
+        .park-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1rem;
+        }
+        .park-item-status {
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+        }
+        .status-rented { background-color: #e0f8f1; color: var(--icon-green); }
+        .status-free { background-color: #fff8e1; color: #f5a623; }
+        .status-service { background-color: #fcebeb; color: #e53e3e; }
+
+        .park-item-details {
+            margin-top: 12px;
+            font-size: 0.9rem;
+            color: #556f6b;
+            display: none; /* Скрыто по умолчанию */
+            border-top: 1px solid var(--border-color);
+            padding-top: 12px;
+        }
+        .park-item.active .park-item-details {
+            display: block; /* Показываем при клике */
+        }
+    </style>
+
+</head>
+<body>
+<div class="app-screen">
+    <div class="app-content">
+        <header class="app-header">
+            <h1>Ваши электровелосипеды</h1>
+        </header>
+        <main class="app-main">
+            <img src="bike-delivery.png" alt="Electric bike" class="bike-image">
+
+            <div class="info-cards">
+                <div class="card">
+                    <div class="icon-wrapper">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="18.5" r="3.5"/><circle cx="18.5" cy="18.5" r="3.5"/><path d="M15 18.5V11l-3-3-3.5 3H5.5"/></svg>
+                    </div>
+                    <div class="text-content">
+                        <span>Всего в парке</span>
+                        <strong id="bikes-count">0</strong>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="icon-wrapper dollar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                    </div>
+                    <div class="text-content">
+                        <span>Общий заработок</span>
+                        <strong id="total-earnings">0 ₽</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons" style="margin-top: 20px; display: flex; flex-direction: column; gap: 15px;">
+                <button class="btn btn-primary" id="invest-btn">Инвестировать</button>
+                <button class="btn btn-secondary" id="park-btn">Мой парк</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Навигационная панель инвестора -->
+    <nav class="bottom-nav">
+        <div class="nav-item active"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+        <a href="investor_stats.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></a>
+        <a href="investor_map.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></a>
+        <a href="profile.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></a>
+    </nav>
+</div>
+
+<!-- Модальное окно для инвестирования -->
+<div id="invest-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <button class="modal-close">&times;</button>
+        <h2>Выберите модель для инвестирования</h2>
+        <div class="bike-list">
+            <div class="bike-list-item" data-price="100000" data-model="Trek FX 2">
+                <strong>Trek FX 2</strong><span>100 000 ₽</span>
+            </div>
+            <div class="bike-list-item" data-price="85000" data-model="Giant Escape 3">
+                <strong>Giant Escape 3</strong><span>85 000 ₽</span>
+            </div>
+            <div class="bike-list-item" data-price="120000" data-model="Specialized Sirrus">
+                <strong>Specialized Sirrus</strong><span>120 000 ₽</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно "Мой парк" -->
+<div id="park-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <button class="modal-close">&times;</button>
+        <h2>Мой парк велосипедов</h2>
+        <div class="bike-list" id="park-bike-list">
+            <!-- Сюда JS добавит список велосипедов -->
+        </div>
+    </div>
+</div>
+
+<!-- Уведомление об успехе -->
+<div id="success-toast" class="toast-container toast-success hidden">
+    <p class="toast-message">Новый велосипед добавлен в ваш парк!</p>
+</div>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- ПРОВЕРКА, ЧТО ЭТО ИНВЕСТОР ---
+        if (localStorage.getItem('isInvestor') !== 'true') {
+            window.location.replace('start.html');
+            return;
+        }
+
+        // --- ОБЩАЯ ЛОГИКА АНИМАЦИИ ПЕРЕХОДОВ ---
+        const appScreen = document.querySelector('.app-screen');
+        const navLinks = document.querySelectorAll('.bottom-nav a.nav-item');
+        const animationDuration = 400;
+
+        appScreen.classList.add('page-enter');
+        requestAnimationFrame(() => {
+            appScreen.classList.remove('page-enter');
+            appScreen.classList.add('page-enter-active');
+        });
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                if (link.parentElement.classList.contains('active')) {
+                    e.preventDefault();
+                    return;
+                }
+                e.preventDefault();
+                const destination = e.currentTarget.href;
+                appScreen.classList.remove('page-enter-active');
+                appScreen.classList.add('page-exit-active');
+                setTimeout(() => { window.location.href = destination; }, animationDuration);
+            });
+        });
+
+        // --- ЛОГИКА СТРАНИЦЫ ИНВЕСТОРА ---
+        const bikesCountEl = document.getElementById('bikes-count');
+        const totalEarningsEl = document.getElementById('total-earnings');
+        const investBtn = document.getElementById('invest-btn');
+        const investModal = document.getElementById('invest-modal');
+        const investModalCloseBtn = investModal.querySelector('.modal-close');
+        const bikeSelectionList = investModal.querySelector('.bike-list');
+        const successToast = document.getElementById('success-toast');
+        const parkBtn = document.getElementById('park-btn');
+        const parkModal = document.getElementById('park-modal');
+        const parkModalCloseBtn = parkModal.querySelector('.modal-close');
+        const parkBikeList = document.getElementById('park-bike-list');
+
+        function updateDashboard() {
+            const bikes = JSON.parse(localStorage.getItem('investorBikes')) || [];
+            bikesCountEl.textContent = bikes.length;
+
+            const totalEarnings = bikes.reduce((sum, bike) => sum + bike.earnings, 0);
+            totalEarningsEl.textContent = `${totalEarnings.toLocaleString('ru-RU')} ₽`;
+        }
+
+        function showToast(toastElement, duration = 3000) {
+            toastElement.classList.remove('hidden');
+            setTimeout(() => toastElement.classList.add('hidden'), duration);
+        };
+
+        investBtn.addEventListener('click', () => {
+            investModal.classList.remove('hidden');
+        });
+
+        investModalCloseBtn.addEventListener('click', () => {
+            investModal.classList.add('hidden');
+        });
+
+        investModal.addEventListener('click', (e) => {
+            if (e.target === investModal) {
+                investModal.classList.add('hidden');
+            }
+        });
+
+        bikeSelectionList.addEventListener('click', (e) => {
+            const selectedBikeEl = e.target.closest('.bike-list-item');
+            if (!selectedBikeEl) return;
+
+            const price = selectedBikeEl.dataset.price;
+            const model = selectedBikeEl.dataset.model;
+
+            const bikes = JSON.parse(localStorage.getItem('investorBikes')) || [];
+            const newId = `IV-${String(bikes.length + 1).padStart(3, '0')}`;
+
+            const newLocation = [58.0105 + (Math.random() - 0.5) * 0.1, 56.2342 + (Math.random() - 0.5) * 0.1];
+
+            const newBike = {
+                id: newId, model, status: 'Свободен', renter: '-', mileage: 0, earnings: 0, location: newLocation
+            };
+
+            bikes.push(newBike);
+            localStorage.setItem('investorBikes', JSON.stringify(bikes));
+
+            const history = JSON.parse(localStorage.getItem('investorHistory')) || [];
+            history.push({ type: 'Расход', detail: `Покупка ${model}`, amount: -parseInt(price) });
+            localStorage.setItem('investorHistory', JSON.stringify(history));
+
+            investModal.classList.add('hidden');
+            showToast(successToast);
+            updateDashboard();
+        });
+
+        function renderParkList() {
+            const bikes = JSON.parse(localStorage.getItem('investorBikes')) || [];
+            parkBikeList.innerHTML = '';
+            if (bikes.length === 0) {
+                parkBikeList.innerHTML = '<p>У вас пока нет велосипедов.</p>';
+                return;
+            }
+
+            const statusStyles = {
+                'В аренде': { text: 'В аренде', class: 'status-rented' },
+                'Свободен': { text: 'Свободен', class: 'status-free' },
+                'На обслуживании': { text: 'На обслуживании', class: 'status-service' }
+            };
+
+            bikes.forEach(bike => {
+                const endDate = new Date();
+                endDate.setDate(endDate.getDate() + 7);
+                const statusInfo = statusStyles[bike.status] || { text: 'Неизвестно', class: '' };
+
+                const itemHTML = `
+                <div class="park-item" data-id="${bike.id}">
+                    <div class="park-item-header">
+                        <strong>${bike.model} (#${bike.id})</strong>
+                        <span class="park-item-status ${statusInfo.class}">${statusInfo.text}</span>
+                    </div>
+                    <div class="park-item-details">
+                        ${bike.status === 'В аренде' ? `
+                        <div>Арендатор: <strong>${bike.renter}</strong></div>
+                        <div>Доход: <strong>${bike.earnings.toLocaleString('ru-RU')} ₽</strong></div>
+                        <div>Конец аренды: <strong>${endDate.toLocaleDateString('ru-RU')}</strong></div>
+                        ` : `<div>Этот велосипед сейчас не приносит доход.</div>`}
+                    </div>
+                </div>`;
+                parkBikeList.insertAdjacentHTML('beforeend', itemHTML);
+            });
+        }
+
+        parkBtn.addEventListener('click', () => {
+            renderParkList();
+            parkModal.classList.remove('hidden');
+        });
+
+        parkModalCloseBtn.addEventListener('click', () => {
+            parkModal.classList.add('hidden');
+        });
+
+        parkModal.addEventListener('click', (e) => {
+            if (e.target === parkModal) parkModal.classList.add('hidden');
+        });
+
+        parkBikeList.addEventListener('click', (e) => {
+            const clickedItem = e.target.closest('.park-item');
+            if (!clickedItem) return;
+
+            if (clickedItem.classList.contains('active')) {
+                clickedItem.classList.remove('active');
+            } else {
+                parkBikeList.querySelectorAll('.park-item').forEach(item => item.classList.remove('active'));
+                clickedItem.classList.add('active');
+            }
+        });
+
+        updateDashboard();
+    });
+</script>
+
+  </body>
+</html>

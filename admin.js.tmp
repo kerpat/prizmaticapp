@@ -1,0 +1,39 @@
+      tariff: [ ['tariff.title','Тариф'], ['tariff.duration_days','Дней'], ['tariff.price_rub','Сумма ₽'] ],
+      rental: [ ['rental.id','№ аренды'], ['rental.starts_at','Начало'], ['rental.ends_at','Конец'], ['rental.bike_id','ID велосипеда'] ],
+      aux: [ ['now.date','Дата'], ['now.time','Время'] ]
+    };
+
+    function mountChips(container, items) {
+      if (!container) return;
+      container.innerHTML = '';
+      items.forEach(([value,label]) => {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = label;
+        chip.title = `Вставить {{${value}}}`;
+        chip.addEventListener('click', () => insertAtCaret(`{{${value}}}`));
+        container.appendChild(chip);
+      });
+    }
+
+    function insertAtCaret(text) {
+      if (!templateEditor) return;
+      templateEditor.focus();
+      document.execCommand('insertText', false, text);
+    }
+
+    function toolbarAction(e) {
+      const btn = e.target.closest('button[data-cmd]');
+      if (!btn || !templateEditor) return;
+      const cmd = btn.dataset.cmd;
+      templateEditor.focus();
+      document.execCommand(cmd, false, null);
+    }
+
+    async function loadTemplates() {
+      try {
+        // chips
+        mountChips(chipsClient, PLACEHOLDERS.client);
+        mountChips(chipsTariff, PLACEHOLDERS.tariff);
+        mountChips(chipsRental, PLACEHOLDERS.rental);
+        mountChips(chipsAux, PLACEHOLDERS.aux);

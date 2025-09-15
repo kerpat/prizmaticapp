@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Загрузка...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Подключаем манифест -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Добавляем мета-теги для лучшего отображения на iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Bike App">
+
+    <!-- Supabase Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
+
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #083830;
+        }
+        .loader {
+            border: 8px solid #f0fdf9;
+            border-radius: 50%;
+            border-top: 8px solid #29e29a;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
+</head>
+<body>
+<div class="loader"></div>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        // --- Test User Bypass ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const testUserId = urlParams.get('test_user_id');
+
+        if (testUserId) {
+            const SUPABASE_URL = 'https://avamqfmuhiwtlumjkzmv.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I';
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+            try {
+                const { data: client, error } = await supabase
+                    .from('clients')
+                    .select('id, name')
+                    .eq('id', testUserId)
+                    .single();
+
+                if (error || !client) {
+                    throw new Error(error ? error.message : "Test client not found.");
+                }
+
+                // Save user data to localStorage to simulate login
+                localStorage.setItem("isRegistered", "true");
+                localStorage.setItem("userId", client.id);
+                localStorage.setItem("userName", client.name);
+                
+                // Redirect to the main app page
+                window.location.replace('index.html');
+                return; // Stop further execution
+
+            } catch (err) {
+                console.error('Test user login failed:', err);
+                // If test login fails, proceed to normal flow
+            }
+        }
+        // --- END: Test User Bypass ---
+
+        const authToken = localStorage.getItem('authToken');
+
+        if (authToken) {
+            // Если токен есть, проверяем его на сервере
+            try {
+                const response = await fetch('/.netlify/functions/verify-token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: authToken })
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    // Токен валидный, сохраняем данные и переходим на главный экран
+                    localStorage.setItem("userId", userData.userId);
+                    localStorage.setItem("userName", userData.userName);
+                    
+                    // Определяем, инвестор это или нет (если такая логика нужна)
+                    if (localStorage.getItem('isInvestor') === 'true') {
+                        window.location.replace('investor_home.html');
+                    } else {
+                        window.location.replace('index.html');
+                    }
+                    return; // Выходим, чтобы не попасть в блок else
+                } else {
+                    // Токен невалидный, чистим localStorage
+                    localStorage.clear();
+                }
+            } catch (error) {
+                console.error('Token verification failed:', error);
+                // Ошибка сети, но токен есть. Можно попробовать перейти на главную в оффлайн режиме.
+                // Но для чистоты лучше перенаправить на регистрацию.
+                localStorage.clear();
+            }
+        }
+        
+        // Если токена нет или он оказался невалидным
+        window.location.replace('registration.html');
+    });
+</script>
+
+<!-- Регистрируем Service Worker. Это нужно для PWA. -->
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            // ВАЖНО: Путь к sw.js должен быть от корня сайта.
+            // Когда будешь выкладывать на хостинг, убедись, что sw.js лежит в корне.
+            navigator.serviceWorker.register('/sw.js').then(registration => {
+                console.log('ServiceWorker registration successful');
+            }, err => {
+                console.log('ServiceWorker registration failed: ', err);
+            });
+        });
+    }
+</script>
+  </body>
+</html>

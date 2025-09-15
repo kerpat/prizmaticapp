@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Админ‑панель | Bike App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="admin.css">
+  <style>
+    #tariff-form .form-group {
+        margin-bottom: 15px;
+    }
+    #tariff-form textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--progress-bar-bg);
+        border-radius: 8px;
+        font-size: 0.95rem;
+        resize: vertical;
+        min-height: 80px;
+    }
+    #tariff-form input[type="text"],
+    #tariff-form input[type="number"] {
+        margin-bottom: 0;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div id="admin-app">
+    <!-- Авторизация -->
+    <div id="login-section">
+      <h2>Вход в админ‑панель</h2>
+      <form id="login-form">
+        <input type="email" id="login-email" placeholder="Email" required>
+        <input type="password" id="login-password" placeholder="Пароль" required>
+        <button type="submit">Войти</button>
+      </form>
+    </div>
+
+    <!-- Основной интерфейс -->
+    <div id="dashboard-section" class="hidden">
+      <nav id="admin-nav">
+        <button type="button" data-section="dashboard-main" class="active">Dashboard</button>
+        <button type="button" data-section="assignments">Заявки</button>
+        <button type="button" data-section="tariffs">Тарифы</button>
+        <button type="button" data-section="clients">Клиенты</button>
+        <button type="button" data-section="rentals">Аренды</button>
+        <button type="button" data-section="payments">Платежи</button>
+        <button type="button" data-section="bikes">Велосипеды</button>
+        <button type="button" data-section="templates">Шаблоны</button>
+        <a href="admin_map.html" class="admin-nav-link-button"><button type="button">Карта</button></a>
+        <a href="admin_support.html" class="admin-nav-link-button"><button type="button">Поддержка</button></a>
+      </nav>
+
+      <!-- Dashboard -->
+      <section id="dashboard-main-section" class="admin-section">
+        <div class="section-header">
+          <h2>Панель мониторинга</h2>
+        </div>
+        
+        <div class="info-cards" id="dashboard-metrics" style="margin-bottom: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+          <!-- Bike stats will be loaded here by JS -->
+        </div>
+
+        <h3>Доход по дням, ₽</h3>
+        <div class="chart-container">
+            <canvas id="payments-chart"></canvas>
+        </div>
+        <h3 style="margin-top: 30px;">История платежей</h3>
+      </section>
+
+      <!-- Assignments -->
+      <section id="assignments-section" class="admin-section hidden">
+        <div class="section-header">
+          <h2>Заявки на аренду</h2>
+        </div>
+        <table id="assignments-table" class="admin-table">
+          <thead>
+            <tr>
+              <th>Клиент</th>
+              <th>Тариф</th>
+              <th>Дата заявки</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <!-- Модальное окно для выбора велосипеда -->
+      <div id="assign-bike-modal" class="overlay hidden">
+        <div class="modal" style="max-width: 500px;">
+          <div class="modal-header">
+            <h3>Привязать велосипед к аренде</h3>
+            <button id="assign-bike-cancel-btn" class="close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <form id="assign-bike-form">
+              <input type="hidden" id="assign-rental-id">
+              <div class="form-group">
+                <label for="bike-select">Выберите свободный велосипед:</label>
+                <select id="bike-select" class="form-control" required></select>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="assign-bike-submit-btn" class="btn btn-primary">Привязать и активировать</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Тарифы -->
+      <section id="tariffs-section" class="admin-section hidden">
+        <div class="section-header">
+          <h2>Тарифы</h2>
+          <div class="section-toolbar">
+            <button type="button" id="tariff-add-btn" class="btn btn-primary">Добавить тариф</button>
+          </div>
+        </div>
+
+        <table id="tariffs-table" class="admin-table">
+          <thead>
+          <tr>
+            <th>Название</th>
+            <th>Описание</th>
+            <th>Продления (дн./₽)</th>
+            <th>Активен</th>
+            <th>Действия</th>
+          </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <h3 id="tariff-form-title">Новый тариф</h3>
+        <form id="tariff-form">
+          <input type="hidden" id="tariff-id">
+          <div class="form-group">
+            <label for="tariff-title">Название тарифа</label>
+            <input type="text" id="tariff-title" placeholder="Название тарифа" required>
+          </div>
+          <div class="form-group">
+            <label for="tariff-description">Описание тарифа</label>
+            <textarea id="tariff-description" placeholder="Описание тарифа" rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label"><input type="checkbox" id="tariff-active" checked> Активен</label>
+          </div>
+
+          <div class="form-group">
+            <label for="contract-template-select">Шаблон договора:</label>
+            <select id="contract-template-select">
+              <option value="">— Не выбран —</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <div id="tariff-extensions-container" class="tariff-extensions-container">
+              <label>Продления тарифа (опционально):</label>
+              <div id="extensions-list" class="extensions-list"></div>
+              <button type="button" id="add-extension-btn" class="admin-small-btn">Добавить продление</button>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit">Сохранить</button>
+            <button type="button" id="tariff-cancel-btn" class="hidden">Отмена</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Шаблоны договоров -->
+      <section id="templates-section" class="admin-section hidden">
+        <div class="section-header">
+          <h2>Шаблоны договоров</h2>
+          <div class="section-toolbar">
+            <button type="button" id="template-new-btn" class="btn btn-secondary">Новый шаблон</button>
+            <button type="button" id="template-preview-btn" class="btn">Предпросмотр</button>
+            <button type="button" id="template-save-btn" class="btn btn-primary">Сохранить</button>
+          </div>
+        </div>
+        <div class="templates-wrapper">
+          <div class="templates-list">
+            <table id="templates-table" class="admin-table">
+              <thead><tr><th>Название</th><th>Активен</th><th>Действия</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="template-editor-panel">
+            <div class="template-form">
+              <input type="hidden" id="template-id">
+              <label>Название</label>
+              <input type="text" id="template-name" placeholder="Например: Договор аренды (RU)">
+              <label class="checkbox-label" style="margin-top:10px"><input type="checkbox" id="template-active" checked> Активен</label>
+            </div>
+
+            <div class="placeholder-palette">
+              <div class="palette-group">
+                <strong>Клиент</strong>
+                <div class="chips" id="chips-client"></div>
+              </div>
+              <div class="palette-group">
+                <strong>Тариф</strong>
+                <div class="chips" id="chips-tariff"></div>
+              </div>
+              <div class="palette-group">
+                <strong>Аренда</strong>
+                <div class="chips" id="chips-rental"></div>
+              </div>
+              <div class="palette-group">
+                <strong>Служебные</strong>
+                <div class="chips" id="chips-aux"></div>
+              </div>
+            </div>
+
+            <div class="editor-toolbar">
+              <button type="button" data-cmd="bold"><b>B</b></button>
+              <button type="button" data-cmd="italic"><i>I</i></button>
+              <button type="button" data-cmd="underline"><u>U</u></button>
+              <button type="button" data-cmd="insertParagraph">¶</button>
+            </div>
+            <div id="template-editor" class="template-editor" contenteditable="true" spellcheck="false"></div>
+            <p class="hint">Подсказка: кликайте на чипсы, чтобы вставить плейсхолдер (например <code>{{client.full_name}}</code>) в позицию курсора.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Предпросмотр шаблона -->
+      <div id="template-preview-overlay" class="overlay hidden">
+        <div class="modal" style="max-width: 900px;">
+          <div class="modal-header">
+            <h3>Предпросмотр договора</h3>
+            <button id="template-preview-close" class="close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div id="template-preview-content" class="preview-content"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Клиенты -->
+      <section id="clients-section" class="admin-section hidden">
+        <div class="section-header">
+          <h2>Клиенты</h2>
+          <div class="section-toolbar">
+            <input type="search" id="client-search" class="toolbar-input" placeholder="Поиск по имени, телефону или городу">
+            <button id="export-clients-btn" class="btn btn-secondary">Экспорт CSV</button>
+          </div>
+        </div>
+
+        <table id="clients-table" class="admin-table">
+          <thead>
+          <tr>
+            <th>Имя</th>
+            <th>Телефон</th>
+            <th>Статус</th>
+            <th>Теги</th>
+            <th>Создан</th>
+            <th>Просмотр</th>
+            <th>Ред.</th>
+            <th>Вер.</th>
+            <th>Дейст.</th>
+          </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <!-- Редактирование распознанных данных -->
+        <div id="client-edit-overlay" class="overlay hidden">
+          <div class="modal">
+            <div class="modal-header">
+              <h3>Редактирование данных клиента</h3>
+              <button id="client-edit-cancel" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+              <form id="client-edit-form"></form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" id="client-edit-save" class="btn-primary">Сохранить</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Просмотр распознанных данных и фото -->
+        <div id="client-info-overlay" class="overlay hidden">
+          <div class="modal">
+            <div class="modal-header">
+              <h3>Информация о клиенте</h3>
+              <button id="client-info-close" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body" id="client-info-content">
+              <h4>Распознанные данные:</h4>
+              <div id="recognized-data-container">
+                <div id="recognized-display"></div>
+                <form id="recognized-edit-form" class="hidden"></form>
+              </div>
+
+              <!-- Client Tags Section -->
+              <h4 style="margin-top: 20px;">Теги</h4>
+              <div id="client-tags-container" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                <!-- Tags will be loaded here -->
+              </div>
+              <div class="form-group" style="display: flex; gap: 10px;">
+                  <input type="text" id="client-tag-input" class="modal-form-input" placeholder="Добавить тег...">
+                  <button type="button" id="add-tag-btn" class="btn btn-secondary">Добавить</button>
+              </div>
+
+              <h4 style="margin-top: 20px;">Загруженные фото:</h4>
+              <div id="photo-links" class="photo-grid"></div>
+
+              <!-- NEW NOTES SECTION -->
+              <h4 style="margin-top: 20px;">Заметки о клиенте</h4>
+              <div id="client-notes-list" style="margin-bottom: 15px; max-height: 200px; overflow-y: auto; background-color: var(--card-bg); border-radius: 12px; padding: 10px;">
+                <!-- Notes will be loaded here -->
+              </div>
+              <div class="form-group">
+                  <textarea id="client-note-input" class="modal-form-input" placeholder="Добавить новую заметку..." rows="3"></textarea>
+              </div>
+              <button type="button" id="add-note-btn" class="btn btn-secondary" style="width: 100%;">Добавить заметку</button>
+            </div>
+            <div class="modal-footer">
+              <button type="button" id="generate-token-btn" class="btn btn-secondary">Сгенерировать токен</button>
+              <button type="button" id="invoice-create-btn" class="btn btn-primary">Выставить счет</button>
+              <button type="button" id="balance-adjust-btn" class="btn btn-secondary">Изменить баланс</button>
+              <button type="button" id="client-info-edit-toggle" class="btn btn-secondary">Редактировать</button>
+              <button type="button" id="client-info-save" class="btn btn-primary hidden">Сохранить</button>
+              <button type="button" id="client-info-close-2" class="btn btn-secondary">Закрыть</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Модальное окно для выставления счета -->
+        <div id="invoice-modal" class="overlay hidden">
+          <div class="modal" style="max-width: 420px;">
+            <div class="modal-header">
+              <h3>Выставить счет</h3>
+              <button id="invoice-cancel-btn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+              <form id="invoice-form">
+                <input type="hidden" id="invoice-client-id">
+                <div class="form-group">
+                  <label for="invoice-amount">Сумма (₽)</label>
+                  <input type="number" id="invoice-amount" class="modal-form-input" placeholder="Например: 500" required>
+                </div>
+                <div class="form-group">
+                  <label for="invoice-description">Описание счета</label>
+                  <textarea id="invoice-description" class="modal-form-input" placeholder="Например: Штраф за повреждение" rows="3" required></textarea>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" id="invoice-submit-btn" class="btn btn-primary">Выставить и списать</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Модальное окно для корректировки баланса -->
+        <div id="balance-modal" class="overlay hidden">
+          <div class="modal" style="max-width: 420px;">
+            <div class="modal-header">
+              <h3>Корректировка баланса</h3>
+              <button id="balance-cancel-btn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+              <form id="balance-form">
+                <input type="hidden" id="balance-client-id">
+                <div class="form-group">
+                  <label for="balance-amount">Сумма (₽)</label>
+                  <p class="form-hint" style="font-size: 0.8rem; color: #6b6b6b; margin-top: -5px;">Используйте отрицательное число для списания.</p>
+                  <input type="number" id="balance-amount" class="modal-form-input" placeholder="Например: 500 или -100" required>
+                </div>
+                <div class="form-group">
+                  <label for="balance-reason">Причина корректировки</label>
+                  <input type="text" id="balance-reason" class="modal-form-input" placeholder="Например: Бонус за лояльность" required>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" id="balance-submit-btn" class="btn btn-primary">Применить</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Просмотр фото (увеличение) -->
+        <div id="image-viewer-overlay" class="overlay hidden">
+          <div class="image-viewer">
+            <button id="image-viewer-close" class="close-btn">&times;</button>
+            <button id="image-viewer-prev" class="arrow prev" aria-label="Предыдущее">&#10094;</button>
+            <button id="image-viewer-next" class="arrow next" aria-label="Следующее">&#10095;</button>
+            <img id="image-viewer-img" alt="Фото" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Аренды -->
+      <section id="rentals-section" class="admin-section hidden">
+        <div class="section-header">
+          <h2>Аренды</h2>
+        </div>
+        <table id="rentals-table" class="admin-table">
+          <thead>
+          <tr>
+            <th>Клиент</th>
+            <th>Телефон</th>
+            <th>Велосипед</th>
+            <th>Начало</th>
+            <th>Конец</th>
+            <th>Сумма</th>
+            <th>Статус</th>
+            <th>Действия</th>
+          </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <!-- Платежи -->
+      <section id="payments-section" class="admin-section hidden">
+        <div class="section-header">
+          <h2>Платежи</h2>
+        </div>
+        <table id="payments-table" class="admin-table">
+          <thead>
+          <tr>
+            <th>Клиент</th>
+            <th>Сумма</th>
+            <th>Метод</th>
+            <th>Статус</th>
+            <th>Дата</th>
+            <th>Действия</th>
+          </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <!-- Велосипеды -->
+      <section id="bikes-section" class="admin-section hidden">
+        <div class="section-header">
+          <h2>Велосипеды</h2>
+          <div class="section-toolbar">
+            <button type="button" id="bike-add-btn" class="btn btn-primary">Добавить велосипед</button>
+          </div>
+        </div>
+
+        <table id="bikes-table" class="admin-table">
+          <thead>
+          <tr>
+            <th>ID</th>
+            <th>Код</th>
+            <th>Модель</th>
+            <th>Статус</th>
+            <th>Действия</th>
+          </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <h3 id="bike-form-title" class="hidden" style="margin-top: 30px;">Новый велосипед</h3>
+        <form id="bike-form" class="hidden">
+          <input type="hidden" id="bike-id">
+          <div class="form-group">
+              <label for="bike-code">Код велосипеда (уникальный)</label>
+              <input type="text" id="bike-code" placeholder="Например: 00004" required>
+          </div>
+          <div class="form-group">
+              <label for="bike-model">Модель</label>
+              <input type="text" id="bike-model" placeholder="Например: Trek FX 2" required>
+          </div>
+          <div class="form-group">
+            <label for="bike-status">Статус</label>
+            <select id="bike-status" class="form-control" required>
+                <option value="available">Свободен</option>
+                <option value="rented">В аренде</option>
+                <option value="in_service">На обслуживании</option>
+                <option value="unavailable">Недоступен</option>
+            </select>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit">Сохранить</button>
+            <button type="button" id="bike-cancel-btn">Отмена</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Модальное окно для возврата -->
+      <div id="refund-modal" class="overlay hidden">
+        <div class="modal" style="max-width: 420px;">
+          <div class="modal-header">
+            <h3>Оформить возврат</h3>
+            <button id="refund-cancel-btn" class="close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <form id="refund-form">
+              <input type="hidden" id="refund-payment-id">
+              <div class="form-group">
+                <label for="refund-amount">Сумма возврата (₽)</label>
+                <input type="number" id="refund-amount" class="modal-form-input" placeholder="Например: 100.50" required>
+              </div>
+              <div class="form-group">
+                <label for="refund-reason">Причина возврата (необязательно)</label>
+                <input type="text" id="refund-reason" class="modal-form-input" placeholder="Например: Некачественная услуга">
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="refund-submit-btn" class="btn btn-primary">Выполнить возврат</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Удобство: прокрутка к форме добавления тарифа
+    document.addEventListener('DOMContentLoaded', () => {
+      const addBtn = document.getElementById('tariff-add-btn');
+      const formTitle = document.getElementById('tariff-form-title');
+      if (addBtn && formTitle) {
+        addBtn.addEventListener('click', () => {
+          formTitle.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
+
+      // Поиск и сортировка в таблице клиентов (UI)
+      const search = document.getElementById('client-search');
+      const clientsTable = document.getElementById('clients-table');
+      const tbody = clientsTable ? clientsTable.querySelector('tbody') : null;
+      if (search && tbody) {
+        search.addEventListener('input', () => {
+          const q = search.value.toLowerCase();
+          tbody.querySelectorAll('tr').forEach(tr => {
+            tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+          });
+        });
+      }
+      if (clientsTable && tbody) {
+        let dir = 1; // 1 asc, -1 desc
+        clientsTable.querySelector('thead')?.addEventListener('click', (e) => {
+          const th = e.target.closest('th');
+          if (!th) return;
+          const idx = Array.from(th.parentElement.children).indexOf(th);
+          const rows = Array.from(tbody.querySelectorAll('tr'));
+          rows.sort((a, b) => {
+            const ta = a.children[idx]?.textContent?.trim() || '';
+            const tb = b.children[idx]?.textContent?.trim() || '';
+            const na = parseFloat(ta.replace(/[^0-9.]/g, ''));
+            const nb = parseFloat(tb.replace(/[^0-9.]/g, ''));
+            let cmp = (!isNaN(na) && !isNaN(nb) && /^\d/.test(ta)) ? (na - nb) : ta.localeCompare(tb, 'ru');
+            return cmp * dir;
+          });
+          dir *= -1;
+          tbody.innerHTML = '';
+          rows.forEach(r => tbody.appendChild(r));
+        });
+      }
+    });
+  </script>
+  <script src="admin.js" defer></script>
+  </body>
+</html>

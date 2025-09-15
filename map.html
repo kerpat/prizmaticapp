@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Карта - Bike App</title>
+    <!-- Шрифты Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Подключаем общий файл стилей, чтобы использовать переменные и меню -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Все стили CSS встроены прямо в HTML -->
+    <style>
+        .bottom-nav {
+            background-color: var(--light-green-nav);
+            margin: 20px;
+        }
+        :root {
+            --primary-green: #29e29a;
+            --dark-green: #083830;
+            --icon-green: #26b999;
+            --light-green-bg: #e0f8f1;
+            --light-green-nav: #d4f7eb;
+            --card-bg: #f0fdf9;
+            --white: #ffffff;
+            --progress-bar-bg: #eaf0f0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--primary-green); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px 0; }
+        .app-screen { width: 100%; max-width: 420px; background-color: var(--white); border-radius: 40px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1); min-height: 850px; display: flex; flex-direction: column; overflow: hidden; }
+        .app-content, .map-page-container { flex-grow: 1; display: flex; flex-direction: column; padding: 28px; gap: 20px; overflow-y: auto; }
+
+        /* Общие стили */
+        .app-header h1 { font-size: 2.2rem; font-weight: 700; color: var(--dark-green); line-height: 1.2; }
+        .app-header.header-centered h1 { text-align: center; }
+
+        /* Стили для главной */
+        .bike-image { width: 100%; display: block; margin: 5px 0; }
+        .progress-section { width: 100%; }
+        .progress-bar-container { background-color: var(--progress-bar-bg); border-radius: 10px; height: 10px; overflow: hidden; }
+        .progress-bar { width: 10%; height: 100%; background-color: var(--dark-green); border-radius: 10px; }
+        .progress-labels { display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.85rem; font-weight: 600; color: var(--dark-green); }
+        .app-main h2 { font-size: 1.6rem; font-weight: 700; color: var(--dark-green); line-height: 1.3; margin: 10px 0; }
+        .info-cards { display: flex; gap: 15px; }
+        .card { flex: 1; background-color: var(--card-bg); border-radius: 20px; padding: 15px; display: flex; align-items: center; gap: 12px; }
+        .icon-wrapper { width: 45px; height: 45px; border-radius: 50%; background-color: var(--icon-green); display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
+        .icon-wrapper svg { color: var(--white); width: 24px; height: 24px; }
+        .icon-wrapper.dollar svg { width: 20px; height: 20px; }
+        .text-content { display: flex; flex-direction: column; }
+        .text-content span { font-size: 0.9rem; font-weight: 500; color: var(--dark-green); }
+        .text-content strong { font-size: 1.2rem; font-weight: 700; color: var(--dark-green); }
+        .action-buttons { display: flex; flex-direction: column; gap: 15px; margin-top: 10px; }
+        .btn { border-radius: 18px; font-family: 'Inter', sans-serif; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; padding: 20px 10px; }
+        .btn-primary { background-color: var(--dark-green); color: var(--white); font-size: 1.1rem; width: 100%; }
+        .secondary-actions { display: grid; grid-template-columns: auto 1fr 1fr; gap: 15px; }
+        .btn-secondary { background-color: var(--white); color: var(--dark-green); font-size: 1rem; border: 2px solid #e0e9e7; padding: 18px 10px; }
+        .btn-secondary:first-child { padding: 18px 22px; }
+        .btn-secondary svg { color: var(--dark-green); width: 22px; height: 22px; display: block; margin: 0 auto; }
+
+        /* Стили для страницы карты */
+        .map-page-container { position: relative; padding: 0; overflow: hidden; }
+        #map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        [class*="copyrights-pane"], [class*="gotoymaps"] { display: none !important; }
+        .recenter-btn { position: absolute; top: 25px; right: 25px; z-index: 10; width: 50px; height: 50px; border-radius: 50%; background-color: var(--white); border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .recenter-btn svg { color: var(--dark-green); }
+        .info-card { position: absolute; bottom: -100%; left: 0; right: 0; background-color: var(--white); padding: 20px; padding-top: 35px; border-top-left-radius: 30px; border-top-right-radius: 30px; box-shadow: 0 -5px 30px rgba(0,0,0,0.15); z-index: 11; transition: bottom 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); display: flex; flex-direction: column; gap: 15px; }
+        .info-card.visible { bottom: 0; }
+        .card-handle { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 40px; height: 5px; background-color: var(--progress-bar-bg); border-radius: 3px; }
+        .info-card h3 { font-size: 1.2rem; font-weight: 700; color: var(--dark-green); text-align: center; }
+        .card-stats { display: flex; justify-content: space-around; gap: 15px; }
+        .stat-item { display: flex; align-items: center; gap: 8px; font-size: 0.95rem; color: #556f6b; }
+        .stat-item strong { color: var(--dark-green); font-weight: 600; }
+        .stat-item svg { color: var(--icon-green); }
+        .info-card .btn-primary { padding: 18px; font-size: 1rem; }
+
+        /* Общая навигация */
+        .bottom-nav { background-color: var(--light-green-nav); border-radius: 25px; padding: 12px; display: flex; justify-content: space-around; align-items: center; margin: 20px; flex-shrink: 0; position: relative; z-index: 12; }
+        .nav-item { cursor: pointer; padding: 8px; border-radius: 50%; position: relative; display: flex; justify-content: center; align-items: center; }
+        .nav-item.active { background-color: var(--dark-green); }
+        .nav-item svg { color: var(--dark-green); width: 28px; height: 28px; }
+        .nav-item.active svg { color: var(--white); }
+        .nav-item a { text-decoration: none; display: flex; }
+
+        /* Анимации переходов между страницами */
+        .app-screen {
+            transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
+        }
+        .app-screen.page-enter {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        .app-screen.page-enter-active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .app-screen.page-exit {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .app-screen.page-exit-active {
+            opacity: 0;
+            transform: translateY(-20px); /* Изменено на -20px для более приятного эффекта ухода вверх */
+        }
+    </style>
+
+</head>
+<body>
+<div class="app-screen">
+    <!-- Основной контейнер для страницы с картой -->
+    <div class="map-page-container">
+        <!-- Элемент, в который будет встроена карта -->
+        <div id="map"></div>
+
+        <!-- Кнопка для возврата к своей геопозиции -->
+        <button class="recenter-btn" id="recenter-map-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"></polygon></svg>
+        </button>
+
+        <!-- Выдвижная информационная карточка -->
+        <div class="info-card" id="bike-info-card">
+            <div class="card-handle"></div>
+            <h3 id="card-address">Выберите точку на карте</h3>
+            <div class="card-stats">
+                <div class="stat-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="5.5" cy="18.5" r="3.5"></circle>
+                        <circle cx="18.5" cy="18.5" r="3.5"></circle>
+                        <path d="M15 18.5V11l-3-3-3.5 3H5.5"></path>
+                        <path d="M12 8h3"></path>
+                    </svg>
+                    Свободно: <strong id="card-bikes"></strong>
+                </div>
+                <div class="stat-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c-4.42 0-8-3.58-8-8a8 8 0 0 1 16 0c0 4.42-3.58 8-8 8z"/><path d="M12 12v-4"/><path d="M12 12H8"/></svg>
+                    <span id="card-distance-time"></span>
+                </div>
+            </div>
+            <button class="btn btn-primary" id="route-button">Проложить маршрут</button>
+        </div>
+    </div>
+
+    <!-- Нижняя навигационная панель -->
+    <nav class="bottom-nav">
+        <a href="index.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </a>
+        <a href="stats.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+        </a>
+        <!-- ИСПРАВЛЕНО: Теперь это ссылка, а не DIV, для единообразия -->
+        <a href="#" class="nav-item active">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </a>
+        <a href="profile.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </a>
+    </nav>
+</div>
+
+    <!-- Главное меню Prizmatic -->
+    <div id="main-menu-overlay" class="menu-overlay hidden" role="dialog" aria-modal="true">
+        <div class="menu-container">
+            <button id="main-menu-close-btn" class="menu-close-btn" aria-label="Закрыть меню">&times;</button>
+            <div class="menu-items">
+                <button class="menu-item-btn primary" id="menu-tariffs-btn">Тарифы Prizmatic</button>
+                <button class="menu-item-btn secondary" id="menu-my-rentals-btn">Мои аренды</button>
+                <button class="menu-item-btn secondary" id="menu-topup-btn">Пополнить баланс</button>
+                <button class="menu-item-btn secondary" id="menu-map-btn">Карта</button>
+                <button class="menu-item-btn secondary" id="menu-stats-btn">Статистика</button>
+                <button class="menu-item-btn secondary" id="menu-profile-btn">Профиль</button>
+                <button class="menu-item-btn secondary" id="menu-support-btn">Поддержка/FAQ</button>
+            </div>
+        </div>
+    </div>
+
+
+<script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=a32fae3e-06f9-4231-87a0-f225b5d7a04a" type="text/javascript"></script>
+<!-- ИСПРАВЛЕННЫЙ И ПЕРЕПИСАННЫЙ JAVASCRIPT-КОД -->
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- ОБЩАЯ ЛОГИКА АНИМАЦИИ ПЕРЕХОДОВ (ДЛЯ ВСЕХ СТРАНИЦ) ---
+        const appScreen = document.querySelector('.app-screen');
+        const navLinks = document.querySelectorAll('.bottom-nav a.nav-item');
+        const animationDuration = 400; // Должно совпадать с transition в CSS
+
+        // Анимация появления страницы
+        appScreen.classList.add('page-enter');
+        requestAnimationFrame(() => {
+            appScreen.classList.remove('page-enter');
+            appScreen.classList.add('page-enter-active');
+        });
+
+        // Вешаем обработчики на все ссылки навигации
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                // Если клик по уже активной ссылке, ничего не делаем
+                if (link.classList.contains('active')) {
+                     e.preventDefault();
+                     return;
+                }
+
+                // Для всех остальных ссылок запускаем анимацию ухода
+                e.preventDefault();
+                const destination = e.currentTarget.href;
+
+                appScreen.classList.remove('page-enter-active');
+                appScreen.classList.add('page-exit');
+                requestAnimationFrame(() => {
+                    appScreen.classList.add('page-exit-active');
+                });
+
+                // Переходим на новую страницу после завершения анимации
+                setTimeout(() => {
+                    window.location.href = destination;
+                }, animationDuration);
+            });
+        });
+    });
+
+    // --- ЛОГИКА КАРТЫ (ЗАПУСКАЕТСЯ, КОГДА API ГОТОВ) ---
+    ymaps.ready(initMap);
+
+    function initMap() {
+        const userCoords = [58.010841, 56.201218];
+        const userAddress = "ул. Окулова, 62";
+        const bikePointData = {
+            coords: [58.0093, 56.2378],
+            address: "ул. Луначарского, 51",
+            bikes: 100
+        };
+
+        let myMap = new ymaps.Map('map', { center: userCoords, zoom: 14, controls: [] });
+
+        const infoCard = document.getElementById('bike-info-card');
+        const cardAddress = document.getElementById('card-address');
+        const cardBikes = document.getElementById('card-bikes');
+        const cardDistanceTime = document.getElementById('card-distance-time');
+        const routeButton = document.getElementById('route-button');
+        const recenterBtn = document.getElementById('recenter-map-btn');
+        let currentRoute = null;
+
+        const UserIconLayout = ymaps.templateLayoutFactory.createClass(
+            '<div class="user-placemark">' +
+                '<svg width="26" height="36" viewBox="0 0 13 18" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                    '<path fill-rule="evenodd" clip-rule="evenodd" d="M3.17846 0.843094C5.14483 -0.299453 7.56183 -0.279483 9.50975 0.895405C11.4385 2.09422 12.6108 4.23376 12.5999 6.5353C12.555 8.82174 11.298 10.971 9.72673 12.6325C8.81985 13.5958 7.80535 14.4475 6.70396 15.1704C6.59053 15.236 6.46628 15.2799 6.33734 15.3C6.21324 15.2947 6.09239 15.258 5.98568 15.1933C4.30418 14.1071 2.829 12.7206 1.6311 11.1006C0.628731 9.74823 0.0592531 8.11441 1.99923e-06 6.42098C-0.00129925 4.11502 1.21209 1.98564 3.17846 0.843094ZM4.31507 7.37541C4.64584 8.19086 5.42658 8.72276 6.29276 8.72277C6.86021 8.72684 7.40569 8.49955 7.80765 8.09153C8.20961 7.68352 8.43465 7.12868 8.43264 6.55065C8.43567 5.66834 7.91623 4.87119 7.11686 4.5314C6.31748 4.19162 5.39586 4.37622 4.78231 4.99902C4.16875 5.62182 3.9843 6.55996 4.31507 7.37541Z" fill="#00BABA"/>' +
+                    '<ellipse opacity="0.4" cx="6.29956" cy="17.0999" rx="4.5" ry="0.9" fill="#00BABA"/>' +
+                '</svg>' +
+            '</div>'
+        );
+
+        const userPlacemark = new ymaps.Placemark(userCoords, {
+            balloonContent: `<strong>Моя позиция:</strong><br>${userAddress}`
+        }, {
+            iconLayout: UserIconLayout,
+            iconOffset: [-13, -36]
+        });
+        myMap.geoObjects.add(userPlacemark);
+
+        const bikePlacemark = new ymaps.Placemark(bikePointData.coords, {
+            balloonContent: `<strong>${bikePointData.address}</strong><br>Свободно: ${bikePointData.bikes} велосипедов`
+        }, {
+            preset: 'islands#dotIcon',
+            iconColor: '#26b999'
+        });
+        myMap.geoObjects.add(bikePlacemark);
+
+        function plotRouteBetweenPoints(startCoords, endCoords, onRouteSuccess) {
+            if (currentRoute) { myMap.geoObjects.remove(currentRoute); }
+            ymaps.modules.require(['multiRouter.MultiRoute'], function (MultiRoute) {
+                currentRoute = new MultiRoute({
+                    referencePoints: [startCoords, endCoords],
+                    params: { routingMode: 'pedestrian' }
+                }, {
+                    boundsAutoApply: false,
+                    routeStrokeColor: '#26b999', routeStrokeWidth: 4,
+                    routeActiveStrokeColor: '#26b999', routeActiveStrokeWidth: 6
+                });
+                myMap.geoObjects.add(currentRoute);
+
+                currentRoute.model.events.add('requestsuccess', function() {
+                    const activeRoute = currentRoute.getActiveRoute();
+                    if (activeRoute) {
+                        const travelTime = activeRoute.properties.get("duration").text;
+                        const distance = activeRoute.properties.get("distance").text;
+                        cardDistanceTime.textContent = `${distance} (${travelTime})`;
+                        if (onRouteSuccess) { onRouteSuccess(); }
+                    } else { cardDistanceTime.textContent = 'Маршрут не найден'; }
+                });
+                currentRoute.model.events.add('error', () => { cardDistanceTime.textContent = 'Ошибка построения маршрута'; });
+            }, () => { cardDistanceTime.textContent = 'Ошибка загрузки модуля'; });
+        }
+
+        bikePlacemark.events.add('click', () => {
+            cardAddress.textContent = bikePointData.address;
+            cardBikes.textContent = bikePointData.bikes;
+            infoCard.classList.add('visible');
+            plotRouteBetweenPoints(userCoords, bikePointData.coords);
+        });
+
+        routeButton.addEventListener('click', () => {
+            infoCard.classList.remove('visible');
+            const zoomToUser = () => myMap.setCenter(userCoords, 17, { duration: 800, checkZoomRange: true });
+            if (currentRoute) { zoomToUser(); }
+            else { plotRouteBetweenPoints(userCoords, bikePointData.coords, zoomToUser); }
+        });
+
+        recenterBtn.addEventListener('click', () => {
+            myMap.setCenter(userCoords, 14);
+            infoCard.classList.remove('visible');
+            if (currentRoute) {
+                myMap.geoObjects.remove(currentRoute);
+                currentRoute = null;
+            }
+        });
+    }
+</script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
+    <script src="menu.js" defer></script>
+    <script defer src="../../../assets/enhance.js"></script>
+</body>
+</html>

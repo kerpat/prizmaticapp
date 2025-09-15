@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Статистика - Bike App</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Подключаем библиотеку Supabase до основного скрипта, чтобы window.supabase был доступен -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
+
+</head>
+<body>
+<div class="app-screen">
+    <div class="app-content">
+        <header class="app-header header-centered">
+            <h1>История поездок</h1>
+        </header>
+        <main class="app-main">
+            <div class="stats-graph">
+                <div class="graph-bar-item"><div class="bar" id="day-0"></div><span class="day">Пн</span></div>
+                <div class="graph-bar-item"><div class="bar" id="day-1"></div><span class="day">Вт</span></div>
+                <div class="graph-bar-item"><div class="bar" id="day-2"></div><span class="day">Ср</span></div>
+                <div class="graph-bar-item"><div class="bar" id="day-3"></div><span class="day">Чт</span></div>
+                <div class="graph-bar-item"><div class="bar" id="day-4"></div><span class="day">Пт</span></div>
+                <div class="graph-bar-item"><div class="bar" id="day-5"></div><span class="day">Сб</span></div>
+                <div class="graph-bar-item"><div class="bar" id="day-6"></div><span class="day">Вс</span></div>
+            </div>
+
+            <div class="info-cards">
+                <div class="card">
+                    <div class="icon-wrapper">
+                        <svg xmlns="http://www.w.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                    </div>
+                    <div class="text-content">
+                        <span>Дней в аренде</span>
+                        <strong id="total-days">0</strong>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="icon-wrapper">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                    </div>
+                    <div class="text-content">
+                        <span>Общая дистанция</span>
+                        <strong id="total-distance">0.0 км</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="history-list" id="history-list-container">
+                <!-- Сюда будут добавляться записи из истории -->
+            </div>
+        </main>
+    </div>
+    <nav class="bottom-nav">
+        <a href="index.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </a>
+        <div class="nav-item active">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+        </div>
+        <a href="map.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </a>
+        <a href="profile.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </a>
+    </nav>
+</div>
+
+    <!-- Главное меню Prizmatic -->
+    <div id="main-menu-overlay" class="menu-overlay hidden" role="dialog" aria-modal="true">
+        <div class="menu-container">
+            <button id="main-menu-close-btn" class="menu-close-btn" aria-label="Закрыть меню">&times;</button>
+            <div class="menu-items">
+                <button class="menu-item-btn primary" id="menu-tariffs-btn">Тарифы Prizmatic</button>
+                <button class="menu-item-btn secondary" id="menu-my-rentals-btn">Мои аренды</button>
+                <button class="menu-item-btn secondary" id="menu-topup-btn">Пополнить баланс</button>
+                <button class="menu-item-btn secondary" id="menu-map-btn">Карта</button>
+                <button class="menu-item-btn secondary" id="menu-stats-btn">Статистика</button>
+                <button class="menu-item-btn secondary" id="menu-profile-btn">Профиль</button>
+                <button class="menu-item-btn secondary" id="menu-support-btn">Поддержка/FAQ</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // --- Подключение к Supabase ---
+    const SUPABASE_URL = 'https://avamqfmuhiwtlumjkzmv.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- ОБЩАЯ ЛОГИКА АНИМАЦИИ ПЕРЕХОДОВ ---
+        const appScreen = document.querySelector('.app-screen');
+        const navLinks = document.querySelectorAll('.bottom-nav a.nav-item');
+        const animationDuration = 400;
+
+        appScreen.classList.add('page-enter');
+        requestAnimationFrame(() => {
+            appScreen.classList.remove('page-enter');
+            appScreen.classList.add('page-enter-active');
+        });
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                if (link.parentElement.classList.contains('active')) {
+                    e.preventDefault();
+                    return;
+                }
+                e.preventDefault();
+                const destination = e.currentTarget.href;
+                appScreen.classList.remove('page-enter-active');
+                appScreen.classList.add('page-exit');
+                requestAnimationFrame(() => {
+                    appScreen.classList.add('page-exit-active');
+                });
+                setTimeout(() => {
+                    window.location.href = destination;
+                }, animationDuration);
+            });
+        });
+
+
+        // --- ЛОГИКА, СПЕЦИФИЧНАЯ ДЛЯ stats.html ---
+        const historyContainer = document.getElementById('history-list-container');
+        const totalDaysEl = document.getElementById('total-days');
+        const totalDistanceEl = document.getElementById('total-distance');
+
+        const icons = {
+            rent: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`,
+            book: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path><polyline points="12 6 12 12 16 14"></polyline></svg>`,
+            topup: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`
+        };
+
+        // === ЗАГРУЗКА ИСТОРИИ ИЗ SUPABASE ===
+        async function loadTripHistory() {
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
+                console.error("User ID not found, can't load history.");
+                historyContainer.innerHTML = '<p class="empty-history">Не удалось определить пользователя.</p>';
+                totalDaysEl.textContent = '0';
+                totalDistanceEl.textContent = '0.0 км';
+                return;
+            }
+            // Показываем сообщение о загрузке
+            historyContainer.innerHTML = '<p>Загрузка истории...</p>';
+            // Загружаем аренды из Supabase, включая название тарифа
+            const { data: rentals, error } = await supabase
+                .from('rentals')
+                .select('id, user_id, tariff_id, starts_at, ends_at, status, total_rub, created_at, tariffs ( title )')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false });
+            if (error) {
+                console.error('Ошибка загрузки истории:', error);
+                historyContainer.innerHTML = '<p class="empty-history">Не удалось загрузить историю поездок.</p>';
+                totalDaysEl.textContent = '0';
+                totalDistanceEl.textContent = '0.0 км';
+                return;
+            }
+            if (!rentals || rentals.length === 0) {
+                historyContainer.innerHTML = '<p class="empty-history">История поездок и операций пуста.</p>';
+                totalDaysEl.textContent = '0';
+                totalDistanceEl.textContent = '0.0 км';
+                return;
+            }
+            // Считаем общее количество дней аренды
+            let totalDays = 0;
+            rentals.forEach(item => {
+                if (item.starts_at && item.ends_at) {
+                    const start = new Date(item.starts_at);
+                    const end = new Date(item.ends_at);
+                    const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+                    totalDays += diffDays;
+                }
+            });
+            totalDaysEl.textContent = totalDays;
+            // Пока что общую дистанцию не считаем – оставим 0.0 км как заглушку
+            totalDistanceEl.textContent = '0.0 км';
+            // Очищаем контейнер и рендерим записи
+            historyContainer.innerHTML = '';
+            rentals.forEach(item => {
+                const tariffTitle = item.tariffs ? item.tariffs.title : '';
+                const historyItemHTML = `
+                    <div class="history-item">
+                        <div class="history-item-left">
+                            <div class="history-icon-wrapper trip">
+                                ${icons['rent']}
+                            </div>
+                            <div class="history-details">
+                                <span class="history-title">Аренда #${item.id}</span>
+                                <span class="history-subtitle">${tariffTitle ? tariffTitle : ''}${item.status ? ' – ' + item.status : ''}</span>
+                            </div>
+                        </div>
+                        <div class="history-cost">${item.total_rub || 0} ₽</div>
+                    </div>
+                `;
+                historyContainer.insertAdjacentHTML('beforeend', historyItemHTML);
+            });
+        }
+        // Запускаем загрузку истории
+        loadTripHistory();
+    });
+</script>
+    <script src="menu.js" defer></script>
+    </body>
+</html>

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1280">
+  <title>Поддержка | Bike App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="admin.css">
+  <style>
+    /* Стили для страницы поддержки */
+    .support-layout {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 24px;
+        height: calc(100vh - 180px); /* Адаптивная высота */
+        background-color: var(--surface);
+        border-radius: 16px;
+        padding: 20px;
+    }
+    .chat-list-panel {
+        display: flex;
+        flex-direction: column;
+        background-color: var(--surface-2);
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        overflow-y: auto;
+    }
+    .chat-list-header {
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+    }
+    .chat-list-header input {
+        width: 100%;
+    }
+    .chat-list {
+        flex-grow: 1;
+        overflow-y: auto;
+    }
+    .chat-list-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border);
+        transition: background-color 0.2s ease;
+    }
+    .chat-list-item:hover {
+        background-color: #eaf5f2;
+    }
+    .chat-list-item.active {
+        background-color: var(--light-green-bg);
+    }
+    .chat-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background-color: var(--icon-green);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    .chat-info {
+        flex-grow: 1;
+        overflow: hidden;
+    }
+    .chat-name {
+        font-weight: 700;
+        color: var(--text);
+    }
+    .last-message {
+        font-size: 0.9rem;
+        color: #556f6b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .unread-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: var(--accent-2);
+        flex-shrink: 0;
+    }
+
+    .chat-window-panel {
+        display: flex;
+        flex-direction: column;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background-color: var(--surface-2);
+    }
+    .chat-window-header {
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: var(--text);
+        background-color: #f7faf7;
+    }
+    .chat-history-admin {
+        flex-grow: 1;
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    .chat-message {
+        max-width: 80%;
+        padding: 12px 16px;
+        border-radius: 18px;
+        line-height: 1.4;
+        word-wrap: break-word;
+    }
+    .admin-message {
+        align-self: flex-end;
+        background-color: var(--dark-green);
+        color: var(--white);
+        border-bottom-right-radius: 4px;
+    }
+    .client-message {
+        align-self: flex-start;
+        background-color: var(--white);
+        color: var(--dark-green);
+        border: 1px solid #e0e9e7;
+        border-bottom-left-radius: 4px;
+    }
+    .chat-input-area-admin {
+        display: flex;
+        gap: 10px;
+        padding: 15px;
+        border-top: 1px solid var(--border);
+        background-color: #f7faf7;
+    }
+    #chat-input-admin {
+        flex-grow: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="admin-app">
+    <div id="dashboard-section">
+      <nav id="admin-nav">
+        <a href="admin.html" class="admin-nav-link-button"><button type="button">Dashboard</button></a>
+        <a href="admin.html?section=assignments" class="admin-nav-link-button"><button type="button">Заявки</button></a>
+        <a href="admin.html?section=tariffs" class="admin-nav-link-button"><button type="button">Тарифы</button></a>
+        <a href="admin.html?section=clients" class="admin-nav-link-button"><button type="button">Клиенты</button></a>
+        <a href="admin.html?section=rentals" class="admin-nav-link-button"><button type="button">Аренды</button></a>
+        <a href="admin.html?section=payments" class="admin-nav-link-button"><button type="button">Платежи</button></a>
+        <a href="admin.html?section=bikes" class="admin-nav-link-button"><button type="button">Велосипеды</button></a>
+        <a href="admin.html?section=templates" class="admin-nav-link-button"><button type="button">Шаблоны</button></a>
+        <a href="admin_map.html" class="admin-nav-link-button"><button type="button">Карта</button></a>
+        <a href="admin_support.html" class="admin-nav-link-button"><button type="button" class="active">Поддержка</button></a>
+      </nav>
+
+      <section id="support-section" class="admin-section">
+        <div class="support-layout">
+            <div class="chat-list-panel">
+                <div class="chat-list-header">
+                    <input type="search" id="client-chat-search" class="toolbar-input" placeholder="Поиск по клиентам...">
+                </div>
+                <div class="chat-list" id="chat-list-container">
+                    <!-- Сюда JS будет загружать список чатов -->
+                </div>
+            </div>
+            <div class="chat-window-panel">
+                <div class="chat-window-header" id="chat-window-header">Выберите чат</div>
+                <div id="link-chat-bar" class="hidden" style="padding: 10px; text-align: center; background-color: var(--light-green-bg); border-bottom: 1px solid var(--border);">
+                    <button id="link-chat-btn" class="btn btn-secondary" style="height: auto; padding: 8px 12px;">Привязать чат к клиенту</button>
+                </div>
+                <div class="chat-history-admin" id="chat-history-container">
+                    <!-- Сюда JS будет загружать историю сообщений -->
+                </div>
+                <div class="chat-input-area-admin">
+                    <input type="text" id="chat-input-admin" class="toolbar-input" placeholder="Введите сообщение...">
+                    <button id="send-chat-admin-btn" class="btn btn-primary">Отправить</button>
+                </div>
+            </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
+  <script src="admin_support.js"></script>
+
+  <!-- Модальное окно для выбора клиента -->
+  <div id="link-client-modal" class="overlay hidden">
+    <div class="modal" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3>Привязать чат к клиенту</h3>
+        <button id="link-client-cancel-btn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="search" id="link-client-search" class="toolbar-input" placeholder="Поиск по имени или телефону..." style="width: 100%; margin-bottom: 15px;">
+        <div id="link-client-list" style="max-height: 40vh; overflow-y: auto;">
+            <!-- Сюда будет загружен список клиентов -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
