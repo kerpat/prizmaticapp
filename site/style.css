@@ -1475,7 +1475,7 @@ select.form-control:focus {
     height: 100vh; /* Занимаем весь экран по высоте на мобильных */
   }
   body {
-    padding: 20px 5px 0px 5px; /* Убираем нижний отступ, чтобы контент шел до конца экрана */
+    padding: calc(20px + var(--tg-safe-area-inset-top, 0px)) 5px 0px 5px; /* Сохраняем верхний отступ для Telegram элементов, убираем нижний */
   }
   .app-content {
     padding: 20px;
