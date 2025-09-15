@@ -20,22 +20,24 @@ body {
   background-color: var(--tg-theme-bg-color, var(--primary-green)); /* Синхронизация с Telegram-темой */
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center; /* ИЗМЕНЕНО: Центрирование по вертикали, чтобы отступы сверху/снизу были равными */
   min-height: 100vh;
   margin: 0;
-  padding: calc(15px + var(--tg-safe-area-inset-top, 0px)) 15px calc(15px + var(--tg-safe-area-inset-bottom, 0px)); /* ИЗМЕНЕНО: Увеличен боковой padding для лучшего центрирования в Telegram */
+  padding: calc(25px + var(--tg-safe-area-inset-top, 0px)) 25px calc(25px + var(--tg-safe-area-inset-bottom, 0px)); /* УМЕНЬШЕНО ДЛЯ ОТОСТУПОВ: Больше padding по всем сторонам, чтобы app-screen не прилипал к краям */
 }
 
 .app-screen {
   width: 100%;
-  max-width: 360px; /* ИЗМЕНЕНО ДЛЯ КОМПАКТНОСТИ: Уменьшено с 420px, чтобы вписывалось в Telegram-фрейм без обрезки */
+  max-width: 340px; /* УМЕНЬШЕНО ДЛЯ ОТОСТУПОВ: Компактная ширина, с зазором по бокам от Telegram-фрейма */
   background-color: var(--tg-theme-secondary-bg-color, var(--white));
-  border-radius: 30px; /* ИЗМЕНЕНО: Снижено скругление с 40px, чтобы углы не "выпирали" за рамку Telegram */
+  border-radius: 25px; /* УМЕНЬШЕНО: Меньше скругление, чтобы не "выпирать" */
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-  min-height: auto; /* ИЗМЕНЕНО: Динамическая высота, чтобы не растягивалось на весь vh и не конфликтовало с нижним баром */
+  height: 80vh; /* УМЕНЬШЕНО ДЛЯ ОТОСТУПОВ: Не на весь экран, оставляем место снизу для Telegram-бара */
+  max-height: 700px; /* Ограничение высоты, чтобы на больших экранах не растягивалось */
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  margin: auto; /* Центрирование, если padding body не хватит */
 }
 
 .app-content, .map-page-container {
@@ -578,7 +580,7 @@ body {
   flex-shrink: 0;
   position: relative;
   z-index: 12;
-  margin-bottom: var(--tg-safe-area-inset-bottom, 0px); /* ИЗМЕНЕНО: Учёт Telegram-нижнего бара */
+  margin-bottom: var(--tg-safe-area-inset-bottom, 0px); /* Учёт Telegram-нижнего бара */
 }
 
 .nav-item {
@@ -832,7 +834,7 @@ body {
   padding: 25px;
   border-radius: 24px;
   width: 90%;
-  max-width: 320px; /* ИЗМЕНЕНО ДЛЯ КОМПАКТНОСТИ: Уменьшено модалки, чтобы они не "вылазили" */
+  max-width: 300px; /* УМЕНЬШЕНО ДЛЯ ОТОСТУПОВ: Модалки компактнее */
   text-align: center;
   position: relative;
   transform: scale(1);
@@ -923,7 +925,7 @@ body {
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
-  max-width: 340px; /* ИЗМЕНЕНО ДЛЯ КОМПАКТНОСТИ: Тосты подогнаны под новую ширину */
+  max-width: 320px; /* УМЕНЬШЕНО ДЛЯ ОТОСТУПОВ: Тосты под новую компактность */
   background-color: var(--dark-green);
   color: var(--white);
   display: flex;
@@ -1360,7 +1362,7 @@ select.form-control:focus {
 
 .menu-container {
   width: 100%;
-  max-width: 340px; /* ИЗМЕНЕНО ДЛЯ КОМПАКТНОСТИ: Подогнано под новую ширину */
+  max-width: 320px; /* УМЕНЬШЕНО ДЛЯ ОТОСТУПОВ: Меню под компактный размер */
   background: var(--white);
   border-radius: 30px 30px 0 0;
   padding: 24px;
@@ -1464,17 +1466,21 @@ select.form-control:focus {
   line-height: 1.4;
 }
 
-/* ИЗМЕНЕНО: Media для компактных экранов (Telegram на маленьких девайсах) */
+/* УМЕНЬШЕНО ДЛЯ ОТОСТУПОВ: Media для компактных экранов (Telegram на маленьких девайсах) */
 @media (max-width: 380px) {
   .app-screen {
-    max-width: 320px; /* Ещё меньше для сверхузких экранов */
-    border-radius: 20px; /* Минимальное скругление */
+    max-width: 300px; /* Ещё меньше для сверхузких */
+    height: 75vh; /* Уменьшенная высота */
+    border-radius: 20px;
+  }
+  body {
+    padding: 20px 20px; /* Сжатый padding на маленьких экранах */
   }
   .app-content {
-    padding: 20px; /* Сжатый padding внутри */
+    padding: 20px; /* Внутренние отступы меньше */
   }
   .modal-content {
-    max-width: 300px;
+    max-width: 280px;
   }
 }
 
@@ -1491,9 +1497,9 @@ select.form-control:focus {
 @media (min-width: 421px) {
   /* Для экранов больше мобильных (планшеты, десктоп) — возвращаем оригинал */
   .app-screen {
-    max-width: 420px; /* Оригинальная ширина вне Telegram */
-    border-radius: 40px;
+    max-width: 420px;
     height: 100vh;
     max-height: 850px;
+    border-radius: 40px;
   }
 }
