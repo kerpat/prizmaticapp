@@ -83,31 +83,16 @@ body.tg-webapp .app-main h2,
   transition: opacity 0.3s ease-in-out; /* Добавлено */
 }
 
-/* Hero bike photo: keep original clean sizing */
+/* Reset hero bike photo to original behavior */
 #main-bike-image {
-  width: 100% !important;
-  max-width: 100% !important;
-  height: auto !important;
-  margin: 0 auto !important; /* center inside wrapper */
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  margin: 5px 0;
   object-fit: contain;
   display: block;
-  transform-origin: center center;
+  transform: none !important;
 }
-
-/* Slightly enlarge hero image on phones while keeping it centered */
-@media (max-width: 480px) {
-  #main-bike-image { transform: scale(1.28); }
-}
-
-@media (min-width: 481px) and (max-width: 768px) {
-  #main-bike-image { transform: scale(1.16); }
-}
-
-/* Make sure the rule wins even inside <picture> */
-picture img#main-bike-image { width: 100% !important; height: auto !important; }
-
-/* Ensure image can overflow slightly when scaled */
-.bike-image-wrapper { overflow: visible; }
 
 
 /* Контейнер для изображения велосипеда и динамической подписи. Делаем его позиционированным, чтобы можно было располагать текст поверх картинки. */
