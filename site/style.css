@@ -7,6 +7,8 @@
   --card-bg: #f0fdf9;
   --white: #ffffff;
   --progress-bar-bg: #eaf0f0;
+  /* Reserve space for header when title is hidden */
+  --no-brand-header-space: 56px;
   /* Layout helpers */
   /* Используем content-safe inset от Telegram, чтобы контент начинался под кнопками Close/⋯ */
   --app-top-offset: calc(10px + var(--tg-content-safe-area-inset-top, var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px))));
@@ -67,6 +69,13 @@ body {
 
 .app-header.header-centered h1 {
   text-align: center;
+}
+
+/* Hide brand title on pages with no-brand */
+body.no-brand .app-header h1 { display: none !important; }
+body.no-brand .app-header {
+  flex: 0 0 var(--no-brand-header-space);
+  min-height: var(--no-brand-header-space);
 }
 
 /* Center the secondary title on Telegram WebApp */
@@ -1495,12 +1504,13 @@ select.form-control:focus {
 }
 
 /* Media для компактных экранов (мобильные браузеры) */
-@media (max-width: 380px) {
-  body {
-    min-height: auto; /* Убираем центрирование по вертикали на мобильных */
-    height: 100vh; /* Занимаем всю высоту экрана */
-    padding: var(--app-top-offset) 5px 0px 5px; /* Стартуем ниже TG‑хедера, без нижнего отступа */
+@media (max-width: 480px) {
+  #main-bike-image {
+    width: 128%; /* Увеличиваем ширину картинки */
+    max-width: 128%; /* Разрешаем ей быть шире родителя */
+    margin-left: -14%; /* Сдвигаем влево на половину от добавленной ширины (28% / 2 = 14%) */
   }
+}
   .app-screen {
     border-radius: 0px; /* Убираем скругление для полного экрана */
     height: var(--tg-viewport-stable-height, 100vh); /* Стабильная высота viewport из Telegram */
