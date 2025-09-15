@@ -475,7 +475,7 @@ async function initializeRentalSystem() {
                 <div class="progress-labels"><span>В аренде</span><span>Осталось ~${daysLeft} д.</span></div>
             </div>
             <div class="info-cards">
-                <div class="card"><div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div><div class="text-content"><span>Свободных</span><strong id="available-bikes-count">99</strong></div></div>
+                <div class="card"><div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div><div class="text-content"><span>Свободных</span><strong id="available-bikes-count">...</strong></div></div>
                 <div class="card" id="balance-card"><div class="icon-wrapper dollar"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div><div class="text-content"><span>Баланс</span><strong id="balance-amount">... ₽</strong></div></div>
             </div>
             <div class="action-buttons" style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
@@ -556,7 +556,7 @@ async function initializeRentalSystem() {
             </div>
             <h2>Найти и арендовать электровелосипед рядом.</h2>
             <div class="info-cards">
-                <div class="card"><div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div><div class="text-content"><span>Свободных</span><strong id="available-bikes-count">100</strong></div></div>
+                <div class="card"><div class="icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div><div class="text-content"><span>Свободных</span><strong id="available-bikes-count">...</strong></div></div>
                 <div class="card" id="balance-card"><div class="icon-wrapper dollar"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div><div class="text-content"><span>Баланс</span><strong id="balance-amount">0 ₽</strong></div></div>
             </div>
             <div class="action-buttons">
@@ -580,7 +580,7 @@ async function initializeRentalSystem() {
     try {
         const { data: client, error } = await supabase
             .from('clients')
-            .select('verification_status, name, balance_rub') // <-- ИЗМЕНЕНИЕ 1
+            .select('verification_status, name, balance_rub, city') // <-- ИЗМЕНЕНИЕ 1
             .eq('id', userId)
             .single();
 
@@ -626,8 +626,10 @@ async function initializeRentalSystem() {
                         renderDefaultView(mainContent);
                         initializeMainScreenEventListeners();
                 }
+                loadAvailableBikesCount(client.city);
             } else {
                 renderDefaultView(mainContent);
+                loadAvailableBikesCount(client.city);
                 initializeMainScreenEventListeners();
                 (function(){
                     const _scanBtn = document.getElementById('scan-qr-btn');
@@ -717,6 +719,19 @@ async function initializeRentalSystem() {
         appHeader.classList.add('header-centered');
         appHeader.querySelector('h1').textContent = `Ошибка`;
         mainContent.innerHTML = `<h2 style="text-align: center; color: red; padding-top: 40px;">Ошибка загрузки данных. Попробуйте позже.</h2>`;
+    }
+}
+
+async function loadAvailableBikesCount(userCity) {
+    if (!userCity) return;
+    const { data: bikes, error } = await supabase
+        .from('bikes')
+        .select('id')
+        .eq('city', userCity)
+        .eq('status', 'available');
+    if (!error && bikes) {
+        const countEl = document.getElementById('available-bikes-count');
+        if (countEl) countEl.textContent = bikes.length;
     }
 }
 

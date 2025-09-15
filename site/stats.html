@@ -166,21 +166,23 @@
             }
 
             // --- Logic for Graph Bars ---
-            const weeklySpending = Array(7).fill(0); // 0=Monday, ..., 6=Sunday
+            const weeklySpending = Array(7).fill(0); // 0=6 days ago, ..., 6=today
             const today = new Date();
-            const startOfWeek = new Date(today);
-            startOfWeek.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1)); // Set to last Monday
-            startOfWeek.setHours(0, 0, 0, 0);
+            const sevenDaysAgo = new Date(today);
+            sevenDaysAgo.setDate(today.getDate() - 6); // 6 days ago to include today
+            sevenDaysAgo.setHours(0, 0, 0, 0);
 
             if (rentals) {
                 rentals.forEach(rental => {
                     const rentalDate = new Date(rental.created_at);
-                    if (rentalDate >= startOfWeek) {
-                        let dayIndex = rentalDate.getDay(); // Sunday is 0
-                        dayIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Monday is 0, Sunday is 6
-                        const amount = rental.total_rub || 0;
-                        if (amount > 0) {
-                            weeklySpending[dayIndex] += amount;
+                    if (rentalDate >= sevenDaysAgo) {
+                        const daysDiff = Math.floor((today - rentalDate) / (1000 * 60 * 60 * 24));
+                        if (daysDiff >= 0 && daysDiff < 7) {
+                            const dayIndex = 6 - daysDiff; // 0 = 6 days ago, 6 = today
+                            const amount = rental.total_rub || 0;
+                            if (amount > 0) {
+                                weeklySpending[dayIndex] += amount;
+                            }
                         }
                     }
                 });
@@ -191,11 +193,11 @@
             weeklySpending.forEach((amount, index) => {
                 const bar = document.getElementById(`day-${index}`);
                 if (bar) {
-                    const heightPercentage = (amount / maxSpending) * 100;
+                    const heightPercentage = Math.max((amount / maxSpending) * 100, 5); // Minimum 5% to show something
                     bar.style.height = `${heightPercentage}%`;
                     // Clear previous active state
                     bar.classList.remove('active');
-                    if (index === (today.getDay() === 0 ? 6 : today.getDay() - 1)) {
+                    if (index === 6) { // Today
                         bar.classList.add('active');
                     }
                 }

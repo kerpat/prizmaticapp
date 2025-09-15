@@ -69,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const bikeIdInput = document.getElementById('bike-id');
     const bikeCodeInput = document.getElementById('bike-code');
     const bikeModelInput = document.getElementById('bike-model');
+    const bikeCitySelect = document.getElementById('bike-city');
     const bikeStatusSelect = document.getElementById('bike-status');
     const bikeCancelBtn = document.getElementById('bike-cancel-btn');
 
@@ -530,6 +531,7 @@ document.addEventListener('DOMContentLoaded', () => {
             bikeIdInput.value = bike.id;
             bikeCodeInput.value = bike.bike_code;
             bikeModelInput.value = bike.model_name;
+            bikeCitySelect.value = bike.city || '';
             bikeStatusSelect.value = bike.status;
         } else {
             bikeFormTitle.textContent = 'Новый велосипед';
@@ -547,13 +549,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadBikes() {
         if (!bikesTableBody) return;
-        bikesTableBody.innerHTML = '<tr><td colspan="5">Загрузка...</td></tr>';
+        bikesTableBody.innerHTML = '<tr><td colspan="6">Загрузка...</td></tr>';
         try {
             const { data, error } = await supabase.from('bikes').select('*').order('id', { ascending: true });
             if (error) throw error;
             bikesTableBody.innerHTML = '';
             if (!data || data.length === 0) {
-                bikesTableBody.innerHTML = '<tr><td colspan="5">Велосипеды еще не добавлены.</td></tr>';
+                bikesTableBody.innerHTML = '<tr><td colspan="6">Велосипеды еще не добавлены.</td></tr>';
                 return;
             }
             data.forEach(bike => {
@@ -562,6 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${bike.id}</td>
                     <td>${bike.bike_code}</td>
                     <td>${bike.model_name || ''}</td>
+                    <td>${bike.city || ''}</td>
                     <td>${bike.status}</td>
                     <td class="table-actions">
                         <button type="button" class="edit-bike-btn" data-id="${bike.id}">Ред.</button>
@@ -571,7 +574,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (err) {
             console.error('Ошибка загрузки велосипедов:', err);
-            bikesTableBody.innerHTML = `<tr><td colspan="5">Ошибка: ${err.message}</td></tr>`;
+            bikesTableBody.innerHTML = `<tr><td colspan="6">Ошибка: ${err.message}</td></tr>`;
         }
     }
 
@@ -589,6 +592,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const bikeData = {
                 bike_code: bikeCodeInput.value,
                 model_name: bikeModelInput.value,
+                city: bikeCitySelect.value,
                 status: bikeStatusSelect.value,
             };
 

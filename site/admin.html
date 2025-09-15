@@ -463,6 +463,7 @@
             <th>ID</th>
             <th>Код</th>
             <th>Модель</th>
+            <th>Город</th>
             <th>Статус</th>
             <th>Действия</th>
           </tr>
@@ -480,6 +481,13 @@
           <div class="form-group">
               <label for="bike-model">Модель</label>
               <input type="text" id="bike-model" placeholder="Например: Trek FX 2" required>
+          </div>
+          <div class="form-group">
+            <label for="bike-city">Город</label>
+            <select id="bike-city" class="form-control" required>
+                <option value="Москва">Москва</option>
+                <option value="Санкт-Петербург">Санкт-Петербург</option>
+            </select>
           </div>
           <div class="form-group">
             <label for="bike-status">Статус</label>
