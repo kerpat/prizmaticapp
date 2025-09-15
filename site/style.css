@@ -54,6 +54,7 @@ body {
   display: flex;
   flex-direction: column;
   padding: 28px;
+  padding-bottom: 100px; /* Account for fixed bottom nav */
   gap: 20px;
   overflow-y: auto;
   overflow-x: hidden; /* Дополнительно: Нет горизонтального скролла внутри */
@@ -614,7 +615,10 @@ body.tg-webapp .app-main h2,
   align-items: center;
   margin: 20px;
   flex-shrink: 0;
-  position: relative;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   z-index: 12;
   /* Внутренне учитываем безопасную зону, чтобы элемент был внизу без внешнего зазора */
   padding-bottom: calc(12px + var(--safe-bottom));
@@ -1520,12 +1524,15 @@ select.form-control:focus {
 }
 .app-content {
   padding: 20px;
+  padding-bottom: 100px; /* Account for fixed bottom nav */
 }
 .bottom-nav {
   margin: 0; /* Убираем отступы у нижнего меню, чтобы приклеить к низу */
   margin-bottom: 0;
   padding: 6px; /* Минимальный внутренний отступ */
   padding-bottom: calc(6px + var(--safe-bottom));
+  left: 0;
+  right: 0;
 }
 
 @media (min-height: 850px) and (min-width: 420px) {
