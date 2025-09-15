@@ -7,6 +7,9 @@
   --card-bg: #f0fdf9;
   --white: #ffffff;
   --progress-bar-bg: #eaf0f0;
+  /* Layout helpers */
+  --app-top-offset: calc(25px + var(--tg-safe-area-inset-top, 0px));
+  --safe-bottom: var(--tg-content-safe-area-inset-bottom, var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
 }
 
 * {
@@ -20,10 +23,11 @@ body {
   background-color: var(--tg-theme-bg-color, var(--primary-green)); /* Синхронизация с Telegram-темой */
   display: flex;
   justify-content: center;
-  align-items: center; /* Центрирование по вертикали, чтобы отступы сверху/снизу были равными */
+  align-items: stretch; /* Растягиваем по вертикали, чтобы приложение могло упираться в низ */
   min-height: 100vh;
   margin: 0;
-  padding: calc(25px + var(--tg-safe-area-inset-top, 0px)) 10px calc(25px + var(--tg-safe-area-inset-bottom, 0px)); /* ТОП И НИЗ: Отступы сверху/снизу, ПО БОКАМ: Маленький padding, чтобы не прилипало, но полный размер */
+  /* Сверху оставляем безопасную зону, снизу убираем, чтобы нижняя навигация доходила до края */
+  padding: var(--app-top-offset) 10px 0; /* top | sides | bottom */
   overflow-x: hidden; /* ЗАПРЕТ ГОРИЗОНТАЛЬНОГО СКРОЛЛА: Нет мота влево-вправо, всё ровненько */
 }
 
@@ -33,12 +37,13 @@ body {
   background-color: var(--tg-theme-secondary-bg-color, var(--white));
   border-radius: 25px; /* Скругление для стиля, но не мешает */
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-  height: 80vh; /* ТОП И НИЗ: Не на весь экран, отступы сверху/снизу */
-  max-height: 700px; /* Ограничение высоты */
+  /* Высота = высота окна минус верхний отступ/инсет, чтобы низ упирался в край */
+  height: calc(var(--tg-viewport-stable-height, 100vh) - var(--app-top-offset));
+  max-height: none; /* Без искусственного ограничения */
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  margin: auto; /* Центрирование */
+  margin: 0 auto; /* Центрирование по горизонтали без вертикальных отступов */
 }
 
 .app-content, .map-page-container {
@@ -582,7 +587,8 @@ body {
   flex-shrink: 0;
   position: relative;
   z-index: 12;
-  margin-bottom: var(--tg-safe-area-inset-bottom, 0px); /* Учёт Telegram-нижнего бара */
+  /* Внутренне учитываем безопасную зону, чтобы элемент был внизу без внешнего зазора */
+  padding-bottom: calc(12px + var(--safe-bottom));
 }
 
 .nav-item {
@@ -1487,6 +1493,7 @@ select.form-control:focus {
     margin: 0; /* Убираем отступы у нижнего меню, чтобы приклеить к низу */
     margin-bottom: 0;
     padding: 6px; /* Минимальный внутренний отступ */
+    padding-bottom: calc(6px + var(--safe-bottom));
   }
 }
 
