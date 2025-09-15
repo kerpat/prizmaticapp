@@ -313,6 +313,8 @@ body.tg-webapp .app-main h2,
 
 .bar.active {
   background-color: var(--icon-green);
+  box-shadow: 0 2px 8px rgba(38, 185, 153, 0.4);
+  transform: scaleY(1.1);
 }
 
 .day {
@@ -422,8 +424,39 @@ body.tg-webapp .app-main h2,
   height: 100%;
 }
 
-[class="copyrights-pane"], [class*="gotoymaps"] {
-  display: none !important;
+/* Full screen map for map.html */
+body:has(.map-page-container) .app-screen {
+  border-radius: 0 !important;
+  max-width: 100% !important;
+  height: 100vh !important;
+  max-height: none !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+}
+
+body:has(.map-page-container) .map-page-container {
+  height: 100vh !important;
+  position: relative !important;
+}
+
+body:has(.map-page-container) #map {
+  height: 100vh !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+}
+
+
+/* Более агрессивный и надежный способ скрыть панель с копирайтами и ссылками Яндекса */
+[class*="copyrights-pane"], 
+[class*="gotoymaps"], 
+[class*="ymaps-2"][class*="-copyrights"] {
+    display: none !important;
 }
 
 .recenter-btn {
@@ -458,7 +491,7 @@ body.tg-webapp .app-main h2,
   border-top-left-radius: 30px;
   border-top-right-radius: 30px;
   box-shadow: 0 -5px 30px rgba(0,0,0,0.15);
-  z-index: 11;
+  z-index: 1600;
   transition: bottom 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   display: flex;
   flex-direction: column;
@@ -1406,7 +1439,7 @@ select.form-control:focus {
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  z-index: 1000;
+  z-index: 2000;
   padding: 20px;
 }
 
@@ -1561,4 +1594,7 @@ select.form-control:focus {
     padding-top: var(--app-top-offset);
   }
 }
-
+/* Убираем лишний верхний отступ на странице с картой */
+body:has(.map-page-container) .app-screen {
+  padding-top: 0 !important;
+}

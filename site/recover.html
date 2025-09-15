@@ -171,37 +171,74 @@
 <script>
     const SUPABASE_URL = "https://avamqfmuhiwtlumjkzmv.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I";
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const recoverViaSupportBtn = document.getElementById('recover-via-support');
-    const supportModal = document.getElementById('support-modal');
-    const chatHistory = document.getElementById('chat-history');
-    const chatInput = document.getElementById('chat-input');
-    const sendChatBtn = document.getElementById('send-chat-btn');
-
+    let supabase = null;
+    let recoverViaSupportBtn = null;
+    let supportModal = null;
+    let chatHistory = null;
+    let chatInput = null;
+    let sendChatBtn = null;
     let anonymousChatId = null;
     let supportChatSubscription = null;
 
-    // --- Логика чата ---
-    recoverViaSupportBtn.addEventListener('click', () => {
-        supportModal.classList.remove('hidden');
-        if (!localStorage.getItem('anonymousChatId')) {
-            localStorage.setItem('anonymousChatId', `anon_${crypto.randomUUID()}`);
+    // Инициализация после загрузки DOM и Supabase
+    function initializeSupportChat() {
+        if (!window.supabase) {
+            console.error('Supabase not loaded');
+            return;
         }
-        anonymousChatId = localStorage.getItem('anonymousChatId');
-        loadAnonymousChatHistory();
-    });
 
-    supportModal.querySelector('.modal-close').addEventListener('click', () => {
-        supportModal.classList.add('hidden');
-        if (supportChatSubscription) {
-            supabase.removeChannel(supportChatSubscription);
-            supportChatSubscription = null;
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        recoverViaSupportBtn = document.getElementById('recover-via-support');
+        supportModal = document.getElementById('support-modal');
+        chatHistory = document.getElementById('chat-history');
+        chatInput = document.getElementById('chat-input');
+        sendChatBtn = document.getElementById('send-chat-btn');
+
+        // Проверяем, что все элементы найдены
+        if (!recoverViaSupportBtn || !supportModal || !chatHistory || !chatInput || !sendChatBtn) {
+            console.error('Some DOM elements not found');
+            return;
         }
-    });
 
+        // Добавляем обработчики событий
+        recoverViaSupportBtn.addEventListener('click', () => {
+            supportModal.classList.remove('hidden');
+            if (!localStorage.getItem('anonymousChatId')) {
+                localStorage.setItem('anonymousChatId', `anon_${crypto.randomUUID()}`);
+            }
+            anonymousChatId = localStorage.getItem('anonymousChatId');
+            loadAnonymousChatHistory();
+        });
+
+        supportModal.querySelector('.modal-close').addEventListener('click', () => {
+            supportModal.classList.add('hidden');
+            if (supportChatSubscription) {
+                supabase.removeChannel(supportChatSubscription);
+                supportChatSubscription = null;
+            }
+        });
+
+        sendChatBtn.addEventListener('click', () => {
+            const text = chatInput.value.trim();
+            if (text) {
+                addChatMessage(text, 'user', new Date(), false);
+                chatInput.value = '';
+            }
+        });
+
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendChatBtn.click();
+            }
+        });
+    }
+
+    // Функции чата (должны быть определены до инициализации)
     async function loadAnonymousChatHistory() {
-        if (!anonymousChatId) return;
+        if (!anonymousChatId || !supabase) return;
         chatHistory.innerHTML = '<p style="text-align:center;">Загрузка истории...</p>';
         const { data, error } = await supabase.from('support_messages').select('*').eq('anonymous_chat_id', anonymousChatId).order('created_at', { ascending: true });
         chatHistory.innerHTML = '';
@@ -246,10 +283,10 @@
     async function addChatMessage(text, sender, timestamp, isSilent = false) {
         const time = timestamp ? timestamp.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) : '';
         const messageEl = document.createElement('div');
-        
+
         const senderClass = (sender === 'admin' || sender === 'support') ? 'support' : 'user';
         messageEl.className = `chat-message ${senderClass}-message`;
-        
+
         messageEl.innerHTML = `
             <div class="message-text">${text}</div>
             <div class="message-timestamp">${time}</div>
@@ -257,7 +294,7 @@
         chatHistory.appendChild(messageEl);
         chatHistory.scrollTop = chatHistory.scrollHeight;
 
-        if (!isSilent) {
+        if (!isSilent && supabase) {
             try {
                 const { error } = await supabase.from('support_messages').insert({ anonymous_chat_id: anonymousChatId, sender: 'user', message_text: text });
                 if (error) throw error;
@@ -269,14 +306,30 @@
         }
     }
 
-    sendChatBtn.addEventListener('click', () => {
-        const text = chatInput.value.trim();
-        if (text) {
-            addChatMessage(text, 'user', new Date(), false);
-            chatInput.value = '';
-        }
-    });
-    chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); sendChatBtn.click(); } });
+    // Инициализация после загрузки страницы
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            // Ждем загрузки Supabase
+            const checkSupabase = () => {
+                if (window.supabase) {
+                    initializeSupportChat();
+                } else {
+                    setTimeout(checkSupabase, 100);
+                }
+            };
+            checkSupabase();
+        });
+    } else {
+        const checkSupabase = () => {
+            if (window.supabase) {
+                initializeSupportChat();
+            } else {
+                setTimeout(checkSupabase, 100);
+            }
+        };
+        checkSupabase();
+    }
+
 </script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {

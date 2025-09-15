@@ -13,6 +13,9 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="blend.css">
 
+    <!-- Supabase for user data -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
+
     
 
     <script src="transitions.js" defer></script>
@@ -130,19 +133,50 @@
         });
     });
 
-    // --- ЛОГИКА КАРТЫ (ЗАПУСКАЕТСЯ, КОГДА API ГОТОВ) ---
-    ymaps.ready(initMap);
+    // --- Supabase initialization ---
+    const SUPABASE_URL = 'https://avamqfmuhiwtlumjkzmv.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2YW1xZm11aGl3dGx1bWprem12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NjMyODcsImV4cCI6MjA3MjIzOTI4N30.EwEPM0pObAd3v_NXI89DLcgKVYrUiOn7iHuCXXaqU4I';
+    let supabase = null;
 
-    function initMap() {
-        const userCoords = [58.010841, 56.201218];
-        const userAddress = "ул. Окулова, 62";
+    // Wait for Supabase to load
+    function initSupabase() {
+        if (window.supabase && window.supabase.createClient) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } else {
+            // Retry after a short delay
+            setTimeout(initSupabase, 100);
+        }
+    }
+    initSupabase();
+
+    // City data
+    const cityData = {
+        'Москва': {
+            coords: [55.705072, 37.598672],
+            address: '5й Донской проезд д15с13',
+            zoom: 14
+        },
+        'Санкт-Петербург': {
+            coords: [59.923419, 30.362895],
+            address: 'Лиговский проспект д.50 Н',
+            zoom: 14
+        }
+    };
+
+    // --- ЛОГИКА КАРТЫ (ЗАПУСКАЕТСЯ, КОГДА API ГОТОВ) ---
+    function initMapWithData(userCity) {
+        const cityInfo = cityData[userCity] || cityData['Москва'];
         const bikePointData = {
-            coords: [58.0093, 56.2378],
-            address: "ул. Луначарского, 51",
+            coords: cityInfo.coords,
+            address: cityInfo.address,
             bikes: 100
         };
 
-        let myMap = new ymaps.Map('map', { center: userCoords, zoom: 14, controls: [] });
+        let myMap = new ymaps.Map('map', {
+            center: cityInfo.coords,
+            zoom: cityInfo.zoom,
+            controls: []
+        });
 
         const infoCard = document.getElementById('bike-info-card');
         const cardAddress = document.getElementById('card-address');
@@ -161,13 +195,27 @@
             '</div>'
         );
 
-        const userPlacemark = new ymaps.Placemark(userCoords, {
-            balloonContent: `<strong>Моя позиция:</strong><br>${userAddress}`
-        }, {
-            iconLayout: UserIconLayout,
-            iconOffset: [-13, -36]
-        });
-        myMap.geoObjects.add(userPlacemark);
+        // Add user location placemark (will be updated with geolocation)
+        let userPlacemark = null;
+
+        // Try to get user's current location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userCoords = [position.coords.latitude, position.coords.longitude];
+                    userPlacemark = new ymaps.Placemark(userCoords, {
+                        balloonContent: `<strong>Моя позиция</strong>`
+                    }, {
+                        iconLayout: UserIconLayout,
+                        iconOffset: [-13, -36]
+                    });
+                    myMap.geoObjects.add(userPlacemark);
+                },
+                (error) => {
+                    console.log('Geolocation error:', error);
+                }
+            );
+        }
 
         const bikePlacemark = new ymaps.Placemark(bikePointData.coords, {
             balloonContent: `<strong>${bikePointData.address}</strong><br>Свободно: ${bikePointData.bikes} велосипедов`
@@ -207,18 +255,22 @@
             cardAddress.textContent = bikePointData.address;
             cardBikes.textContent = bikePointData.bikes;
             infoCard.classList.add('visible');
-            plotRouteBetweenPoints(userCoords, bikePointData.coords);
+            // Use user's current location or city center for routing
+            const startCoords = userPlacemark ? userPlacemark.geometry.getCoordinates() : cityInfo.coords;
+            plotRouteBetweenPoints(startCoords, bikePointData.coords);
         });
 
         routeButton.addEventListener('click', () => {
             infoCard.classList.remove('visible');
-            const zoomToUser = () => myMap.setCenter(userCoords, 17, { duration: 800, checkZoomRange: true });
-            if (currentRoute) { zoomToUser(); }
-            else { plotRouteBetweenPoints(userCoords, bikePointData.coords, zoomToUser); }
+            const startCoords = userPlacemark ? userPlacemark.geometry.getCoordinates() : cityInfo.coords;
+            const zoomToStart = () => myMap.setCenter(startCoords, 17, { duration: 800, checkZoomRange: true });
+            if (currentRoute) { zoomToStart(); }
+            else { plotRouteBetweenPoints(startCoords, bikePointData.coords, zoomToStart); }
         });
 
         recenterBtn.addEventListener('click', () => {
-            myMap.setCenter(userCoords, 14);
+            const centerCoords = userPlacemark ? userPlacemark.geometry.getCoordinates() : cityInfo.coords;
+            myMap.setCenter(centerCoords, 14);
             infoCard.classList.remove('visible');
             if (currentRoute) {
                 myMap.geoObjects.remove(currentRoute);
@@ -226,10 +278,31 @@
             }
         });
     }
+
+    ymaps.ready(async function() {
+        const userId = localStorage.getItem('userId');
+        let userCity = 'Москва'; // default
+
+        if (userId && supabase) {
+            try {
+                const { data: client, error } = await supabase
+                    .from('clients')
+                    .select('city')
+                    .eq('id', userId)
+                    .single();
+                if (!error && client && client.city) {
+                    userCity = client.city;
+                }
+            } catch (err) {
+                console.error('Error fetching user city:', err);
+            }
+        }
+
+        // Initialize map with user city data
+        initMapWithData(userCity);
+    });
 </script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
     <script src="menu.js" defer></script>
-    <script defer src="../../../assets/enhance.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         // Проверяем, что API Telegram доступен

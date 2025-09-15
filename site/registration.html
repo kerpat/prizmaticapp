@@ -14,6 +14,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js" defer></script>
   <script src="transitions.js" defer></script>
 
+  <!-- IMask.js для масок ввода -->
+  <script src="https://unpkg.com/imask"></script>
+
   <!-- ОСНОВНЫЕ СТИЛИ И СТИЛИ ФОРМЫ -->
   <style>
     :root{
@@ -95,9 +98,29 @@
     .form-separator { text-align: center; color: #a0b5b1; font-weight: 500; margin: 20px 0 10px;
         border: 0; border-top: 1px solid #eaf0f0; }
     .form-separator p { background: var(--white); padding: 0 10px; transform: translateY(-50%); display: inline-block; }
+
+    /* --- Стили ТОЛЬКО для полноэкранных страниц, как регистрация --- */
+
+    /* Убираем внешние отступы у body */
+    body.fullscreen-form {
+        padding: 0;
+        align-items: stretch; /* Растягиваем контейнер на всю высоту */
+    }
+
+    /* Растягиваем сам контейнер и убираем рамки/тень */
+    body.fullscreen-form .app-screen {
+        max-width: 100%;
+        height: 100vh;
+        border-radius: 0;
+        box-shadow: none;
+
+        /* Важно: возвращаем верхний отступ внутрь контейнера,
+           чтобы сам контент не лез под "челку" телефона */
+        padding-top: var(--app-top-offset);
+    }
   </style>
 </head>
-<body>
+<body class="fullscreen-form">
 <div class="app-screen">
   <div class="app-content">
     <header class="app-header">
@@ -117,6 +140,10 @@
             <div class="form-group">
                 <label for="phone">Номер телефона</label>
                 <input type="tel" id="phone" placeholder="+7 (___) ___-__-__" required />
+            </div>
+            <div class="form-group">
+                <label for="birth-date">Дата рождения</label>
+                <input type="tel" id="birth-date" placeholder="ДД.ММ.ГГГГ" required />
             </div>
             <div class="form-group">
                 <label for="city-select">Город работы</label>
@@ -165,9 +192,9 @@
                     </label>
                 </div>
                 <div class="form-group">
-                    <label for="ru-inn">ИНН (12 цифр)</label>
-                    <input type="tel" id="ru-inn" placeholder="Введите ваш ИНН" />
-                </div>
+                     <label for="ru-inn">ИНН (12 цифр)</label>
+                     <input type="tel" id="ru-inn" placeholder="1234 567890" />
+                 </div>
             </div>
 
             <!-- Блок 3: Документы для иностранных граждан -->
@@ -223,6 +250,23 @@
                         <span id="patent-receipt-filename" class="file-name">Файл не выбран</span>
                     </div>
                 </div>
+            </div>
+
+            <!-- Опциональные поля в конце -->
+            <div class="form-separator"><p>Дополнительные документы (необязательно)</p></div>
+
+            <div class="form-group">
+                <label>Водительское удостоверение</label>
+                <div class="file-upload-wrapper">
+                    <label for="drivers-license-file" class="file-upload-label">Выберите файл</label>
+                    <input type="file" id="drivers-license-file" class="file-upload-input" accept="image/*,application/pdf" />
+                    <span id="drivers-license-file-filename" class="file-name">Файл не выбран</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="emergency-contact-phone">Телефон экстренного контакта</label>
+                <input type="tel" id="emergency-contact-phone" placeholder="+7 (___) ___-__-__" />
             </div>
 
             <div id="reg-validation-error" class="validation-message"></div>
@@ -378,6 +422,22 @@
     }
   });
 
+  // Обработчик для водительского удостоверения
+  const driversLicenseFileInput = document.getElementById('drivers-license-file');
+  if (driversLicenseFileInput) {
+      driversLicenseFileInput.addEventListener('change', function() {
+          const fileNameSpan = document.getElementById('drivers-license-file-filename');
+          if (fileNameSpan) {
+              fileNameSpan.textContent = this.files[0] ? this.files[0].name : 'Файл не выбран';
+          }
+      });
+  }
+
+  // Форматирование телефона экстренного контакта
+  const emergencyContactPhoneInput = document.getElementById('emergency-contact-phone');
+  if (emergencyContactPhoneInput) {
+  }
+
   function toggleFields(showIds = [], hideIds = []) {
     showIds.forEach(id => document.getElementById(id)?.classList.remove('hidden'));
     hideIds.forEach(id => document.getElementById(id)?.classList.add('hidden'));
@@ -389,10 +449,11 @@
     allInputs.forEach(i => i.required = false); // Сбрасываем required у всех
 
     // Восстанавливаем required для базовых полей
-    nameInput.required = true;
-    phoneInput.required = true;
-    document.getElementById('city-select').required = true;
-    countrySelect.required = true;
+    if (nameInput) nameInput.required = true;
+    if (phoneInput) phoneInput.required = true;
+    const citySelect = document.getElementById('city-select');
+    if (citySelect) citySelect.required = true;
+    if (countrySelect) countrySelect.required = true;
     
     switch (country) {
         case 'ru':
@@ -498,10 +559,11 @@
   async function finalizeRegistration(regData) {
       toggleButtonLoading(submitBtn, true, "Далее", "Сохраняем данные...");
       try {
-          const name = nameInput.value.trim();
-          const phone = phoneInput.value.trim();
-          const city = document.getElementById('city-select').value;
-          const citizenship = document.getElementById('country-select').value;
+          const name = nameInput?.value?.trim() || '';
+          const phone = phoneInput?.value?.trim() || '';
+          const city = document.getElementById('city-select')?.value || '';
+          const citizenship = document.getElementById('country-select')?.value || '';
+          const emergencyContactPhone = document.getElementById('emergency-contact-phone')?.value?.trim() || '';
           const filesToUpload = [
               { id: 'ru-passport-main', description: 'ru_passport_main' },
               { id: 'ru-passport-reg', description: 'ru_passport_reg' },
@@ -509,10 +571,12 @@
               { id: 'foreign-passport-back', description: 'foreign_passport_back' },
               { id: 'patent-front', description: 'patent_front' },
               { id: 'patent-back', description: 'patent_back' },
-              { id: 'patent-receipt', description: 'patent_receipt' }
-          ].map(f => ({ file: document.getElementById(f.id).files[0], description: f.description })).filter(f => f.file);
+              { id: 'patent-receipt', description: 'patent_receipt' },
+              { id: 'drivers-license-file', description: 'drivers_license' }
+          ].map(f => ({ file: document.getElementById(f.id)?.files?.[0], description: f.description })).filter(f => f.file);
           const extraData = {
               citizenship: citizenship, city: city,
+              emergency_contact_phone: emergencyContactPhone,
               recognized_data: regData.recognizedData || {}, migrant_info: {}
           };
           if (citizenship === 'ru') {
@@ -556,23 +620,78 @@
   }
 
   // ===== INVESTOR VIEW & MASKS =====
-  investorLink.addEventListener("click", () => {
-    registrationView.classList.add("hidden");
-    mainTitle.classList.add("hidden");
-    investorView.classList.remove("hidden");
-    investorTitle.classList.remove("hidden");
-  });
-  backToRegLink.addEventListener("click", () => {
-    investorView.classList.add("hidden");
-    investorTitle.classList.add("hidden");
-    registrationView.classList.remove("hidden");
-    mainTitle.classList.remove("hidden");
-  });
-  phoneInput.addEventListener("input", (e) => {
-    const x = e.target.value.replace(/\D/g, "").match(/(\d{0,1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})/);
-    if (!x) return;
-    e.target.value = !x[2] ? (x[1] ? `+${x[1]}`: '') : `+${x[1]} (${x[2]}) ${x[3]}${x[4] ? `-${x[4]}` : ''}${x[5] ? `-${x[5]}` : ''}`;
-  });
+  // Обработчики для инвестора (элементы могут отсутствовать)
+  const investorLinkEl = document.getElementById("investor-link");
+  if (investorLinkEl) {
+    investorLinkEl.addEventListener("click", () => {
+      registrationView.classList.add("hidden");
+      mainTitle.classList.add("hidden");
+      investorView.classList.remove("hidden");
+      investorTitle.classList.remove("hidden");
+    });
+  }
+
+  if (backToRegLink) {
+    backToRegLink.addEventListener("click", () => {
+      investorView.classList.add("hidden");
+      investorTitle.classList.add("hidden");
+      registrationView.classList.remove("hidden");
+      mainTitle.classList.remove("hidden");
+    });
+  }
+
+  // ===== МАСКИ ВВОДА (IMask.js) =====
+  // Применяем маски только к существующим элементам
+  const applyMasks = () => {
+    // Настройки для всех телефонов
+    const phoneMaskOptions = {
+      mask: '+7 (000) 000-00-00'
+    };
+
+    const phoneEl = document.getElementById('phone');
+    if (phoneEl) IMask(phoneEl, phoneMaskOptions);
+
+    const emergencyPhoneEl = document.getElementById('emergency-contact-phone');
+    if (emergencyPhoneEl) IMask(emergencyPhoneEl, phoneMaskOptions);
+
+    // Маска для даты рождения
+    const birthDateEl = document.getElementById('birth-date');
+    if (birthDateEl) {
+        IMask(birthDateEl, {
+            mask: '00.00.0000'
+        });
+    }
+
+    // Настройки для всех ИНН (12 цифр)
+    const innMaskOptions = {
+      mask: '0000 000000'
+    };
+
+    const ruInnEl = document.getElementById('ru-inn');
+    if (ruInnEl) IMask(ruInnEl, innMaskOptions);
+
+    const foreignInnEl = document.getElementById('foreign-inn');
+    if (foreignInnEl) IMask(foreignInnEl, innMaskOptions);
+
+    // Настройки для ИНН инвестора (12 цифр)
+    const investorInnEl = document.getElementById('investor-inn');
+    if (investorInnEl) IMask(investorInnEl, innMaskOptions);
+
+    // Настройки для паспорта инвестора (серия и номер)
+    const investorPassportEl = document.getElementById('investor-passport');
+    if (investorPassportEl) {
+      IMask(investorPassportEl, {
+        mask: '0000 000000'
+      });
+    }
+  };
+
+  // Применяем маски после загрузки DOM
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyMasks);
+  } else {
+    applyMasks();
+  }
   investorForm.addEventListener("submit", (event) => {
       event.preventDefault();
       if (!validateRequired(investorForm, "investor-validation-error")) return;

@@ -9,10 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="tg-safe-area.js"></script>
-    <script src="tg-adapt.js"></script>
     <!-- Подключаем библиотеку Supabase до основного скрипта, чтобы window.supabase был доступен -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.41.0/dist/umd/supabase.min.js"></script>
 
     <script src="transitions.js" defer></script>
 </head>
@@ -139,90 +137,96 @@
             topup: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`
         };
 
-        // === ЗАГРУЗКА ИСТОРИИ ИЗ SUPABASE ===
+        // === ЗАГРУЗКА ИСТОРИИ ИЗ SUPABASE (ИСПРАВЛЕННАЯ ВЕРСИЯ) ===
         async function loadTripHistory() {
+            // --- ШАГ 1: Всегда рисовать пустой график ---
+            // Это гарантирует, что UI всегда будет выглядеть консистентно.
+            const weeklySpending = Array(7).fill(0);
+            weeklySpending.forEach((amount, index) => {
+                const bar = document.getElementById(`day-${index}`);
+                if (bar) {
+                    bar.style.height = '5%'; // Минимальная высота, чтобы было видно столбики
+                    bar.classList.remove('active');
+                    if (index === 6) { // Подсвечиваем "сегодня"
+                        bar.classList.add('active');
+                    }
+                }
+            });
+
+            // --- ШАГ 2: Проверить пользователя ---
             const userId = localStorage.getItem('userId');
             if (!userId) {
                 console.error("User ID not found, can't load history.");
                 historyContainer.innerHTML = '<p class="empty-history">Не удалось определить пользователя.</p>';
                 totalDaysEl.textContent = '0';
                 totalDistanceEl.textContent = '0.0 км';
-                return;
+                return; // Выходим, но пустой график уже нарисован
             }
-            // Показываем сообщение о загрузке
-            historyContainer.innerHTML = '<p>Загрузка истории...</p>';
-            // Загружаем аренды из Supabase, включая название тарифа
+
+            // --- ШАГ 3: Если пользователь есть, загружаем и отображаем данные ---
+            historyContainer.innerHTML = '<p class="empty-history">Загрузка истории...</p>';
+
             const { data: rentals, error } = await supabase
                 .from('rentals')
                 .select('id, user_id, tariff_id, starts_at, ends_at, status, total_rub, created_at, tariffs ( title )')
                 .eq('user_id', userId)
                 .order('created_at', { ascending: false });
+
             if (error) {
                 console.error('Ошибка загрузки истории:', error);
                 historyContainer.innerHTML = '<p class="empty-history">Не удалось загрузить историю поездок.</p>';
-                totalDaysEl.textContent = '0';
-                totalDistanceEl.textContent = '0.0 км';
                 return;
             }
 
-            // --- Logic for Graph Bars ---
-            const weeklySpending = Array(7).fill(0); // 0=6 days ago, ..., 6=today
-            const today = new Date();
-            const sevenDaysAgo = new Date(today);
-            sevenDaysAgo.setDate(today.getDate() - 6); // 6 days ago to include today
-            sevenDaysAgo.setHours(0, 0, 0, 0);
-
-            if (rentals) {
-                rentals.forEach(rental => {
-                    const rentalDate = new Date(rental.created_at);
-                    if (rentalDate >= sevenDaysAgo) {
-                        const daysDiff = Math.floor((today - rentalDate) / (1000 * 60 * 60 * 24));
-                        if (daysDiff >= 0 && daysDiff < 7) {
-                            const dayIndex = 6 - daysDiff; // 0 = 6 days ago, 6 = today
-                            const amount = rental.total_rub || 0;
-                            if (amount > 0) {
-                                weeklySpending[dayIndex] += amount;
-                            }
-                        }
-                    }
-                });
+            if (!rentals || rentals.length === 0) {
+                historyContainer.innerHTML = '<p class="empty-history">Здесь будет отображаться история ваших аренд и платежей. Пока что данных нет.</p>';
+                totalDaysEl.textContent = '0';
+                totalDistanceEl.textContent = '0.0 км';
+                return; // Выходим, пустой график уже на месте
             }
 
-            const maxSpending = Math.max(...weeklySpending, 1); // Avoid division by zero
+            // --- Обновляем график реальными данными ---
+            const today = new Date();
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(today.getDate() - 6);
+            sevenDaysAgo.setHours(0, 0, 0, 0);
 
-            weeklySpending.forEach((amount, index) => {
-                const bar = document.getElementById(`day-${index}`);
-                if (bar) {
-                    const heightPercentage = Math.max((amount / maxSpending) * 100, 5); // Minimum 5% to show something
-                    bar.style.height = `${heightPercentage}%`;
-                    // Clear previous active state
-                    bar.classList.remove('active');
-                    if (index === 6) { // Today
-                        bar.classList.add('active');
+            const realWeeklySpending = Array(7).fill(0);
+            rentals.forEach(rental => {
+                const rentalDate = new Date(rental.created_at);
+                if (rentalDate >= sevenDaysAgo) {
+                    const daysDiff = Math.floor((today - rentalDate) / (1000 * 60 * 60 * 24));
+                    if (daysDiff >= 0 && daysDiff < 7) {
+                        const dayIndex = 6 - daysDiff;
+                        const amount = rental.total_rub || 0;
+                        if (amount > 0) {
+                            realWeeklySpending[dayIndex] += amount;
+                        }
                     }
                 }
             });
-            // --- End of Graph Logic ---
-            if (!rentals || rentals.length === 0) {
-                historyContainer.innerHTML = '<p class="empty-history">История поездок и операций пуста.</p>';
-                totalDaysEl.textContent = '0';
-                totalDistanceEl.textContent = '0.0 км';
-                return;
-            }
-            // Считаем общее количество дней аренды
+
+            const maxSpending = Math.max(...realWeeklySpending, 1);
+            realWeeklySpending.forEach((amount, index) => {
+                const bar = document.getElementById(`day-${index}`);
+                if (bar) {
+                    const heightPercentage = Math.max((amount / maxSpending) * 100, 5);
+                    bar.style.height = `${heightPercentage}%`;
+                }
+            });
+
+            // --- Отображаем статистику и список ---
             let totalDays = 0;
             rentals.forEach(item => {
                 if (item.starts_at && item.ends_at) {
                     const start = new Date(item.starts_at);
                     const end = new Date(item.ends_at);
-                    const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-                    totalDays += diffDays;
+                    totalDays += Math.ceil((end - start) / (1000 * 60 * 60 * 24));
                 }
             });
             totalDaysEl.textContent = totalDays;
-            // Пока что общую дистанцию не считаем – оставим 0.0 км как заглушку
-            totalDistanceEl.textContent = '0.0 км';
-            // Очищаем контейнер и рендерим записи
+            totalDistanceEl.textContent = '0.0 км'; // Заглушка
+
             historyContainer.innerHTML = '';
             rentals.forEach(item => {
                 const tariffTitle = item.tariffs ? item.tariffs.title : '';
@@ -234,7 +238,7 @@
                             </div>
                             <div class="history-details">
                                 <span class="history-title">Аренда #${item.id}</span>
-                                <span class="history-subtitle">${tariffTitle ? tariffTitle : ''}${item.status ? ' – ' + item.status : ''}</span>
+                                <span class="history-subtitle">${tariffTitle}${item.status ? ' – ' + item.status : ''}</span>
                             </div>
                         </div>
                         <div class="history-cost">${item.total_rub || 0} ₽</div>
