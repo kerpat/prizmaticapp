@@ -1,0 +1,19 @@
+{
+  "name": "prizmatic-telegram-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for Prizmatic web app instructions",
+  "main": "telegram-bot.js",
+  "scripts": {
+    "start": "node telegram-bot.js",
+    "dev": "nodemon telegram-bot.js"
+  },
+  "dependencies": {
+    "node-telegram-bot-api": "^0.66.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "keywords": ["telegram", "bot", "prizmatic", "webapp"],
+  "author": "Prizmatic",
+  "license": "MIT"
+}

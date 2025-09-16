@@ -318,6 +318,7 @@
                     <span>Привязана</span>
                 </div>
             </div>
+            <button class="btn btn-secondary" id="unbind-card-btn" style="margin-top: 20px;">Отвязать карту</button>
         </div>
 
         <!-- Этот блок для тех, у кого карты нет -->
@@ -444,6 +445,7 @@
     const cardExpiryInput = document.getElementById('card-expiry-input');
     const cardCvcInput = document.getElementById('card-cvc-input');
     const deleteCardBtn = document.getElementById('delete-card-btn');
+    const unbindCardBtn = document.getElementById('unbind-card-btn');
 
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('card_saved') === 'true') {
@@ -632,6 +634,46 @@ if (addCardBtn) addCardBtn.addEventListener('click', async () => {
             deleteCardBtn.addEventListener('click', () => {
                 localStorage.removeItem('userCard');
                 updateCardView();
+            });
+        }
+
+        // Функция для отвязки карты
+        if (unbindCardBtn) {
+            unbindCardBtn.addEventListener('click', async () => {
+                const userId = localStorage.getItem('userId');
+                if (!userId) {
+                    alert('Ошибка: не удалось определить пользователя.');
+                    return;
+                }
+
+                // Подтверждение действия
+                if (!confirm('Вы уверены, что хотите отвязать карту? Это действие нельзя отменить.')) {
+                    return;
+                }
+
+                unbindCardBtn.disabled = true;
+                unbindCardBtn.textContent = 'Отвязываем...';
+
+                try {
+                    // Обновляем запись в Supabase, устанавливая yookassa_payment_method_id в null
+                    const { error } = await supabase
+                        .from('clients')
+                        .update({ yookassa_payment_method_id: null })
+                        .eq('id', userId);
+
+                    if (error) {
+                        throw new Error('Не удалось отвязать карту: ' + error.message);
+                    }
+
+                    alert('Карта успешно отвязана.');
+                    updateCardView(); // Обновляем вид модального окна
+
+                } catch (error) {
+                    alert('Ошибка: ' + error.message);
+                } finally {
+                    unbindCardBtn.disabled = false;
+                    unbindCardBtn.textContent = 'Отвязать карту';
+                }
             });
         }
 
