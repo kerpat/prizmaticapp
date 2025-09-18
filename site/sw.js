@@ -1,7 +1,7 @@
 // Обновляем версию кэша, чтобы старые кэши были автоматически
 // заменены при развертывании новой версии приложения. При
 // добавлении новых ассетов нужно увеличивать номер.
-const CACHE_NAME = 'bike-app-cache-v4';
+const CACHE_NAME = 'bike-app-cache-v3';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -15,28 +15,26 @@ const urlsToCache = [
   '/investor_stats.html',
   '/style.css',
   '/blend.css',
-  // Prefer lightweight formats for hero image
-  '/bike-delivery.avif',
+  '/bike-delivery.png',
   '/bike-delivery.webp',
-  // App icons
+  '/bike-delivery.avif',
+  '/bike00001.png',
+  '/avatar.png',
   '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
-  // JS used across pages
-  '/menu.js',
-  '/transitions.js'
-  // Admin assets are not critical for first-load caching
+  '/icons/icon-512x512.png'
+  ,'/menu.js'
+  ,'/admin.html'
+  ,'/admin.js'
+  ,'/admin.css'
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(async cache => {
-      console.log('Opened cache');
-      // Add items individually so one failure doesn't abort the whole install
-      await Promise.all(
-        urlsToCache.map(url => cache.add(url).catch(err => console.warn('[SW] cache add failed', url, err)))
-      );
-      self.skipWaiting();
-    })
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log('Opened cache');
+        return cache.addAll(urlsToCache);
+      })
   );
 });
 
@@ -46,7 +44,7 @@ self.addEventListener('activate', event => {
     caches.keys().then(keys => Promise.all(
       keys.filter(k => k.startsWith('bike-app-cache-') && k !== CACHE_NAME)
           .map(k => caches.delete(k))
-    )).then(() => self.clients.claim())
+    ))
   );
 });
 

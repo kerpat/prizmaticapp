@@ -1,6 +1,3 @@
-[build]
-  publish = "site"
-
 [functions]
   # Указываем, где лежат наши функции
   directory = "netlify/functions/"
