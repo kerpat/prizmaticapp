@@ -317,7 +317,6 @@
 
 <!-- Основная логика -->
 <script type="module">
-  import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
   
   // ===== КОНФИГ =====
   const SUPABASE_URL = "https://avamqfmuhiwtlumjkzmv.supabase.co";
@@ -326,7 +325,6 @@
 
   // ===== ИНИЦИАЛИЗАЦИЯ =====
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
   // ===== ЭЛЕМЕНТЫ =====
   const registrationForm = document.getElementById("registration-form");
@@ -509,6 +507,8 @@
     if (photosForGemini.length > 0) {
         toggleButtonLoading(submitBtn, true, "Далее", "Анализируем документы...");
         try {
+            const { GoogleGenerativeAI } = await import("https://esm.run/@google/generative-ai");
+            const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
             const prompt = "Ты — система верификации документов. Извлеки из этих изображений паспорта данные в формате JSON: Фамилия, Имя, Отчество, Серия паспорта, Номер паспорта, Дата рождения, Место рождения, Кем выдан, Дата выдачи, Код подразделения, Адрес регистрации. Если каких-то данных нет, оставь поле пустым. Ответь строго JSON без пояснений.";
             
@@ -719,3 +719,4 @@
 </script>
 </body>
 </html>
+
